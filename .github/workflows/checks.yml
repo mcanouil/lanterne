@@ -1,0 +1,137 @@
+# @license MIT
+# @copyright 2026 Mickaël Canouil
+# @author Mickaël Canouil
+
+name: Checks
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - "src/**"
+      - "lib.typ"
+      - "examples/**"
+      - "tests/**"
+      - "typst.toml"
+      - "tools/**"
+      - "README.md"
+      - "LICENSE"
+      - ".github/actions/**"
+      - ".github/workflows/checks.yml"
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    paths:
+      - "src/**"
+      - "lib.typ"
+      - "examples/**"
+      - "tests/**"
+      - "typst.toml"
+      - "tools/**"
+      - "README.md"
+      - "LICENSE"
+      - ".github/actions/**"
+      - ".github/workflows/checks.yml"
+
+permissions:
+  contents: read
+
+# One active run per branch; cancel superseded runs on the same ref.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  typst-compile:
+    name: Compile Typst sources
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft != true }}
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Read Typst version from typst.toml
+        id: typst-version
+        uses: ./.github/actions/typst-version
+
+      - name: Set up Typst
+        uses: typst-community/setup-typst@v5
+        with:
+          typst-version: ${{ steps.typst-version.outputs.version }}
+
+      - name: Compile unit tests
+        id: unit
+        uses: ./.github/actions/typst-compile
+        with:
+          label: unit
+          glob: "tests/unit/*.typ"
+
+      - name: Compile examples
+        id: examples
+        if: always()
+        uses: ./.github/actions/typst-compile
+        with:
+          label: example
+          glob: "examples/*.typ"
+
+      - name: Summary
+        if: always()
+        shell: bash
+        env:
+          UNIT_PASSED: ${{ steps.unit.outputs.passed }}
+          UNIT_TOTAL: ${{ steps.unit.outputs.total }}
+          UNIT_FAILED: ${{ steps.unit.outputs.failed }}
+          UNIT_FAILURES: ${{ steps.unit.outputs.failures }}
+          EXAMPLES_PASSED: ${{ steps.examples.outputs.passed }}
+          EXAMPLES_TOTAL: ${{ steps.examples.outputs.total }}
+          EXAMPLES_FAILED: ${{ steps.examples.outputs.failed }}
+          EXAMPLES_FAILURES: ${{ steps.examples.outputs.failures }}
+        run: |
+          set -euo pipefail
+          render_section() {
+            local title="$1" passed="$2" total="$3" failed="$4" failures="$5"
+            passed="${passed:-0}"
+            total="${total:-0}"
+            failed="${failed:-0}"
+            echo ""
+            echo "### ${title}"
+            if [[ "${failed}" -gt 0 ]]; then
+              echo "- Status: failed (${passed}/${total})"
+              echo ""
+              echo "#### Failures"
+              while IFS= read -r line; do
+                [[ -n "${line}" ]] && echo "- \`${line}\`"
+              done <<< "${failures}"
+            else
+              echo "- Status: passed (${passed}/${total})"
+            fi
+          }
+          {
+            echo "## Typst compile"
+            render_section "Unit tests" "${UNIT_PASSED}" "${UNIT_TOTAL}" "${UNIT_FAILED}" "${UNIT_FAILURES}"
+            render_section "Examples" "${EXAMPLES_PASSED}" "${EXAMPLES_TOTAL}" "${EXAMPLES_FAILED}" "${EXAMPLES_FAILURES}"
+          } >> "${GITHUB_STEP_SUMMARY}"
+
+  shell-checks:
+    name: Lint shell scripts
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft != true }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Run shellcheck
+        shell: bash
+        run: |
+          set -euo pipefail
+          shellcheck tools/*.sh
+
+      - name: Run shfmt
+        shell: bash
+        run: |
+          set -euo pipefail
+          shfmt -d tools/*.sh

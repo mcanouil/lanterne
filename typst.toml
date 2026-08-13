@@ -1,0 +1,27 @@
+[package]
+name = "lanterne"
+version = "0.1.0"
+compiler = "0.15.0"
+entrypoint = "lib.typ"
+authors = ["Mickaël Canouil <https://mickael.canouil.fr>"]
+license = "MIT"
+description = "Themable presentation slides for Typst, with control over layout and structural elements."
+repository = "https://github.com/mcanouil/lanterne"
+homepage = "https://m.canouil.dev/lanterne"
+keywords = ["slides", "presentation", "beamer", "deck"]
+categories = ["presentation"]
+exclude = [
+  ".claude-plugin",
+  ".github",
+  ".gitignore",
+  "docs",
+  "examples",
+  "skills",
+  "tests",
+  "tools",
+  "GLOSSARY.md",
+  "ARCHITECTURE.md",
+  "CONTRIBUTING.md",
+  "CHANGELOG.md",
+  "CITATION.cff",
+]
