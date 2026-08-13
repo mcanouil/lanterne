@@ -20,4 +20,15 @@
 #assert(not is-marker(metadata((kind: "pause"))))
 #assert(not is-marker(42))
 
+// is-marker is the predicate for a recursive fields() walk (tasks 6 and 8),
+// so it must not error on any value the walk can hand it: none, arrays,
+// dictionaries, strings, and content elements without a `value` field.
+#assert(not is-marker(none))
+#assert(not is-marker(()))
+#assert(not is-marker((1, 2, 3)))
+#assert(not is-marker((kind: "pause")))
+#assert(not is-marker("pause"))
+#assert(not is-marker(block[x]))
+#assert(not is-marker(heading(level: 1)[x]))
+
 marker tests passed.
