@@ -59,3 +59,16 @@ Three concerns from `docs/notes/roundtrip-findings.md` are cross-cutting rather 
 - **`image`.**
   Image equality is instance identity rather than field equality, so no rebuild can ever equal the original.
   It is deliberately absent from the registry and must be treated as an opaque leaf that the traversal never descends into and never reconstructs.
+
+## Reconstruction refuses an unregistered element
+
+`rebuild` in `src/core/walk.typ` panics when an element carrying a marker has no registry entry, rather than falling back to spreading its fields by name.
+
+An element absent from the registry has no positional fields, which is the right reading when nothing has to be rebuilt.
+It is not a safe assumption when something does.
+The absence cannot be told apart from an element nobody has characterised yet, `table.header` and `grid.header` being the obvious examples in the standard library, and Typst offers no way to inspect the parameters of a function or to catch the panic that a wrong guess raises.
+A fallback would therefore turn an unknown element into one of the cryptic diagnostics catalogued in `docs/notes/roundtrip-findings.md`, reported against a line inside the traversal and with no remedy attached.
+
+Refusing costs a registration for an element whose marker sits in a field that is passed by name, an `outline` title being the only realistic instance.
+It buys a message that names the element and the call that fixes it, on every element the package has not characterised.
+A deck that silently lost a step boundary is worse than a deck that failed to build.
