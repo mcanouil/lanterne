@@ -5,14 +5,25 @@ Create themable presentation slides with **control over layout and structural el
 _Lanterne_ is French for "lantern", after the magic lantern, the ancestor of the slide projector.
 The library turns an ordinary Typst document into a deck, driving both slide breaks and overlay steps from a single content traversal.
 
-Documentation: <https://m.canouil.dev/lanterne>.
-
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/mcanouil/lanterne)
 
 > [!WARNING]
 > _Lanterne_ is in active development.
 > The public API is not yet stable, and the package does not render slides yet.
-> The snippet below shows the intended API, not what ships today.
+> It is not published to Typst Universe, so the import shown below does not resolve.
+> The snippet shows the intended API, not what ships today.
+
+## Status
+
+Implemented:
+
+- Package scaffolding and the local check harness.
+- The error message grammar every validation routes through.
+- Step markers, the sentinels the traversal looks for.
+
+Not yet implemented:
+
+- Everything else: slides, steps, themes, layouts and every structural element.
 
 ## Quick look
 
@@ -70,8 +81,8 @@ See [`typst.toml`](typst.toml) for the authoritative Typst compiler version.
 >
 > Thanks in advance for your patience and your understanding.
 
-Contributions are welcome.
-See [`CONTRIBUTING.md`](CONTRIBUTING.md) for bug reporting, development setup, and commit conventions.
+Bug reports and ideas are welcome, and [`CONTRIBUTING.md`](CONTRIBUTING.md) explains where to file each and what to include.
+It also covers development setup and commit conventions, for the point at which pull requests reopen.
 Short identifiers used across the source tree (`ctx`, `fn`, `lo`, `hi`, …) are catalogued in [`GLOSSARY.md`](GLOSSARY.md).
 
 ## Citation
