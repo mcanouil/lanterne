@@ -3,6 +3,11 @@
 Thanks for your interest in helping improve Lanterne.
 This document explains where to file what, what to include in a bug report, and the basics of working on the source.
 
+> [!IMPORTANT]
+> Pull requests are not accepted for now.
+> The internals shift between releases, and every review costs time taken from the work that moves the library forward.
+> Bug reports and ideas are welcome, and the development setup below is documented for the point at which pull requests reopen.
+
 ## Where to file what
 
 Pick the right channel before opening anything:
@@ -26,10 +31,13 @@ Before submitting a bug, confirm all of the following:
 2. You have updated to the latest released version of Lanterne and reproduced the bug on that version.
 3. You are reporting a bug, not requesting a feature or asking a question.
 
+Lanterne is not published to Typst Universe yet, so until the first release the only way to reproduce against it is a local checkout.
+
 Every bug report must include:
 
-- The Lanterne version and the Typst compiler version (`typst --version`).
-- A minimal reproducible Typst document that imports Lanterne via `#import "@preview/lanterne:<version>": *`.
+- The Lanterne version or commit, and the Typst compiler version (`typst --version`).
+- A minimal reproducible Typst document.
+  Once the package is published this means importing via `#import "@preview/lanterne:<version>": *`; before then, import the local `lib.typ` by path.
 - Numbered steps to reproduce.
 - The expected behaviour and the actual behaviour, with any error output pasted verbatim inside a fenced code block.
 
