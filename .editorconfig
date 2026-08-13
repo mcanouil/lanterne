@@ -10,3 +10,7 @@ indent_size = 2
 
 [*.md]
 trim_trailing_whitespace = false
+
+# Generated output committed verbatim as evidence; see tests/fixtures/README.md.
+[tests/fixtures/*.typ]
+trim_trailing_whitespace = false
