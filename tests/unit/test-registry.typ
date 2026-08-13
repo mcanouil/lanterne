@@ -59,6 +59,20 @@
 #assert.eq(lookup(curve), (positional: ("components",), spread: true))
 #assert.eq(lookup(math.mat), (positional: ("rows",), spread: true))
 
+// The header and footer rows are containers too. Quarto emits a header for
+// every Markdown table, and none of the four survive a plain spread.
+// `repr` cannot tell `table.header` from `grid.header`, so both are asserted.
+#assert.eq(lookup(table.header), (positional: ("children",), spread: true))
+#assert.eq(lookup(table.footer), (positional: ("children",), spread: true))
+#assert.eq(lookup(grid.header), (positional: ("children",), spread: true))
+#assert.eq(lookup(grid.footer), (positional: ("children",), spread: true))
+
+// `repr(footnote.entry)` and `repr(outline.entry)` are both "entry", and only
+// one of them is registered, so this pair fails if the bucket stops comparing
+// the function value itself.
+#assert.eq(lookup(footnote.entry), (positional: ("note",), spread: false))
+#assert.eq(lookup(outline.entry), none)
+
 // A sequence takes the same field name as a container and must not spread.
 #assert.eq(lookup(SEQUENCE), (positional: ("children",), spread: false))
 
