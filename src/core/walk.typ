@@ -59,10 +59,22 @@
 // into a content node and not when it walks the array a field holds. An
 // earlier version counted every `fields()` hop, which cost about three per
 // authored level and made the number in the message mean nothing.
+// An array reached from a field does not climb, because every ordinary element
+// holds its children in one: a grid's cells or a matrix's rows would each cost
+// a level the author never wrote. An array sitting directly inside another
+// array is not that shape, so it climbs and is checked. Without that, nesting
+// that goes through arrays alone is unbounded and dies with Typst's own
+// diagnostic, reported from inside this package with no source location.
+#let _array-depth(child, depth) = if type(child) == array { depth + 1 } else { depth }
+
 #let _has-marker(node, depth, max-depth) = {
   if is-marker(node) { return true }
   if type(node) == array {
-    return node.any(child => _has-marker(child, depth, max-depth))
+    return node.any(child => {
+      let reached = _array-depth(child, depth)
+      if reached > max-depth { _depth-error(max-depth) }
+      _has-marker(child, reached, max-depth)
+    })
   }
   if type(node) != content { return false }
   if depth > max-depth { _depth-error(max-depth) }
@@ -133,7 +145,16 @@
   // a marker and an image, have both already returned.
   if not _has-marker(node, depth, max-depth) { return node }
   if type(node) == array {
-    return node.map(item => _rebuild(item, transform, registry, depth, max-depth))
+    // Climbs on a nested array for the reason `_has-marker` does. Detection
+    // runs first and raises on the same shape, so this cannot be reached
+    // today; it is here so the two walks cannot disagree about what a level is.
+    return node.map(item => _rebuild(
+      item,
+      transform,
+      registry,
+      _array-depth(item, depth),
+      max-depth,
+    ))
   }
 
   let fn = node.func()

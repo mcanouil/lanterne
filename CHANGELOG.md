@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- fix: the traversal's depth bound now holds for nesting made only of arrays. An array inside another array climbs a level, so such content fails with the message naming the cause rather than Typst's bare recursion error reported from inside the package. An array reached from a field still does not climb, so an ordinary element costs exactly the one level its author wrote.
 - fix: a font token accepts a coverage-scoped entry written on its own, not only inside a fallback list. Typst accepts `(name: ..., covers: ...)` either way, and rejecting the bare form made the rule stricter than the thing it validates for.
 - fix: `split-on` keeps the label of a group that opens with a `set` or `show` rule. Rebuilding the wrapper dropped it, so a reference to such a group failed with `label does not exist in the document`, and content equality ignores labels so no test comparing segments could notice. Where a boundary cuts through the group, the label goes on the last segment, matching the rule for steps.
 - feat: `lib.typ` exports the package surface that exists: `theme-tokens` and `theme-merge`. The package is importable for the first time, though it does not render a deck until the next milestone.

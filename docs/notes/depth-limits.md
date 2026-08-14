@@ -9,6 +9,8 @@ Re-measure after a Typst upgrade: the ceilings below are Typst's, not lanterne's
 
 One unit is one authored nesting level, meaning one content node the walk descends into.
 Arrays do not count: a grid's `children` field holds an array of cells, and the array is a hop between two content nodes rather than a level of its own.
+One exception: an array sitting directly inside another array does count, because that is no longer a hop between content nodes, and without it the walk recurses without bound through nesting made only of arrays.
+A matrix pays one level for its rows, which is the only ordinary shape that reaches the exception.
 
 This is a correction.
 The first implementation counted every `fields()` hop, which cost about three units per authored level, so a limit of 24 hit at roughly eight levels and the number in the error message meant nothing to the author reading it.
