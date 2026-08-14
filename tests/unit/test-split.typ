@@ -130,6 +130,18 @@ a #m b #m c]
   3,
 )
 
+// Rules nest, and the styles are re-applied in the order they were peeled.
+// A content block that opens with a rule is a styled element like any other,
+// so the splitter looks through it and a marker inside it does produce a
+// boundary. The same block without a rule is a plain nested sequence and does
+// not. Nothing in the content distinguishes the two shapes, so this asymmetry
+// is pinned rather than resolved.
+#let nested-rule = [#set text(size: 10pt)
+a #[#set par(leading: 1em)
+b #m c] d]
+#assert.eq(split-on(nested-rule, is-marker).len(), 2)
+#assert.eq(split-on([a #[b #m c] d], is-marker).len(), 1)
+
 // `#show: doc => f(doc)` is not this case. It is applied where it is written,
 // so the body becomes whatever `f` returned, and a container is a container.
 // The documented rule that only direct children are examined covers it.

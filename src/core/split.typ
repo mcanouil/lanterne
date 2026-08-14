@@ -20,6 +20,13 @@
 ///! Only direct children are examined. A match nested inside a block, a list
 ///! item or a grid cell stays inside its segment and produces no boundary, so
 ///! a caller that must not miss one has to check the segments it gets back.
+///!
+///! One asymmetry follows from peeling. A content block that opens with a
+///! rule is a `styled` element, so it is looked through and a match inside it
+///! does produce a boundary, while the same block without a rule is a plain
+///! nested sequence and does not. Nothing in the content distinguishes a rule
+///! written at body level from one written inside a group, so the ambiguity
+///! is resolved in favour of finding the boundary.
 
 #import "../utils/errors.typ": fail-type
 
