@@ -5,9 +5,7 @@ All notable changes to this project will be documented in this file.
 ## [Unreleased]
 
 - fix: a font token accepts a coverage-scoped entry written on its own, not only inside a fallback list. Typst accepts `(name: ..., covers: ...)` either way, and rejecting the bare form made the rule stricter than the thing it validates for.
-
 - fix: `split-on` keeps the label of a group that opens with a `set` or `show` rule. Rebuilding the wrapper dropped it, so a reference to such a group failed with `label does not exist in the document`, and content equality ignores labels so no test comparing segments could notice. Where a boundary cuts through the group, the label goes on the last segment, matching the rule for steps.
-
 - feat: `lib.typ` exports the package surface that exists: `theme-tokens` and `theme-merge`. The package is importable for the first time, though it does not render a deck until the next milestone.
 - feat: add `theme-tokens` and `theme-merge`, the two ways a theme is built. Both validate every key they touch, so an unknown token name or a value of the wrong type fails where it is written rather than where it is read, and the message names the function you called.
 - feat: add the theme token vocabulary, with a default and a validation rule for every canonical name, and a reserved `extra` namespace for tokens of your own. An unrecognised token name is an error rather than a silent no-op, because a theme that ignores a typo rots quietly.
