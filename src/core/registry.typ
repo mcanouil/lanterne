@@ -34,7 +34,12 @@
 // which does distinguish them.
 #let _bucket(registry, fn, scope) = {
   let bucket = registry.at(repr(fn), default: ())
-  if type(bucket) != array or bucket.any(e => type(e) != dictionary or "fn" not in e) {
+  // Both keys are checked, not just the element function: `_get` reads the
+  // recipe unconditionally, so a half-formed entry that cleared this guard
+  // died with Typst's own "dictionary does not contain key" instead of the
+  // message naming what builds a registry.
+  let malformed = e => type(e) != dictionary or "fn" not in e or "entry" not in e
+  if type(bucket) != array or bucket.any(malformed) {
     fail-type(scope, "registry", registry, "a registry built by register-container")
   }
   bucket
