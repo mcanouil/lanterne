@@ -40,4 +40,43 @@
   "step: range must be a positive integer; got 0.",
 )
 
+// The grammar promises exactly one trailing stop, so a hint that is not
+// already a sentence is finished rather than appended raw. Without this the
+// promise held only where the caller happened to write one, and a missing
+// stop is invisible until a user reads the message.
+#assert.eq(
+  error-text("theme-tokens", "bg must be a colour", hint: "Pass a colour value"),
+  "theme-tokens: bg must be a colour. Pass a colour value.",
+)
+
+// A hint that already ends as a sentence is left exactly as written, whichever
+// of the three marks ends it.
+#assert.eq(
+  error-text("step", "range is empty", hint: "Did you mean \"2-\"?"),
+  "step: range is empty. Did you mean \"2-\"?",
+)
+
+#assert.eq(
+  error-text("step", "range is empty", hint: "Never write this!"),
+  "step: range is empty. Never write this!",
+)
+
+// A hint with nothing in it is absent rather than empty. A hint assembled by
+// concatenation can come out blank, and appending a stop to nothing produces
+// the dangling stop this normalisation exists to remove.
+#assert.eq(error-text("step", "range is empty", hint: ""), "step: range is empty.")
+#assert.eq(error-text("step", "range is empty", hint: "   "), "step: range is empty.")
+
+// Normalisation reaches the wrappers too, since neither builds its message
+// itself.
+#assert.eq(
+  enum-text("theme", "token", "bgg", ("bg",), hint: "Try bg"),
+  "theme: token must be one of \"bg\"; got \"bgg\". Try bg.",
+)
+
+#assert.eq(
+  type-text("theme", "margin", 1, "a length", hint: "Write 2cm"),
+  "theme: margin must be a length; got 1. Write 2cm.",
+)
+
 errors tests passed.

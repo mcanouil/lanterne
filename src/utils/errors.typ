@@ -6,6 +6,11 @@
 ///!
 ///! Grammar: "<scope>: <problem>; got <repr(value)>. <hint>"
 ///!
+///! A hint is a sentence and is finished as one here when the caller has not
+///! written it that way, so a message ends as a sentence whatever a call site
+///! passes. A hint that already ends in `.`, `!` or `?` is left alone, so the
+///! closing mark is the caller's when they chose one.
+///!
 ///! Never inline a panic string elsewhere in src/; route every validation here.
 
 /// Render an array of values as a comma-joined list of `repr` forms.
@@ -16,7 +21,29 @@
   values.map(repr).join(", ")
 }
 
-#let _with-hint(message, hint) = if hint == none { message } else { message + " " + hint }
+// The grammar promises one trailing stop. A hint is a sentence, so a hint that
+// does not already end as one is finished here rather than at every call site,
+// where a missing stop is invisible until a user reads the message.
+#let _SENTENCE-ENDS = (".", "!", "?")
+
+#let _with-hint(message, hint) = {
+  if hint == none { return message }
+  assert(
+    type(hint) == str,
+    message: "errors: hint must be a string or none; got " + repr(hint) + ".",
+  )
+  // A hint with nothing in it is absent, not empty. One assembled by
+  // concatenation can come out blank, and finishing nothing as a sentence
+  // yields the dangling stop this exists to remove.
+  let trimmed = hint.trim()
+  if trimmed == "" { return message }
+  let finished = if _SENTENCE-ENDS.any(end => trimmed.ends-with(end)) {
+    trimmed
+  } else {
+    trimmed + "."
+  }
+  message + " " + finished
+}
 
 /// "<scope>: <problem>." plus optional hint.
 /// @category utils

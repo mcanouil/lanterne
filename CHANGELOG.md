@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- fix: an error's hint always ends the message as a sentence. A hint written without a closing mark produced a message that trailed off, which the grammar promised could not happen; one that already ends in `.`, `!` or `?` keeps the mark its author chose, and one that is blank is treated as absent rather than yielding a stop on its own.
 - feat: add error grammar module.
 - feat: add step markers.
 - feat: add container registry.
