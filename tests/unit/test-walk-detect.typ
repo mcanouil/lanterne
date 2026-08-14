@@ -26,6 +26,16 @@
 // [*a* b] is a genuine sequence: adjacent text merges, so [a b] would not be.
 #assert(has-marker([*a* #m]))
 
+// A matrix holds an array of arrays of content, which is the shape the flat
+// `node.any(has-marker)` shortcut would miss. A grid's children are flat.
+#assert(has-marker($mat(1, #m; 3, 4)$))
+#assert(not has-marker($mat(1, 2; 3, 4)$))
+
+// A context block reports no fields until layout, so a marker inside one is
+// invisible to the walk. Pinned so the limitation is a decision, not a
+// surprise; see the module header.
+#assert(not has-marker(context [#m]))
+
 #assert(not has-marker([plain text]))
 #assert(not has-marker(block[nothing here]))
 #assert(not has-marker(block(box(block[still nothing]))))
