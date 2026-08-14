@@ -8,10 +8,13 @@
 ///!
 ///! Never inline a panic string elsewhere in src/; route every validation here.
 
-/// Render an array of values as a quoted, comma-joined list.
+/// Render an array of values as a comma-joined list of `repr` forms.
 /// @category utils
 /// @returns str
-#let quote-each(values) = values.map(v => "\"" + str(v) + "\"").join(", ")
+#let quote-each(values) = {
+  assert(values.len() > 0, message: "errors: quote-each needs a non-empty array.")
+  values.map(repr).join(", ")
+}
 
 #let _with-hint(text, hint) = if hint == none { text } else { text + " " + hint }
 
@@ -56,8 +59,8 @@
   panic(type-text(scope, name, value, expected, hint: hint))
 }
 
-/// Assert with a grammar-conformant message.
+/// Assert with a grammar-conformant message, built only when `cond` fails.
 /// @category utils
 #let check(cond, scope, problem, hint: none) = {
-  assert(cond, message: error-text(scope, problem, hint: hint))
+  if not cond { fail(scope, problem, hint: hint) }
 }
