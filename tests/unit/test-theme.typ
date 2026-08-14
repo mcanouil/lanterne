@@ -3,8 +3,8 @@
 // through the same per-key validation and no code downstream re-checks what it
 // reads.
 //
-// Typst cannot catch a panic, so the rejecting paths are recorded verbatim at
-// the foot of this file from a throwaway compile.
+// Typst cannot catch a panic, so the rejecting paths are compiled as their own
+// files under tests/expect-fail/.
 
 #import "../../src/theme/theme.typ": theme-merge, theme-tokens
 #import "../../src/theme/tokens.typ": default-tokens
@@ -50,33 +50,10 @@
 #assert.eq(theme-merge(theme-merge(dark, (margin: 1cm)), (margin: 3cm)).margin, 3cm)
 #assert.eq(theme-merge(theme-merge(dark, (margin: 1cm)), (margin: 3cm)).bg, black)
 
-// The rejecting paths, compiled by hand from .scratch/theme-probe.typ and
-// recorded verbatim. The scope in each is the function the author called, not
-// the private helper both route through, which is the whole reason that helper
-// takes a scope rather than naming itself.
-//
-//   theme-tokens(white)
-//     theme-tokens: takes named arguments only; got (luma(100%),). Write
-//     theme-tokens(bg: white).
-//
-//   theme-tokens(bgg: white)
-//     theme-tokens: token name must be one of "bg", "fg", "dim-opacity",
-//     "font-base", "font-heading", "size-base", "scale-ratio",
-//     "weight-heading", "leading", "margin"; got "bgg". A token of your own
-//     belongs in extra.
-//
-//   theme-merge(theme-tokens(), (bgg: 1))
-//     the same message, under scope `theme-merge`.
-//
-//   theme-tokens(margin: 1)
-//     theme-tokens: margin must be a length; got 1.
-//
-//   theme-merge((bg: white), (:))
-//     theme-merge: base is missing "fg", "dim-opacity", "font-base",
-//     "font-heading", "size-base", "scale-ratio", "weight-heading", "leading",
-//     "margin", "extra". Build a base with theme-tokens rather than by hand.
-//
-//   theme-tokens(extra: 1)
-//     theme-tokens: extra must be a dictionary; got 1.
+// The rejecting paths live in tests/expect-fail/theme-*.typ, where each is
+// compiled and its message matched. The pair that matters most is
+// theme-tokens-unknown-name.typ and theme-merge-unknown-name.typ: the same
+// rejection reached through either public function, each naming the function
+// the author called rather than the private helper both route through.
 
 theme tests passed.

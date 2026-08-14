@@ -45,9 +45,18 @@ compile_glob() {
 compile_glob "unit" "tests/unit/*.typ"
 compile_glob "examples" "examples/*.typ"
 
+# The cases that must fail. Run even when a compile above failed, so one run
+# reports everything rather than hiding the second suite behind the first.
+expect_fail_status=0
+"${REPO_ROOT}/tools/expect-fail.sh" || expect_fail_status=$?
+
 if [[ ${failures} -gt 0 ]]; then
   printf '\n%d failure(s) out of %d compile(s).\n' "${failures}" "${total}" >&2
   exit 1
+fi
+
+if [[ ${expect_fail_status} -ne 0 ]]; then
+  exit "${expect_fail_status}"
 fi
 
 printf '\n%d compile(s) ok.\n' "${total}"
