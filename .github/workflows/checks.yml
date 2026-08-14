@@ -76,10 +76,20 @@ jobs:
           label: example
           glob: "examples/*.typ"
 
+      # Cases that must fail. A guard cannot be exercised from inside a unit
+      # test, because Typst cannot catch a panic, so these compile files that
+      # are asserted to fail and match the recorded message.
+      - name: Run expect-fail cases
+        id: expect-fail
+        if: always()
+        shell: bash
+        run: tools/expect-fail.sh
+
       - name: Summary
         if: always()
         shell: bash
         env:
+          EXPECT_FAIL_OUTCOME: ${{ steps.expect-fail.outcome }}
           UNIT_PASSED: ${{ steps.unit.outputs.passed }}
           UNIT_TOTAL: ${{ steps.unit.outputs.total }}
           UNIT_FAILED: ${{ steps.unit.outputs.failed }}
@@ -112,6 +122,9 @@ jobs:
             echo "## Typst compile"
             render_section "Unit tests" "${UNIT_PASSED}" "${UNIT_TOTAL}" "${UNIT_FAILED}" "${UNIT_FAILURES}"
             render_section "Examples" "${EXAMPLES_PASSED}" "${EXAMPLES_TOTAL}" "${EXAMPLES_FAILED}" "${EXAMPLES_FAILURES}"
+            echo ""
+            echo "### Expect-fail cases"
+            echo "- Status: ${EXPECT_FAIL_OUTCOME:-skipped}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   shell-checks:

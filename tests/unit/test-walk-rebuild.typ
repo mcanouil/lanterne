@@ -224,14 +224,14 @@
 // max-depth raises the ceiling for content that needs it.
 #assert.eq(rebuild(nest(30, false), keep, max-depth: 36), nest(30, false))
 
-// The failing half cannot be asserted, because Typst cannot catch a panic.
-// Compiled by hand, `rebuild(nest(35, false), keep)` reports
+// The failing half cannot be asserted, because Typst cannot catch a panic. It
+// is compiled as its own file instead: tests/expect-fail/walk-depth-rebuild.typ
+// pins the message, alongside walk-unregistered-element.typ, which pins the
+// panic that keeps a marker from being silently lost.
 //
-//   error: panicked with: walk: content is nested more than 30 levels deep.
-//   Flatten the nesting on this slide, or raise max-depth.
-//
-// and `rebuild(nest(30, true), keep, max-depth: 100000)`, which lifts the
-// guard entirely, reports Typst's own
+// One case stays a comment because it is Typst's behaviour rather than this
+// package's. `rebuild(nest(30, true), keep, max-depth: 100000)`, which lifts
+// the guard entirely, reports Typst's own
 //
 //   error: maximum function call depth exceeded
 //

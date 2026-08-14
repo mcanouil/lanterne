@@ -8,8 +8,7 @@
 // pinned here; shrinking it, or renaming a key, is the breaking change.
 //
 // Typst cannot catch a panic, so the accepting paths are asserted here and the
-// rejecting paths are recorded verbatim at the foot of this file from a
-// throwaway compile, the pattern tests/unit/test-walk-rebuild.typ already uses.
+// rejecting paths are compiled as their own files under tests/expect-fail/.
 
 #import "../../src/theme/tokens.typ": check-token, default-tokens
 
@@ -55,8 +54,8 @@
 
 // `extra` is not a token: its contents are deliberately unvalidated, so it is
 // rejected by name here and handled by the caller that merges a theme.
-// Asserting this positively is impossible, so it is the recorded message at
-// the foot of this file that pins it.
+// Asserting this positively is impossible, so
+// tests/expect-fail/token-extra-as-name.typ pins it.
 
 // The accepting edges of each rule.
 #check-token("bg", rgb(10, 20, 30), "test")
@@ -88,35 +87,10 @@
 #check-token("margin", 10pt, "test")
 #check-token("size-base", 1cm, "test")
 
-// The rejecting paths, compiled by hand from .scratch/token-probe.typ and
-// recorded verbatim:
-//
-//   check-token("bgg", white, "theme-tokens")
-//     theme-tokens: token name must be one of "bg", "fg", "dim-opacity",
-//     "font-base", "font-heading", "size-base", "scale-ratio",
-//     "weight-heading", "leading", "margin"; got "bgg". A token of your own
-//     belongs in extra.
-//
-//   check-token("extra", (:), "theme-tokens")
-//     the same message, with `got "extra"`. `extra` is reserved rather than
-//     canonical, so it is reported as an unknown token name.
-//
-//   check-token("bg", "red", "theme-tokens")
-//     theme-tokens: bg must be a colour; got "red".
-//
-//   check-token("size-base", 2em, "theme-tokens")
-//     theme-tokens: size-base must be a positive absolute length; got 2em.
-//
-//   check-token("weight-heading", 950, "theme-tokens")
-//     theme-tokens: weight-heading must be an integer from 100 to 900 or a
-//     weight name; got 950.
-//
-//   check-token("font-base", (), "theme-tokens")
-//     theme-tokens: font-base must be a font family name, or a non-empty array
-//     of names and coverage-scoped entries; got ().
-//
-//   check-token("font-base", ((covers: "latin-in-cjk"),), "theme-tokens")
-//     the same message, with `got ((covers: "latin-in-cjk"),)`. A coverage
-//     scoped entry without a family name selects nothing.
+// The rejecting paths live in tests/expect-fail/token-*.typ, where each is
+// compiled and its message matched. They were comments here until the suite
+// existed, which documented the messages and tested nothing: deleting the
+// unknown-name branch from check-token left every file in this directory
+// passing.
 
 tokens tests passed.
