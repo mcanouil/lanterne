@@ -12,6 +12,9 @@ Consult this file before introducing a new abbreviation, and add an entry when y
 | step | One overlay state of a slide; a slide with N steps renders N pages. |
 | subslide | Synonym for step, used only when quoting other packages. |
 | marker | An inert `metadata` element carrying a reserved tag, found by the traversal. |
+| record | The validated dictionary one slide is described by, and the one shape both surfaces produce. |
+| boundary | The element that opens a segment: a heading, a page break or an explicit slide. |
+| lead-in | The implicit untitled slide made of the content before the first boundary. |
 | pause | The marker kind that cuts a slide body into successive steps. |
 | handout | Render mode collapsing each slide to its final step. |
 | chrome | Header, footer, progress indicator, slide number and logo. |

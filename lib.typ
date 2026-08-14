@@ -11,6 +11,8 @@
 // `register-container` is deliberately absent. It builds a registry value, and
 // the only function that reads one is `rebuild`, which is internal, so the
 // export would hand a user something with nowhere to put it. It arrives with
-// the deck function that takes a registry.
+// the deck option that takes a registry.
 
+#import "src/core/slides.typ": slide, slide-options
+#import "src/render/deck.typ": deck
 #import "src/theme/theme.typ": theme-merge, theme-tokens
