@@ -130,6 +130,11 @@ jobs:
           set -euo pipefail
           shellcheck tools/*.sh
 
+      - name: Set up shfmt
+        uses: mfinelli/setup-shfmt@v4
+        with:
+          shfmt-version: 3.13.1
+
       - name: Run shfmt
         shell: bash
         run: |
