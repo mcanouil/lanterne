@@ -4,6 +4,7 @@
 ///! nothing, survives being nested inside other elements, and is findable by
 ///! a generic `fields()` walk.
 
+#import "../utils/elements.typ": is-elem
 #import "../utils/errors.typ": fail-enum
 
 #let _TAG = "lanterne-marker"
@@ -38,8 +39,7 @@
 /// @category core
 /// @returns bool
 #let is-marker(value) = (
-  type(value) == content
-    and value.func() == metadata
+  is-elem(value, metadata)
     and type(value.value) == dictionary
     and value.value.at("tag", default: none) == _TAG
 )

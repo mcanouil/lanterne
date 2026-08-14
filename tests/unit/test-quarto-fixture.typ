@@ -21,6 +21,7 @@
 #import "../../src/core/registry.typ": lookup
 #import "../../src/core/split.typ": split-on
 #import "../../src/core/walk.typ": has-marker, rebuild
+#import "../../src/utils/elements.typ": STYLED
 
 #let m = marker(MARKER-PAUSE)
 // Adjacent text merges into a single element, so a plain text substitution
@@ -242,7 +243,7 @@
   block(fill: rgb("#f1f3f5"), width: 100%, inset: 8pt, radius: 2pt, blocks)
 }
 
-#assert.eq(NormalTok("mean").func(), text(size: 12pt)[x].func())
+#assert.eq(NormalTok("mean").func(), STYLED)
 
 // The marker sits inside an array of content, which the traversal walks
 // without needing an element to hang it on.
@@ -319,6 +320,9 @@
 // deck function as a wrapper around the body rather than as a sibling of it.
 // ---------------------------------------------------------------------------
 
+// `depth` and `level` name the same thing depending on how the heading was
+// written, so both are read. `tests/unit/test-split.typ` explains why and
+// tests the same shape at level 2; keep the two in step.
 #let is-h1 = node => {
   if type(node) != content or node.func() != heading { return false }
   let fields = node.fields()

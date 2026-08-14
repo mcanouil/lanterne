@@ -25,6 +25,7 @@
 
 #import "marker.typ": is-marker
 #import "registry.typ": lookup
+#import "../utils/elements.typ": is-elem
 #import "../utils/errors.typ": fail, fail-type
 
 /// The nesting depth the traversal accepts before it gives up.
@@ -126,7 +127,7 @@
 // pass a tree that then dies inside Typst with no source location.
 #let _rebuild(node, transform, registry, depth, max-depth) = {
   if is-marker(node) { return transform(node) }
-  if (type(node) == content and node.func() == image) { return node }
+  if is-elem(node, image) { return node }
   // No depth check here: the detection call on the next line makes the same
   // one on the same node at the same depth, and the two shapes that skip it,
   // a marker and an image, have both already returned.
