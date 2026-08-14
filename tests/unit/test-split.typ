@@ -180,6 +180,38 @@ b #m c] d]
 #assert.eq(split-on(nested-rule, is-marker).len(), 2)
 #assert.eq(split-on([a #[b #m c] d], is-marker).len(), 1)
 
+// A label survives the split.
+//
+// Every other assertion in this file is an equality, and content equality
+// ignores labels, so a splitter that dropped every label would satisfy all of
+// them. `tests/unit/test-walk-rebuild.typ` documents the same trap for the
+// rebuild. These read the field instead.
+#let styled-of(node) = node.children.find(child => child.func() == STYLED)
+#let label-of(node) = node.fields().at("label", default: none)
+
+#let labelled = [x #[#set text(size: 9pt)
+a b] <lbl> y]
+#assert.eq(label-of(styled-of(split-on(labelled, _ => false).first())), <lbl>)
+
+// When a boundary cuts through the labelled group, the label can only go on
+// one piece: emitting it on each would make the deck fail with a duplicate
+// label, which is worse than the reference landing at the end of the group.
+// Specification 4.6 already rules that a labelled element behind a pause keeps
+// its label on the final step, so the last piece carries it here too.
+#let labelled-split = [x #[#set text(size: 9pt)
+a #m b] <lbl> y]
+#let split-pieces = split-on(labelled-split, is-marker)
+#assert.eq(split-pieces.len(), 2)
+#assert.eq(label-of(styled-of(split-pieces.first())), none)
+#assert.eq(label-of(styled-of(split-pieces.last())), <lbl>)
+
+// The same wrapper with nothing beside it. The first assertion above passes on
+// its own even when the wrapper is handed back whole and unsplit, so this pins
+// the shape where there is no surrounding content to hide that.
+#let labelled-alone = [#[#set text(size: 9pt)
+a b] <lbl>]
+#assert.eq(label-of(styled-of(split-on(labelled-alone, _ => false).first())), <lbl>)
+
 // `#show: doc => f(doc)` is not this case. It is applied where it is written,
 // so the body becomes whatever `f` returned, and a container is a container.
 // The documented rule that only direct children are examined covers it.
