@@ -297,6 +297,24 @@ Any traversal that descends into an equation reaches one of these immediately, s
 | `curve` | `components` | yes |
 | `math.mat` | `rows` | yes |
 
+### Entries added after the spike
+
+The spike probed elements a deck author writes by hand.
+Generated output reaches wider, so entries added later are recorded here with the evidence that forced them.
+
+| Element | Positional fields, in order | Spread | Why it was added |
+| --- | --- | --- | --- |
+| `table.header` | `children` | yes | Emitted by Quarto for every Markdown table that has a header row, as seen in `tests/fixtures/quarto-deck.typ`. |
+
+Before this entry, a marker in a header cell panicked with `cannot reconstruct element header containing a step marker`, which is the correct behaviour for an unregistered element and the wrong outcome for a table a user simply wrote in Markdown.
+
+`table.footer`, `grid.header` and `grid.footer` share the recipe and are deliberately absent.
+Nothing observed emits them, and the registry records verified need rather than symmetry.
+`table.footer` is the unregistered element that `tests/unit/test-walk-rebuild.typ` uses to demonstrate the hard failure and its remedy.
+
+`table.hline` and `table.vline` need no entry.
+Neither takes content, so neither can carry a marker.
+
 ### Entries that need more than a positional list
 
 - `image`: mark as an opaque leaf.

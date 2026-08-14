@@ -1,0 +1,91 @@
+---
+title: Lanterne fixture
+format: typst
+keep-typ: true
+---
+
+## Columns
+
+::: {.columns}
+
+::: {.column width="50%"}
+
+Left column.
+
+:::
+
+::: {.column width="50%"}
+
+Right column.
+
+:::
+
+:::
+
+## Incremental
+
+::: {.incremental}
+
+- One.
+- Two.
+
+:::
+
+## Callout
+
+::: {.callout-note}
+
+A note.
+
+:::
+
+::: {.callout-warning title="Careful"}
+
+A warning with a title.
+
+:::
+
+## Figure
+
+![A one pixel square.](quarto-deck-figure.svg){#fig-square}
+
+See @fig-square.
+
+## Code
+
+```r
+mean(c(1, 2, 3))
+```
+
+## Table
+
+| Left | Right |
+| ---- | ----- |
+| a    | b     |
+
+: A table caption. {#tbl-sample}
+
+See @tbl-sample.
+
+## Definitions
+
+Term
+
+:   The definition.
+
+## Quote
+
+> A quotation.
+
+## Equation
+
+$$
+E = m c^2
+$$
+
+## Inline
+
+Text with *emphasis*, **strong**, `code`, a [link](https://example.com) and a
+footnote.[^1]
+
+[^1]: The footnote body.
