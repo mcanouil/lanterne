@@ -4,7 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
-- feat: `lib.typ` exports the package surface that exists: `theme-tokens`, `theme-merge` and `register-container`. The package is importable for the first time, though it does not render a deck until the next milestone.
+- feat: `lib.typ` exports the package surface that exists: `theme-tokens` and `theme-merge`. The package is importable for the first time, though it does not render a deck until the next milestone.
 - feat: add `theme-tokens` and `theme-merge`, the two ways a theme is built. Both validate every key they touch, so an unknown token name or a value of the wrong type fails where it is written rather than where it is read, and the message names the function you called.
 - feat: add the theme token vocabulary, with a default and a validation rule for every canonical name, and a reserved `extra` namespace for tokens of your own. An unrecognised token name is an error rather than a silent no-op, because a theme that ignores a typo rots quietly.
 - fix: an error's hint always ends the message as a sentence. A hint written without a closing mark produced a message that trailed off, which the grammar promised could not happen; one that already ends in `.`, `!` or `?` keeps the mark its author chose, and one that is blank is treated as absent rather than yielding a stop on its own.

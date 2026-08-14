@@ -6,21 +6,21 @@
 // only that something of that name exists.
 
 #import "../../lib.typ"
-#import "../../src/core/registry.typ"
 #import "../../src/theme/theme.typ"
 
 #assert.eq(lib.theme-tokens, theme.theme-tokens)
 #assert.eq(lib.theme-merge, theme.theme-merge)
-#assert.eq(lib.register-container, registry.register-container)
 
 // The surface is what the package promises and no more. A module exporting
 // something absent here is internal on purpose: `lookup`, `has-marker`,
 // `rebuild`, `split-on` and `check-token` are all reachable from src/ and none
 // of them is public.
-#assert.eq(
-  dictionary(lib).keys().sorted(),
-  ("register-container", "theme-merge", "theme-tokens"),
-)
+//
+// `register-container` is absent for a sharper reason than the rest. It builds
+// a registry value, and `rebuild` is the only function that reads one, so
+// exporting it would promise a capability with no public way to spend it. It
+// arrives with the deck function that takes a registry.
+#assert.eq(dictionary(lib).keys().sorted(), ("theme-merge", "theme-tokens"))
 
 // The facade is used as a wildcard import, which is the form every deck and
 // every example takes.
