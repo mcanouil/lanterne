@@ -1,0 +1,181 @@
+---
+title: "Examples"
+subtitle: "Each way a slide is opened, and how a theme is built."
+description: "Worked Typst source for slide splitting, per-slide options and themes, all of it compiling against the current development state."
+---
+
+Every snippet on this page compiles against the current state of `main`.
+The complete deck they are drawn from is [`examples/hello-deck.typ`](https://github.com/mcanouil/lanterne/blob/main/examples/hello-deck.typ), which `tools/check.sh` compiles alongside the unit tests, so an example that stops building fails the suite.
+
+::: {.callout-note}
+
+## Source only, for now
+
+The page shows the Typst that produces each deck, not the pages it produces.
+Compiling Typst during the site render needs tooling that is not vendored into this repository yet, and an idealised picture drawn by hand would be a claim nothing checks.
+Run `typst compile` on a snippet to see it.
+:::
+
+Each snippet assumes the import and show rule at the top of a deck:
+
+```typst
+#import "lanterne/lib.typ": *
+
+#show: deck.with(slide-level: 2)
+```
+
+## A deck from headings
+
+The default `slide-level` is 2, so a level 2 heading opens a slide and becomes its title, and a level 1 heading opens a section slide before it.
+A heading deeper than the slide level is ordinary content.
+
+```typst
+= Results
+
+== Recruitment
+
+Two hundred and eighteen participants were enrolled between March and October.
+
+=== Exclusions
+
+Eleven were excluded before randomisation, so this line and the heading above it
+sit on the slide the level 2 heading opened.
+
+== Primary outcome
+
+The difference was 4.2 points in favour of the intervention.
+```
+
+Three pages: the `Results` section slide, whose content is centred on the page, then `Recruitment`, then `Primary outcome`.
+
+## Breaking a slide by hand
+
+`#pagebreak()` at body level opens an untitled slide, whether or not a heading follows.
+
+```typst
+== Method
+
+The trial was randomised, and analysis followed the pre-registered plan.
+
+#pagebreak()
+
+This continues the method, on a page of its own, with no title of its own.
+```
+
+## A slide written out in full
+
+`slide` is complete in itself: what precedes it closes, and what follows it opens a slide of its own.
+Its options are its own arguments.
+
+```typst
+== Discussion
+
+The effect held across both pre-specified subgroups.
+
+#slide(title: [Limitations], smaller: true)[
+  The trial was single-centre, and follow-up stopped at twelve months, so nothing
+  here speaks to durability beyond a year.
+]
+
+Content written after the explicit slide opens another slide.
+```
+
+## Setting one slide smaller
+
+`slide-options` configures the slide a heading opened.
+It goes immediately after that heading, and nowhere else: it must be a top level child of the slide, so one written inside a block or a grid cell is never found.
+
+```typst
+== Full protocol
+
+#slide-options(smaller: true)
+
+This slide asked to be set smaller, so its title and its body both step down one
+notch of the theme's scale ratio, and a dense table fits on the page.
+```
+
+## A deck that splits on nothing
+
+`slide-level: 0` disables heading splitting, leaving the explicit boundaries.
+Every heading is then ordinary content, which is what a generated deck wants when the tool emitting it decides the breaks itself.
+
+```typst
+#show: deck.with(slide-level: 0)
+
+= A heading that opens nothing
+
+Both of these headings render as headings on one slide.
+
+= So does this one
+
+#pagebreak()
+
+Only the page break opened a slide.
+```
+
+## Building a theme
+
+`theme-tokens` takes named arguments and returns the canonical defaults with those overrides applied.
+
+```typst
+#show: deck.with(
+  theme: theme-tokens(
+    bg: rgb("#fbfbfd"),
+    fg: rgb("#1c1c22"),
+    font-heading: "Inter",
+    size-base: 26pt,
+    margin: 3cm,
+  ),
+  aspect-ratio: "16-9",
+  info: (
+    title: [Trial results],
+    author: "Mickaël Canouil",
+    date: datetime.today(),
+  ),
+)
+```
+
+`theme-merge` extends a complete theme, which is how one deck ships a light and a dark variant without repeating the tokens they share.
+
+```typst
+#let light = theme-tokens(
+  bg: rgb("#fbfbfd"),
+  fg: rgb("#1c1c22"),
+  font-heading: "Inter",
+)
+
+#let dark = theme-merge(light, (
+  bg: rgb("#1c1c22"),
+  fg: rgb("#fbfbfd"),
+))
+
+#show: deck.with(theme: dark)
+```
+
+Tokens of your own go in `extra`, the one key whose contents are not validated.
+It merges key by key, so setting one leaves the base theme's others in place.
+
+```typst
+#let base = theme-tokens(extra: (accent: rgb("#c2410c")))
+
+#let variant = theme-merge(base, (extra: (accent-dim: rgb("#fdba74"))))
+```
+
+`variant.extra` now carries both `accent` and `accent-dim`.
+
+## Linking to a slide
+
+A labelled heading is a destination, so a link jumps to the slide that carries it.
+
+```typst
+== What a deck is <what-a-deck-is>
+
+A level 2 heading opens a slide and becomes its title.
+
+== Cross references
+
+A labelled heading is a destination, so #link(<what-a-deck-is>)[this link] jumps
+back to the slide that carries the label.
+```
+
+Typst refuses `@what-a-deck-is` on a heading that is not numbered, so a reference by name waits for the numbering rules rather than being faked.

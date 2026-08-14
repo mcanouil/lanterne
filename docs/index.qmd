@@ -1,0 +1,91 @@
+---
+title: "Lanterne"
+subtitle: "Themable presentation slides for Typst, driven by the document you already wrote."
+description: "What Lanterne is for, how to use it from a clone, and the smallest deck that builds today."
+authors:
+  - name: "Mickaël Canouil"
+    orcid: "0000-0002-3396-4549"
+    url: "https://mickael.canouil.fr"
+---
+
+Every Typst slides package asks you to write slides.
+You open a function, you close it, and the deck's structure lives in that nesting rather than in the document.
+That is comfortable to hand author and awkward to generate, so a tool that produces Typst mechanically, a Quarto filter for instance, has to build the nesting rather than emit the content.
+
+Lanterne turns an ordinary document into a deck instead.
+Headings open slides, one traversal of the body drives both the slide breaks and, later, the overlay steps, and the structure stays where the author wrote it.
+
+::: {.callout-warning}
+
+## Under development
+
+The public API is not stable, and only part of it exists.
+Lanterne is not published to Typst Universe, so `#import "@preview/lanterne:0.1.0": *` does not resolve; use it from a clone, as below.
+Overlay steps, layouts and the element catalogue are not implemented, so `#pause` does nothing and a slide is its title and its body.
+:::
+
+## Installation
+
+Clone the repository and import `lib.typ` by path:
+
+```bash
+git clone https://github.com/mcanouil/lanterne.git
+```
+
+```typst
+#import "lanterne/lib.typ": *
+```
+
+Typst 0.15.0 or newer is required.
+`typst.toml` pins that floor deliberately, and the whole test suite is run against a 0.15.0 binary, so the version stated is the version verified.
+
+## Quick start
+
+The smallest complete deck, which is [`examples/hello-deck.typ`](https://github.com/mcanouil/lanterne/blob/main/examples/hello-deck.typ) in the repository:
+
+```typst
+#import "../lib.typ": *
+
+#show: deck.with(
+  theme: theme-tokens(
+    bg: rgb("#fbfbfd"),
+    fg: rgb("#1c1c22"),
+    margin: 3cm,
+  ),
+  aspect-ratio: "16-9",
+  slide-level: 2,
+  info: (
+    title: [Hello, lanterne],
+    author: "Mickaël Canouil",
+  ),
+)
+
+= Getting started
+
+== What a deck is
+
+A level 2 heading opens a slide and becomes its title.
+A level 1 heading opens a section slide, which is the page before this one.
+```
+
+`deck` is the document's show rule.
+It splits the body into slide records and emits one `page(...)` call per record, dressed by the theme's geometry, fonts and colours.
+The deck above renders two pages: the section slide the level 1 heading opened, and the content slide the level 2 heading opened.
+
+## Where to go next
+
+Reference
+
+: [Every export](reference.qmd), its arguments, its defaults and what it rejects.
+
+Examples
+
+: [The four ways a slide is opened](examples.qmd), the per-slide options, and building a theme.
+
+Changelog
+
+: [What each release changed](changelog.qmd).
+
+Source
+
+: [The repository](https://github.com/{{< var repository.slug >}}), where `ARCHITECTURE.md` records the decisions behind the design and `notes/` records the measured Typst behaviour the package depends on.

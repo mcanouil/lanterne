@@ -14,3 +14,12 @@ trim_trailing_whitespace = false
 # Generated output committed verbatim as evidence; see tests/fixtures/README.md.
 [tests/fixtures/*.typ]
 trim_trailing_whitespace = false
+
+# Vendored with the documentation website and kept byte-identical to the copy it
+# came from, so re-scaffolding overwrites them without a diff to review.
+[docs/_scripts/*.sh]
+indent_style = tab
+
+[docs/_extensions/**]
+indent_style = unset
+indent_size = unset
