@@ -2,7 +2,7 @@
 ///!
 ///! Typst cannot catch a panic, so the message builders are pure functions
 ///! returning strings (tests/unit/test-errors.typ asserts their wording) and
-///! the `fail-*` / `check` wrappers raise them.
+///! the `fail-*` wrappers raise them.
 ///!
 ///! Grammar: "<scope>: <problem>; got <repr(value)>. <hint>"
 ///!
@@ -64,12 +64,4 @@
 /// @category utils
 #let fail-type(scope, name, value, expected, hint: none) = {
   panic(type-text(scope, name, value, expected, hint: hint))
-}
-
-/// Assert with a grammar-conformant message.
-/// The message string is assembled only when `cond` fails, but `scope`,
-/// `problem` and `hint` are still evaluated at the call site.
-/// @category utils
-#let check(cond, scope, problem, hint: none) = {
-  if not cond { fail(scope, problem, hint: hint) }
 }

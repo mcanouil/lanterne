@@ -1,7 +1,7 @@
 // Error message grammar: "<scope>: <problem>; got <repr(value)>. <hint>"
 
 #import "../../src/utils/errors.typ": (
-  check, enum-text, error-text, repr-each, type-text,
+  enum-text, error-text, repr-each, type-text,
 )
 
 #assert.eq(repr-each(("a", "b")), "\"a\", \"b\"")
@@ -39,7 +39,5 @@
   type-text("step", "range", 0, "a positive integer"),
   "step: range must be a positive integer; got 0.",
 )
-
-#check(true, "step", "range must not be empty")
 
 errors tests passed.
