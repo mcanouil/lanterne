@@ -1,10 +1,10 @@
 ///! Facts about Typst's content model that the traversal needs.
 ///!
-///! Two of the element functions the package has to name have no public
-///! binding, so they are obtained from a sample value. Both the registry and
-///! the splitter need them, and a test that constructs one of these shapes
-///! needs them too, so they live here rather than being re-derived per
-///! module: the sample-value trick has to be re-verified after a Typst
+///! Three of the element functions the package has to name have no public
+///! binding, so they are obtained from a sample value. The registry, the
+///! splitter and the slide builder need them, and a test that constructs one of
+///! these shapes needs them too, so they live here rather than being re-derived
+///! per module: the sample-value trick has to be re-verified after a Typst
 ///! upgrade, and one copy re-verified while another is missed is how a
 ///! silently wrong deck happens.
 ///!
@@ -26,6 +26,14 @@
 /// verified positional order for reconstructing one.
 /// @category utils
 #let STYLED = text(size: 12pt)[x].func()
+
+/// The element function of the whitespace between two pieces of content.
+///
+/// Markup puts one of these wherever a line or a space separates children, so
+/// a segment that looks empty to a reader is a sequence of them. It has no
+/// public binding, hence the sample value.
+/// @category utils
+#let SPACE = [ ].func()
 
 /// Whether `node` is content built by the element function `fn`.
 ///

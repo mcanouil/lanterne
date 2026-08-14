@@ -22,7 +22,7 @@ The match is a substring test after whitespace is collapsed on both sides, becau
 
 A file that compiles, or fails with a different message, or carries no `// EXPECT:` line at all, fails the suite.
 
-Covers every guard in `src/`: token name and value validation, theme construction and merging, the marker kinds, `register-container` and `lookup` argument validation and the spread arity rule, the registry shape check, the traversal depth bound including nesting made only of arrays or only of dictionaries, `has-marker` and `rebuild` argument validation, the unregistered element that carries a step marker, splitter argument types, and the error grammar's own hint guard.
+Covers every guard in `src/`: token name and value validation, theme construction and merging, the marker kinds, `register-container` and `lookup` argument validation and the spread arity rule, the registry shape check, the traversal depth bound including nesting made only of arrays or only of dictionaries, `has-marker` and `rebuild` argument validation, the unregistered element that carries a step marker, splitter argument types, slide record validation including its cross-field rules and its option vocabulary, the slide splitter's arguments and the placement rule for the option marker, and the error grammar's own hint guard.
 
 Add a case with the guard, in the same commit.
 A guard with no case here is a guard that can be deleted without the build noticing.
