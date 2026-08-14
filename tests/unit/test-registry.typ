@@ -33,7 +33,7 @@
 
 // list.item and enum.item share a repr, so a repr-keyed registry silently
 // answers one for the other. They must resolve independently.
-#assert.eq(lookup(enum.item), (positional: ("body",), spread: false))
+#assert.eq(lookup(enum.item), (positional: ("number", "body"), spread: false))
 #assert.eq(lookup(table.cell), (positional: ("body",), spread: false))
 #assert.eq(lookup(grid.cell), (positional: ("body",), spread: false))
 
@@ -66,7 +66,7 @@
 // Task 7, so the count is pinned.
 #let count-entries(registry) = registry.values().map(b => b.len()).sum()
 #let entry-count = count-entries(builtin-registry())
-#assert.eq(entry-count, 52)
+#assert.eq(entry-count, 72)
 
 // ---------------------------------------------------------------------------
 // An element absent from the registry has no positional fields.
@@ -98,7 +98,9 @@
   for key in positional {
     let _ = named.remove(key, default: none)
   }
-  let values = positional.map(key => fields.at(key))
+  // An unset optional positional parameter is absent from fields(), so a
+  // listed key the instance does not carry is skipped rather than indexed.
+  let values = positional.filter(key => key in fields).map(key => fields.at(key))
   if spread {
     (node.func())(..named, ..values.first())
   } else {
@@ -139,6 +141,42 @@
 #assert(round-trips(parbreak()))
 #assert(round-trips(line(length: 1cm)))
 #assert(round-trips(outline()))
+
+// Instances that leave an optional positional parameter unset. The key is
+// absent from fields() entirely, so an entry that indexed it would panic.
+#assert(round-trips(block(width: 1cm)))
+#assert(round-trips(box(width: 1fr)))
+#assert(round-trips(rect(width: 1cm, height: 1cm)))
+#assert(round-trips(circle(radius: 1cm)))
+#assert(round-trips(square(size: 1cm)))
+#assert(round-trips(ellipse(width: 2cm)))
+#assert(round-trips(place(dx: 1cm, dy: 1cm)[x]))
+#assert(round-trips(columns[x]))
+#assert(round-trips(enum.item(3)[a]))
+
+// Transforms, maths and the header and footer containers. None of these
+// survive the plain spread, so an unregistered element cannot be assumed
+// to have no positional fields.
+#assert(round-trips(rotate(45deg)[x]))
+#assert(round-trips(scale(50%)[x]))
+#assert(round-trips(move(dx: 1pt)[x]))
+#assert(round-trips(skew(ax: 10deg)[x]))
+#assert(round-trips(math.frac($1$, $2$)))
+#assert(round-trips(math.vec($1$, $2$)))
+#assert(round-trips(math.cases($1$, $2$)))
+#assert(round-trips(math.lr($(x)$)))
+#assert(round-trips(math.attach($x$, t: $2$)))
+#assert(round-trips(math.accent($x$, math.hat)))
+#assert(round-trips(math.root($2$, $x$)))
+#assert(round-trips(math.op("lim")))
+#assert(round-trips(math.class("normal", $x$)))
+#assert(round-trips(math.underbrace($x$, $y$)))
+#assert(round-trips(math.mid($|$)))
+#assert(round-trips(table.header([a], [b])))
+#assert(round-trips(table.footer([a])))
+#assert(round-trips(grid.header([a])))
+#assert(round-trips(grid.footer([a])))
+#assert(round-trips(footnote.entry(footnote[x])))
 
 // ---------------------------------------------------------------------------
 // Registration is a value, not document state.

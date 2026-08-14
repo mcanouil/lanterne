@@ -35,11 +35,12 @@ Threading a value has none of these problems, and it makes the registry testable
 ### Why the entries are bucketed by `repr`
 
 Typst dictionary keys must be strings, so an element function cannot be a key directly.
-`repr` is the obvious string form and it is **not** injective over element functions: `repr(list.item)` and `repr(enum.item)` are both `"item"`, and `repr(table.cell)` and `repr(grid.cell)` are both `"cell"`.
+`repr` is the obvious string form and it is **not** injective over element functions: `repr(list.item)`, `repr(enum.item)` and `repr(terms.item)` are all `"item"`, `repr(table.cell)` and `repr(grid.cell)` are both `"cell"`, and `repr(table.header)` and `repr(grid.header)` are both `"header"`.
 A registry keyed on `repr` alone silently answers one element for another.
+The `"item"` bucket is the one that would actually corrupt a lookup, because `terms.item` carries a different recipe from the other two rather than the same one.
 
 Entries are therefore bucketed by `repr(fn)` and disambiguated within the bucket by comparing the function value itself, which does distinguish them.
-Lookup stays a dictionary access plus a scan of at most two entries.
+Lookup stays a dictionary access plus a scan of at most three entries.
 
 ## What the registry deliberately does not do
 
