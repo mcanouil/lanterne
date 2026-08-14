@@ -34,13 +34,19 @@
 /// under it. Raising `max-depth` past that ceiling buys the bare Typst
 /// diagnostic rather than a working deck.
 ///
-/// 20 clears the deepest content Quarto generates, measured at 14, and still
-/// fires before Typst's own limit in the worst shape measured, a marker at
-/// every level, which dies at 25.
+/// 30 is set against the ceiling real content meets, 38 for a rebuild with
+/// markers at a few levels, and leaves roughly twice the headroom over the
+/// deepest generated content measured, 14. A marker at every level of a tree
+/// this deep is past Typst's own limit at 25 and gets its bare diagnostic
+/// instead, which no guard can prevent: the choice is which of the two shapes
+/// is served, and content nobody writes is the one to give up.
 /// @category core
-#let MAX-DEPTH = 20
+#let MAX-DEPTH = 30
 
-#let _depth-error(depth, max-depth) = {
+// The depth reached is always the limit plus one, since the guard fires on
+// the first level past it, so the message reports the limit and not the
+// depth.
+#let _depth-error(max-depth) = {
   fail(
     "walk",
     "content is nested more than " + str(max-depth) + " levels deep",
@@ -58,7 +64,7 @@
     return node.any(child => _has-marker(child, depth, max-depth))
   }
   if type(node) != content { return false }
-  if depth > max-depth { _depth-error(depth, max-depth) }
+  if depth > max-depth { _depth-error(max-depth) }
   for (_, value) in node.fields() {
     if _has-marker(value, depth + 1, max-depth) { return true }
   }
@@ -121,7 +127,9 @@
 #let _rebuild(node, transform, registry, depth, max-depth) = {
   if is-marker(node) { return transform(node) }
   if (type(node) == content and node.func() == image) { return node }
-  if type(node) == content and depth > max-depth { _depth-error(depth, max-depth) }
+  // No depth check here: the detection call on the next line makes the same
+  // one on the same node at the same depth, and the two shapes that skip it,
+  // a marker and an image, have both already returned.
   if not _has-marker(node, depth, max-depth) { return node }
   if type(node) == array {
     return node.map(item => _rebuild(item, transform, registry, depth, max-depth))

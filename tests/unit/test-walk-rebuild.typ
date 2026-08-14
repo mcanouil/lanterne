@@ -211,13 +211,23 @@
 }
 #assert.eq(rebuild(nest-first(9), keep), nest-first(9))
 
+// A deep subtree holding no marker is never reconstructed, but it is still
+// walked to find that out, so the budget bounds it too. 25 levels of it
+// beside a marker is content Typst handles and the walk must not reject.
+#let free(k) = {
+  let acc = [leaf]
+  for _ in range(k) { acc = block(acc) }
+  acc
+}
+#assert.eq(rebuild([#m #free(25)], keep), [#m #free(25)])
+
 // max-depth raises the ceiling for content that needs it.
 #assert.eq(rebuild(nest(30, false), keep, max-depth: 36), nest(30, false))
 
 // The failing half cannot be asserted, because Typst cannot catch a panic.
-// Compiled by hand, `rebuild(nest(30, false), keep)` reports
+// Compiled by hand, `rebuild(nest(35, false), keep)` reports
 //
-//   error: panicked with: walk: content is nested more than 20 levels deep.
+//   error: panicked with: walk: content is nested more than 30 levels deep.
 //   Flatten the nesting on this slide, or raise max-depth.
 //
 // and `rebuild(nest(30, true), keep, max-depth: 100000)`, which lifts the

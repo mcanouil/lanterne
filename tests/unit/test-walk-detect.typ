@@ -74,9 +74,9 @@
 #assert(has-marker(block[#m], max-depth: 1))
 
 // The failing half cannot be asserted, because Typst cannot catch a panic.
-// Compiled by hand, `has-marker(nest(30, false))` reports
+// Compiled by hand, `has-marker(nest(35, false))` reports
 //
-//   error: panicked with: walk: content is nested more than 20 levels deep.
+//   error: panicked with: walk: content is nested more than 30 levels deep.
 //   Flatten the nesting on this slide, or raise max-depth.
 //
 // which is the message the bare Typst diagnostic used to replace.

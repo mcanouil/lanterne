@@ -35,17 +35,33 @@ Every level of a rebuild pays for a detection call as well, so the two limits ar
 ## The realistic case
 
 The shape the limit has to clear is generated content, not a hand-written torture test.
-A two column grid holding a callout block, itself three blocks deep, with a nested bullet list and `#strong` inside `#emph`, measures **14** depth units.
+The fixture's own `callout`, three blocks deep, holding a bullet list with `#strong` inside `#emph`, placed in a two column grid, measures **13** depth units.
+Splitting adds one more, because `split-on` re-applies a preamble's rules as a wrapper around each run, so the same content reaches the walk at **14**.
+
+Small changes to that shape move the figure by a unit or two, so treat it as roughly 15 rather than exactly 13.
+
+## A subtree that is walked but never rebuilt
+
+The budget also bounds detection over subtrees that hold no marker and are handed straight back.
+That is not wasted: detection has to reach the bottom of a subtree to know there is no marker in it, and those frames sit on top of the rebuild frames already on the stack.
+
+The two costs are not equal, and the trade is roughly linear.
+With the guard lifted, a rebuild standing at depth `d` tolerates a marker-free tail of about `74 - 2d` units: 62 at depth 4, 44 at depth 10, 14 at depth 20.
+One budget of 30 sits inside that surface everywhere it is reachable, which is why detection and reconstruction share a number rather than each carrying one.
 
 ## The choice
 
-`MAX-DEPTH = 20`.
+`MAX-DEPTH = 30`.
 
-- Six units of headroom over the deepest realistic content measured.
-- Five units under the worst measured ceiling, 25, so lanterne's message arrives before Typst's.
+- Roughly twice the headroom over the deepest realistic content measured.
+- Set against 38, the ceiling for a rebuild whose markers sit at a few levels, which is what real content looks like.
 
-`has-marker` and `rebuild` both take `max-depth` for content that needs more.
-Raising it works up to Typst's ceiling and no further: past roughly 25 units a marker-dense tree gets the bare diagnostic back, because no guard can lift a limit imposed by the interpreter.
+It is deliberately **not** set against 25, the marker-at-every-level ceiling.
+Guarding that shape means rejecting content at 26 to 38 that Typst compiles without complaint, and a guard that rejects working decks is worse than one that misses a shape nobody writes.
+A marker at every level of a tree that deep therefore still gets Typst's bare diagnostic.
+No guard can prevent that: the limit is the interpreter's.
+
+`has-marker` and `rebuild` both take `max-depth` for content that needs more, up to the ceilings above and no further.
 
 ## Method
 
@@ -70,9 +86,13 @@ Depth units are counted with the same rule the walk uses, content nodes only:
   if type(node) != content { return d }
   let f = node.fields()
   if f.len() == 0 { return d }
-  calc.max(..f.values().map(v => max-depth(v, d + 1)))
+  let reachable = f.values().filter(v => type(v) == content or type(v) == array)
+  calc.max(..reachable.map(v => max-depth(v, d + 1)), d)
 }
 ```
+
+The filter matters.
+Counting every field value, including lengths and colours, adds a unit at the bottom of each branch and over-states the depth the guard actually reaches.
 
 That helper is itself recursive, so it cannot measure a tree near the ceiling.
 Measure a short chain of the same shape and extrapolate: a marker at the bottom costs one unit per block, a marker at every level costs two.
