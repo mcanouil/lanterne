@@ -1,7 +1,7 @@
 // Detection is generic and total: a marker is found inside any element,
 // registered or not, so it can never be silently dropped.
 //
-// fields() is readable on every element (see docs/notes/roundtrip-findings.md),
+// fields() is readable on every element (see notes/roundtrip-findings.md),
 // and field values can be content, arrays of content, or arrays of arrays.
 // The traversal has to recurse into all of those shapes, not just a flat
 // array of content, or a marker buried in a container field goes unseen.
@@ -60,7 +60,7 @@
 #assert(not has-marker([*a* b]))
 
 // ---------------------------------------------------------------------------
-// Depth. See docs/notes/depth-limits.md for the measurements behind MAX-DEPTH.
+// Depth. See notes/depth-limits.md for the measurements behind MAX-DEPTH.
 // ---------------------------------------------------------------------------
 
 #let nest(k, every) = {
