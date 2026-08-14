@@ -11,8 +11,9 @@
 // the assertion that can actually fail if an entry is wrong.
 //
 // Typst cannot catch a panic, so the argument validation in
-// register-container is asserted on its accepting paths only. Its rejecting
-// paths abort compilation and cannot live in a committed test.
+// register-container and lookup is asserted on its accepting paths here. Every
+// rejecting path is compiled as its own case under tests/expect-fail/, where a
+// file is asserted to fail with the message it records.
 
 #import "../../src/core/registry.typ": (
   builtin-registry, lookup, register-container,
