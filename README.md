@@ -15,15 +15,18 @@ The library turns an ordinary Typst document into a deck, driving both slide bre
 
 ## Status
 
-Implemented:
+Implemented, the traversal core the rest of the package is built on:
 
 - Package scaffolding and the local check harness.
 - The error message grammar every validation routes through.
 - Step markers, the sentinels the traversal looks for.
+- Marker detection, which reaches anything a Typst element exposes.
+- Content reconstruction, driven by a registry of the elements that cannot be rebuilt by spreading their fields, and failing loudly rather than silently dropping a marker it cannot carry.
+- The splitter that turns a body into segments, which yields slides when applied with a heading predicate and steps when applied with a marker predicate.
 
 Not yet implemented:
 
-- Everything else: slides, steps, themes, layouts and every structural element.
+- Everything a deck is made of: slides, steps, themes, layouts and every structural element.
 
 ## Quick look
 

@@ -1,6 +1,6 @@
 # Recursion depth limits
 
-Why `MAX-DEPTH` in `src/core/walk.typ` is 20, measured rather than guessed.
+Why `MAX-DEPTH` in `src/core/walk.typ` is 30, measured rather than guessed.
 
 Measured against typst 0.15.1 on 14 August 2026.
 Re-measure after a Typst upgrade: the ceilings below are Typst's, not lanterne's, and nothing in the package pins them.
@@ -36,7 +36,7 @@ Every level of a rebuild pays for a detection call as well, so the two limits ar
 
 The shape the limit has to clear is generated content, not a hand-written torture test.
 The fixture's own `callout`, three blocks deep, holding a bullet list with `#strong` inside `#emph`, placed in a two column grid, measures **13** depth units.
-Splitting adds one more, because `split-on` re-applies a preamble's rules as a wrapper around each run, so the same content reaches the walk at **14**.
+Splitting adds one more, because `split-on` puts a preamble's rules back as a wrapper around each segment, so the same content reaches the walk at **14**.
 
 Small changes to that shape move the figure by a unit or two, so treat it as roughly 15 rather than exactly 13.
 
