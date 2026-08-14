@@ -31,6 +31,17 @@
 #assert(has-marker($mat(1, #m; 3, 4)$))
 #assert(not has-marker($mat(1, 2; 3, 4)$))
 
+// A dictionary field value is walked for its values, a key being a string
+// that can hold nothing. `metadata` takes any value at all, so this is content
+// an author can write rather than a hypothetical shape.
+#assert(has-marker(metadata((a: m))))
+#assert(has-marker(metadata((a: 1, b: m))))
+#assert(has-marker(metadata((a: (b: m)))))
+#assert(has-marker(metadata(((a: m),))))
+#assert(has-marker(metadata((a: (m,)))))
+#assert(not has-marker(metadata((a: 1, b: "pause"))))
+#assert(not has-marker(metadata((a: (b: 1)))))
+
 // A nested array climbs a level, so that nesting through arrays alone is
 // bounded rather than unbounded. A matrix is the ordinary shape that pays for
 // it, one level for its rows, and must keep working at a depth well under the
