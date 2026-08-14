@@ -17,7 +17,14 @@
 /// @category core
 #let MARKER-SLIDE-OPTIONS = "slide-options"
 
-#let _KINDS = (MARKER-PAUSE, MARKER-SLIDE-OPTIONS)
+/// Kind tag for a slide written out in full rather than opened by a heading.
+///
+/// Its payload carries the arguments the author gave, which become a slide
+/// record once the splitter knows the deck's slide level.
+/// @category core
+#let MARKER-SLIDE = "slide"
+
+#let _KINDS = (MARKER-PAUSE, MARKER-SLIDE-OPTIONS, MARKER-SLIDE)
 
 /// Build a marker of the given kind.
 /// An unknown kind is rejected here, because a marker no consumer matches

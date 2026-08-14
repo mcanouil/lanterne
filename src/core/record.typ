@@ -67,11 +67,14 @@
 
 /// Build a validated slide record.
 ///
-/// `title` is the heading's body rather than the heading itself, and `level` is
-/// the level it was written at, so the renderer emits one heading rather than
-/// passing a second one through. They stand or fall together: a title with no
-/// level cannot be rendered as the heading it came from, and a level with no
-/// title describes a heading that is not there.
+/// `title`, `level` and `label` describe the heading the slide was opened by,
+/// for whatever reads a record. They do not replace it: the heading stays in
+/// `body`, where the style wrappers it was written under still govern it, so a
+/// renderer places the body and reads these to know what the slide is called.
+///
+/// `title` and `level` stand or fall together: a title with no level describes a
+/// heading at no level, and a level with no title describes a heading that is
+/// not there.
 ///
 /// `label` is carried because specification 4.7 relies on a labelled heading
 /// creating a named destination, and content equality ignores labels, so a
