@@ -7,9 +7,9 @@
 ///!
 ///! A `set` or `show` rule wraps everything it governs in a `styled` element,
 ///! so the boundaries that follow one sit inside that wrapper rather than
-///! beside it. Enumeration peels the wrapper and splices what it held into
-///! the child list, carrying the styles that were removed so each child can
-///! be handed back wrapped as it was found. This is the shape a deck actually
+///! beside it. The split descends through the wrapper and puts it back around
+///! each segment found underneath, so a segment carries the rules in force
+///! over it and carries each of them once. This is the shape a deck actually
 ///! receives: `#show: deck.with(...)` hands the function a `styled` element
 ///! whenever the document sets anything after that line.
 ///!
@@ -33,52 +33,59 @@
 #let _SEQUENCE = [*a* b].func()
 #let _STYLED = text(size: 12pt)[x].func()
 
-// The children of `node` in order, grouped into runs that shared a wrapper.
-//
-// A run rather than a child is the unit, because the styles have to go back
-// on around a whole run. A `set page` re-applied to each child separately
-// opens a page group per child, so a body that rendered on one page comes
-// back rendering on as many pages as it has children. Grouping is by shared
-// origin and not by comparing styles, since two `styles` values never compare
-// equal, not even when the same rule produced both.
-//
-// A `sequence` exposes its children directly. Anything else, including a
-// single merged text run, is its own one-element sequence.
-//
-// `node.has("children")` is not the test: grid, table, stack, list and enum
-// all have a `children` field, and treating one as a sequence would return
-// its cells in place of the container itself.
-#let _runs(node, styles) = {
-  if type(node) != content { return ((styles: styles, nodes: (node,)),) }
-  if node.func() == _STYLED { return _runs(node.child, styles + (node.styles,)) }
-  if node.func() != _SEQUENCE { return ((styles: styles, nodes: (node,)),) }
+#let _is(node, fn) = type(node) == content and node.func() == fn
 
-  let runs = ()
-  let pending = ()
-  for child in node.children {
-    if type(child) == content and child.func() == _STYLED {
-      if pending.len() > 0 {
-        runs.push((styles: styles, nodes: pending))
-        pending = ()
-      }
-      runs += _runs(child, styles)
-    } else {
-      pending.push(child)
-    }
+// The pieces `node` contributes to the split, as an array of arrays of nodes.
+// Every piece but the last is a finished segment; the last is open and joins
+// whatever follows, so an array of one piece means no boundary was found.
+//
+// The split is structural rather than flat: a wrapper is descended into and
+// then put back around each piece its child produced, so a rule is re-applied
+// exactly as many times as there are segments under it and never once per
+// stretch of children between its nested wrappers. Applying `#set page` twice
+// within one segment opens two page groups, so a body that rendered on one
+// page comes back rendering on two.
+//
+// A `sequence` is descended into only when it is the body itself or sits
+// under a wrapper, which is what keeps the rule that only direct children are
+// examined. `node.has("children")` is not the test: grid, table, stack, list
+// and enum all have a `children` field, and treating one as a sequence would
+// split it into its cells.
+#let _pieces(node, predicate) = {
+  if _is(node, _STYLED) {
+    return _pieces(node.child, predicate).map(piece => (
+      (_STYLED(piece.sum(default: []), node.styles),)
+    ))
   }
-  if pending.len() > 0 { runs.push((styles: styles, nodes: pending)) }
-  runs
+  if _is(node, _SEQUENCE) {
+    let pieces = ((),)
+    for child in node.children {
+      let from-child = if _is(child, _STYLED) {
+        _pieces(child, predicate)
+      } else if predicate(child) {
+        ((), ())
+      } else {
+        ((child,),)
+      }
+      pieces = (
+        pieces.slice(0, -1)
+          + (pieces.last() + from-child.first(),)
+          + from-child.slice(1)
+      )
+    }
+    return pieces
+  }
+  if predicate(node) { return ((), ()) }
+  ((node,),)
 }
-
-// Styles were peeled outermost first, so they are re-applied innermost first.
-#let _restyle(body, styles) = styles.rev().fold(body, (acc, style) => _STYLED(acc, style))
 
 /// Split `body` into segments at every child satisfying `predicate`.
 ///
 /// `predicate` is applied to the child with its style wrappers removed, since
 /// a predicate written for a marker or a heading cannot be expected to see
-/// through one. The child kept in a segment is the wrapped form, so the rules
-/// in force over it survive the split.
+/// through one. Every segment is handed back inside the wrappers it was found
+/// under, including an empty one, so the rules in force over it survive the
+/// split.
 /// @category core
 /// @returns array
 #let split-on(body, predicate) = {
@@ -91,26 +98,5 @@
   if type(predicate) != function {
     fail-type(scope, "predicate", predicate, "a function")
   }
-  let segments = ()
-  let current = ()
-  for run in _runs(body, ()) {
-    let pending = ()
-    for node in run.nodes {
-      if predicate(node) {
-        if pending.len() > 0 {
-          current.push(_restyle(pending.sum(default: []), run.styles))
-          pending = ()
-        }
-        segments.push(current.sum(default: []))
-        current = ()
-      } else {
-        pending.push(node)
-      }
-    }
-    if pending.len() > 0 {
-      current.push(_restyle(pending.sum(default: []), run.styles))
-    }
-  }
-  segments.push(current.sum(default: []))
-  segments
+  _pieces(body, predicate).map(piece => piece.sum(default: []))
 }
