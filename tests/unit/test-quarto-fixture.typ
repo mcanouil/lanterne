@@ -90,7 +90,11 @@
 )
 #let img = image(svg-bytes, format: "svg")
 
-#assert.eq(rebuild([#box(img) #m], sub).children.first().body, img)
+// The marker sits inside the box, so the box is rebuilt and the image is
+// reached by the opaque-leaf guard. With the marker outside it, the box holds
+// no marker and comes back through the generic guard instead, which would
+// pass even if the image branch were deleted.
+#assert.eq(rebuild(box[#img#m], sub).body.children.first(), img)
 
 // A reference to that float. Its target is a label rather than content, but
 // its supplement is content, so the entry for `ref` is load bearing.
@@ -287,6 +291,17 @@
 #figure(
   [A body. #m],
   caption: figure.caption(position: bottom, [c]),
+  kind: "quarto-float-fig",
+  supplement: "Figure",
+)
+
+// Both committed floats are captioned, so a marker in a caption is the shape
+// this fixture actually emits. Inside a show rule the caption synthesises
+// `kind`, `supplement`, `numbering` and `counter`, none of them constructor
+// parameters, and the body-only case above never reaches them.
+#figure(
+  [A body.],
+  caption: figure.caption(position: bottom, [c #m]),
   kind: "quarto-float-fig",
   supplement: "Figure",
 )
