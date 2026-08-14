@@ -343,4 +343,10 @@
 
 #assert.eq(split-on(generated, is-h1).len(), 4)
 
+// The preamble sets the page, so a segment count alone is not enough: the
+// styles have to go back on around a whole run rather than around each child,
+// or every child of this body opens a page group of its own and the deck
+// renders one page per element while this count still reads 4.
+#assert.eq(split-on(generated, _ => false).first(), generated)
+
 quarto fixture tests passed.

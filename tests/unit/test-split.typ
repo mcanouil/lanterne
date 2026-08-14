@@ -69,12 +69,25 @@ a #m b #m c]
 #assert.eq(split-on(set-body, is-marker).len(), 3)
 #assert(split-on(set-body, is-marker).all(seg => not has-marker(seg)))
 
-// The style survives the split: every child comes back wrapped as it was
-// found. Equality against a hand-built expected value is not asserted,
-// because the rebuilt segment wraps each child while the original wraps the
-// whole sequence once, and the two are unequal as content while rendering
-// the same.
-#assert(split-on(set-body, is-marker).first().children.all(c => c.func() == STYLED))
+// The style survives the split, and the segment still carries the wrapper.
+#assert.eq(split-on(set-body, is-marker).first().func(), STYLED)
+
+// A body with no boundary in it comes back exactly as it went in.
+//
+// This is the assertion that a segment count cannot make. Re-applying the
+// styles to each child separately preserves every count in this file while
+// opening a page group per child, so a `#set page` body that rendered on one
+// page comes back rendering on as many pages as it has children. Identity is
+// what rules that out.
+#assert.eq(split-on(set-body, _ => false).first(), set-body)
+
+#let page-body = [#set page(fill: rgb("#eeeeff"))
+A
+
+B
+
+C]
+#assert.eq(split-on(page-body, _ => false).first(), page-body)
 
 // An element show rule produces the same wrapper.
 #assert.eq(
