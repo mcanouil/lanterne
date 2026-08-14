@@ -164,10 +164,13 @@
 /// dropped when nothing in it puts a mark on the page. An explicit
 /// `#pagebreak()` opens a slide even when nothing follows it, because it is
 /// what the author asked for.
+///
+/// `scope` names the caller in any message this raises, since a deck reaches
+/// this through `deck` and an author told to fix `slides` has no such call to
+/// find. It is the arrangement `check-token` and `check-attrs` already use.
 /// @category core
 /// @returns array
-#let slides(body, slide-level: 2) = {
-  let scope = "slides"
+#let slides(body, slide-level: 2, scope: "slides") = {
   if type(body) != content {
     fail-type(scope, "body", body, "content")
   }

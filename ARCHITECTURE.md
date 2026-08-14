@@ -77,3 +77,39 @@ A deck that silently lost a step boundary is worse than a deck that failed to bu
 This is not a total guarantee.
 A marker inside a `context` block is invisible to detection, because a context block reports no fields until layout resolves it, so nothing reaches reconstruction to refuse.
 `#pause` has to be written outside `context`.
+
+## A slide is its own `page(...)` call
+
+`deck` in `src/render/deck.typ` emits one `page(...)` call per slide record, rather than setting the page once and separating slides with weak page breaks.
+
+Both render the same deck today.
+The call form is chosen because one page per slide is then structural rather than incidental: a slide that emitted two pages would need a second call, so a spurious page is a bug in the emitter rather than an overflow nobody notices.
+It is also what the later milestones need.
+A slide that bleeds sets the page `bleed` parameter, and a slide with a fill of its own sets `fill`, and neither can be said once for the whole deck.
+
+The cost is that every page carries the full page configuration rather than inheriting it, which is a dictionary of four values per slide.
+
+## The slide's title stays where it was written
+
+The heading that opens a slide is left at the head of that slide's body rather than being lifted out and re-emitted by the renderer.
+`split-at` reports it so the record can describe the slide, and `keep` leaves it in place so the body still contains it.
+
+Lifting it out looked tidier and was wrong.
+A `set` or `show` rule wraps everything it governs, and the splitter puts that wrapper back around each segment, so a heading re-emitted beside the wrapper is outside every rule the document set.
+Three things break at once, all of them silently: `set heading(numbering: ...)` no longer numbers the title, a `show heading` rule no longer restyles it, and a reference to a labelled slide fails with `cannot reference heading without numbering` because the numbered heading Typst was asked to resolve was never the one that rendered.
+No equality assertion catches any of this, because the deck still builds and the title still appears.
+
+The cost is that `record.title` describes the slide rather than being the only copy of it.
+A renderer that later wants the title in a header region has to take it out of the body deliberately, inside the wrappers, rather than finding it already separated.
+
+## The slide record carries no `layout` key
+
+The record in `src/core/record.typ` describes a slide with `kind`, `title`, `level`, `label`, `attrs` and `body`.
+The specification's machine surface also shows a `layout` key, and it is deliberately absent until the layout system lands.
+
+The rule is the one `src/theme/tokens.typ` states for tokens: a vocabulary carries only the names something reads, and grows as the code that reads them lands.
+A `layout` key today would be validated against a catalogue that does not exist, stored, and consulted by nothing, so no reader could check what a value in it means and no test could fail when it was wrong.
+The same rule governs the option vocabulary, which ships `smaller` alone, and the `info` keys, which ship the three `set document` reads.
+
+Growing a vocabulary is additive and breaks no deck.
+Shipping a name that means nothing yet cannot be taken back.

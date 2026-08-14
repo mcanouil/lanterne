@@ -6,10 +6,15 @@
 // only that something of that name exists.
 
 #import "../../lib.typ"
+#import "../../src/core/slides.typ"
+#import "../../src/render/deck.typ"
 #import "../../src/theme/theme.typ"
 
 #assert.eq(lib.theme-tokens, theme.theme-tokens)
 #assert.eq(lib.theme-merge, theme.theme-merge)
+#assert.eq(lib.deck, deck.deck)
+#assert.eq(lib.slide, slides.slide)
+#assert.eq(lib.slide-options, slides.slide-options)
 
 // The surface is what the package promises and no more. A module exporting
 // something absent here is internal on purpose: `lookup`, `has-marker`,
@@ -19,8 +24,14 @@
 // `register-container` is absent for a sharper reason than the rest. It builds
 // a registry value, and `rebuild` is the only function that reads one, so
 // exporting it would promise a capability with no public way to spend it. It
-// arrives with the deck function that takes a registry.
-#assert.eq(dictionary(lib).keys().sorted(), ("theme-merge", "theme-tokens"))
+// arrives with the deck option that takes a registry.
+//
+// `slides` is absent as well: a deck is split by `deck`, and calling the
+// splitter directly buys records nothing public consumes.
+#assert.eq(
+  dictionary(lib).keys().sorted(),
+  ("deck", "slide", "slide-options", "theme-merge", "theme-tokens"),
+)
 
 // The facade is used as a wildcard import, which is the form every deck and
 // every example takes.
