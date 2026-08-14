@@ -94,6 +94,14 @@
 // A marker in a named field is rebuilt too, not just one in a positional.
 #assert.eq(rebuild(figure(caption: [#m])[body], sub), figure(caption: [z])[body])
 
+// A marker inside a dictionary field is reached and replaced, and the keys
+// beside it come back untouched. Detection that found a marker reconstruction
+// could not reach would turn a silent loss into a crash inside Typst.
+#assert.eq(rebuild(metadata((a: m, b: 1)), sub), metadata((a: [z], b: 1)))
+#assert.eq(rebuild(metadata((a: (b: m))), drop), metadata((a: (b: []))))
+#assert.eq(rebuild(metadata((a: (m,))), drop), metadata((a: ([],))))
+#assert.eq(rebuild(metadata((a: 1)), drop), metadata((a: 1)))
+
 // ---------------------------------------------------------------------------
 // An element with no registry entry that carries a marker is a hard error,
 // which cannot be asserted because a panic aborts compilation. The remedy the

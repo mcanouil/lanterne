@@ -9,12 +9,14 @@
 ///! `fields()` exposes, and reconstruction failing loudly, is what keeps a
 ///! marker from being silently lost.
 ///!
+///! A field holding an array or a dictionary is walked through to the values
+///! inside it, since `metadata` takes any value and a marker can sit in either.
+///!
 ///! One shape is not reachable. A `context` block reports no fields at all
 ///! until layout resolves it, so `(context [#pause]).fields()` is `(:)` and
-///! nothing inside it can be seen. Markers held in a closure or in a
-///! dictionary-valued field are invisible for the same reason. A step
-///! boundary written inside `context` is therefore lost, and `#pause` has to
-///! be written outside the context block.
+///! nothing inside it can be seen. A marker held in a closure is invisible for
+///! the same reason. A step boundary written inside `context` is therefore
+///! lost, and `#pause` has to be written outside the context block.
 ///!
 ///! Both walks are bounded by `MAX-DEPTH`, so content nested past it fails
 ///! with a message naming the cause rather than with Typst's own recursion
@@ -56,22 +58,28 @@
 }
 
 // Depth counts authored nesting levels, so it climbs when the walk descends
-// into a content node and not when it walks the array a field holds. An
-// earlier version counted every `fields()` hop, which cost about three per
-// authored level and made the number in the message mean nothing.
-// An array reached from a field does not climb, because every ordinary element
-// holds its children in one: a grid's cells or a matrix's rows would each cost
-// a level the author never wrote. An array sitting directly inside another
-// array is not that shape, so it climbs and is checked. Without that, nesting
-// that goes through arrays alone is unbounded and dies with Typst's own
-// diagnostic, reported from inside this package with no source location.
-#let _array-depth(child, depth) = if type(child) == array { depth + 1 } else { depth }
+// into a content node and not when it walks the array or dictionary a field
+// holds. An earlier version counted every `fields()` hop, which cost about
+// three per authored level and made the number in the message mean nothing.
+// A container reached from a field does not climb, because every ordinary
+// element holds its children in one: a grid's cells or a matrix's rows would
+// each cost a level the author never wrote. A container sitting directly inside
+// another container is not that shape, so it climbs and is checked. Without
+// that, nesting that goes through containers alone is unbounded and dies with
+// Typst's own diagnostic, reported from inside this package with no source
+// location.
+#let _container-depth(child, depth) = {
+  if type(child) in (array, dictionary) { depth + 1 } else { depth }
+}
 
 #let _has-marker(node, depth, max-depth) = {
   if is-marker(node) { return true }
-  if type(node) == array {
-    return node.any(child => {
-      let reached = _array-depth(child, depth)
+  if type(node) in (array, dictionary) {
+    // A dictionary is walked for its values: a key is a string and can hold no
+    // marker.
+    let children = if type(node) == array { node } else { node.values() }
+    return children.any(child => {
+      let reached = _container-depth(child, depth)
       if reached > max-depth { _depth-error(max-depth) }
       _has-marker(child, reached, max-depth)
     })
@@ -88,8 +96,8 @@
 ///
 /// `node` need not be content: it is called on every field value found while
 /// walking `fields()`, which includes arrays of content and arrays of arrays
-/// (a grid's children, or a matrix's rows) as well as plain values such as
-/// lengths and dictionaries that never contain a marker.
+/// (a grid's children, or a matrix's rows), dictionaries, and plain values such
+/// as lengths that can hold no marker at all.
 ///
 /// Content inside a `context` block is not reachable through `fields()` and
 /// is not searched. See the module header.
@@ -144,17 +152,22 @@
   // one on the same node at the same depth, and the two shapes that skip it,
   // a marker and an image, have both already returned.
   if not _has-marker(node, depth, max-depth) { return node }
-  if type(node) == array {
-    // Climbs on a nested array for the reason `_has-marker` does. Detection
-    // runs first and raises on the same shape, so this cannot be reached
-    // today; it is here so the two walks cannot disagree about what a level is.
-    return node.map(item => _rebuild(
-      item,
+  if type(node) in (array, dictionary) {
+    // Climbs on a nested container for the reason `_has-marker` does.
+    // Detection runs first and raises on the same shape, so this cannot be
+    // reached today; it is here so the two walks cannot disagree about what a
+    // level is.
+    let step = value => _rebuild(
+      value,
       transform,
       registry,
-      _array-depth(item, depth),
+      _container-depth(value, depth),
       max-depth,
-    ))
+    )
+    if type(node) == array { return node.map(step) }
+    let rebuilt = (:)
+    for (key, value) in node { rebuilt.insert(key, step(value)) }
+    return rebuilt
   }
 
   let fn = node.func()
