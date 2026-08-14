@@ -98,14 +98,14 @@
 // An element with no registry entry that carries a marker is a hard error,
 // which cannot be asserted because a panic aborts compilation. The remedy the
 // message names is asserted instead: a registration threaded into the call
-// makes the same tree rebuild. table.header is absent from the built in set.
+// makes the same tree rebuild. outline.entry is absent from the built in set.
 // ---------------------------------------------------------------------------
 
-#let extended = register-container(table.header, ("children",), spread: true)
+#let extended = register-container(outline.entry, ("level", "element"))
 
 #assert.eq(
-  rebuild(table.header([a], [#m]), sub, registry: extended),
-  table.header([a], [z]),
+  rebuild(outline.entry(1, [#m]), sub, registry: extended),
+  outline.entry(1, [z]),
 )
 
 // ---------------------------------------------------------------------------
