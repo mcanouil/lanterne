@@ -19,7 +19,7 @@
 ///! nothing else: the caller decides what to do with an unregistered element
 ///! rather than assuming an empty positional list is safe.
 ///!
-///! The entry set is transcribed from docs/notes/roundtrip-findings.md, where
+///! The entry set is transcribed from notes/roundtrip-findings.md, where
 ///! every entry was verified against typst 0.15.1. Read that note before
 ///! changing anything here, and re-run tests/unit/test-roundtrip.typ after a
 ///! Typst upgrade.
@@ -126,7 +126,7 @@
   registry
 }
 
-/// The entries verified in docs/notes/roundtrip-findings.md, as the base
+/// The entries verified in notes/roundtrip-findings.md, as the base
 /// registry that `register-container` extends and `lookup` reads by default.
 /// @category core
 /// @returns dictionary

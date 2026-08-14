@@ -1,6 +1,6 @@
 // Reconstruction: registry first, hard error last.
 //
-// The rule is stated in docs/notes/roundtrip-findings.md and its data lives in
+// The rule is stated in notes/roundtrip-findings.md and its data lives in
 // src/core/registry.typ. Fields named positionally there are handed back as
 // positional arguments, in declaration order, and the rest by name.
 //
@@ -202,7 +202,7 @@
 #assert.eq(rebuild([3. a #m], keep), [3. a #m])
 
 // ---------------------------------------------------------------------------
-// Depth. See docs/notes/depth-limits.md for the measurements behind MAX-DEPTH.
+// Depth. See notes/depth-limits.md for the measurements behind MAX-DEPTH.
 // ---------------------------------------------------------------------------
 
 #let nest(k, every) = {

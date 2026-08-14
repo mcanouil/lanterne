@@ -6,8 +6,8 @@ Each one cost a wrong assumption at least once, and each is invisible from the d
 Measured against typst 0.15.1 on 14 August 2026, while building slide splitting and page emission.
 Re-measure after a Typst upgrade: these are Typst's behaviours, not lanterne's, and nothing in the package pins most of them.
 
-`docs/notes/roundtrip-findings.md` covers reconstruction and the registry.
-`docs/notes/depth-limits.md` covers the recursion ceilings.
+`notes/roundtrip-findings.md` covers reconstruction and the registry.
+`notes/depth-limits.md` covers the recursion ceilings.
 This note covers everything else.
 
 ## Element functions with no public binding

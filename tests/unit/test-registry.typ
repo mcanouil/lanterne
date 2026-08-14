@@ -2,7 +2,7 @@
 // back positionally when that element is rebuilt.
 //
 // The entry set is the "Registry recommendations for Task 5" table in
-// docs/notes/roundtrip-findings.md, which is the authoritative
+// notes/roundtrip-findings.md, which is the authoritative
 // characterisation. tests/unit/test-roundtrip.typ pins the recipe each
 // element needs; this file pins that the registry reports that same recipe.
 //
@@ -97,7 +97,7 @@
 // ---------------------------------------------------------------------------
 // The entries are correct, not merely transcribed.
 //
-// This is the rebuild rule of docs/notes/roundtrip-findings.md, driven
+// This is the rebuild rule of notes/roundtrip-findings.md, driven
 // entirely from the registry. The shared helper it prefigures is Task 7; this
 // copy exists so a wrong entry fails here rather than in the traversal.
 // ---------------------------------------------------------------------------

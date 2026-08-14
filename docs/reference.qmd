@@ -1,0 +1,256 @@
+---
+title: "Reference"
+subtitle: "Every name Lanterne exports, and what it accepts."
+description: "The five exports of lib.typ, the theme token vocabulary, the slide options, and what each call rejects."
+---
+
+`lib.typ` is a pure re-export facade: it exports five names and defines none.
+Everything below was read out of the source, and each section names the file it came from, so it can be checked against the code rather than trusted.
+
+| Export | Source | Purpose |
+| --- | --- | --- |
+| `deck` | `src/render/deck.typ` | The document's show rule: a body becomes pages. |
+| `slide` | `src/core/slides.typ` | A slide written out in full rather than opened by a heading. |
+| `slide-options` | `src/core/slides.typ` | Options for the slide a heading opened. |
+| `theme-tokens` | `src/theme/theme.typ` | A theme: the defaults with named overrides applied. |
+| `theme-merge` | `src/theme/theme.typ` | Overrides merged into a complete theme. |
+
+: The public surface. {.striped .hover tbl-colwidths="[20,30,50]"}
+
+Anything a module exports that is not listed here is internal on purpose.
+`register-container` is the notable absence: it builds a container registry, and the only function that reads one is internal, so exporting it would hand out a value with nowhere to put it.
+It arrives with the deck option that takes a registry.
+
+## `deck`
+
+Read from `src/render/deck.typ`.
+
+```typst
+#show: deck.with(theme: theme-tokens(), aspect-ratio: "16-9", slide-level: 2)
+```
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `body` | content | | The document, passed by the show rule. |
+| `theme` | dictionary or `none` | `none` | A token dictionary from `theme-tokens` or `theme-merge`. `none` takes the canonical defaults. |
+| `aspect-ratio` | `"16-9"` or `"4-3"` | `"16-9"` | The page shape. |
+| `slide-level` | non-negative integer | `2` | The heading level that opens a slide. `0` disables heading splitting. |
+| `info` | dictionary | `(:)` | Document metadata, passed to `set document`. |
+
+: `deck` arguments. {.striped .hover tbl-colwidths="[15,18,12,55]"}
+
+`aspect-ratio` selects one of Typst's own presentation papers: `"16-9"` is 841.89pt by 473.56pt, and `"4-3"` is 793.7pt by 595.28pt.
+
+### `info` keys
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `title` | content or string | The document title. |
+| `author` | string or array of strings | One author or several. |
+| `date` | datetime, `auto` or `none` | The document date. |
+
+: `info` keys, the three `set document` reads. {.striped .hover tbl-colwidths="[15,30,55]"}
+
+The vocabulary carries only what something reads.
+Typst's own `description` and `keywords` are not among them, and an unknown key is rejected rather than passed through.
+
+### How a body becomes slides
+
+One pass over the body's top level children, splitting at anything that opens a slide.
+
+| Boundary | Opens |
+| --- | --- |
+| A heading at `slide-level` | A content slide, titled by that heading. |
+| A heading below `slide-level` | A section slide, whose content is centred on the page. |
+| A heading above `slide-level` | Nothing: it is ordinary content on the slide it sits in. |
+| `#pagebreak()` | An untitled slide, even when nothing follows it. |
+| `slide(...)` | A slide complete in itself; what follows opens another. |
+
+: What opens a slide. {.striped .hover tbl-colwidths="[40,60]"}
+
+Content before the first boundary is an implicit untitled slide, and is dropped when nothing in it puts a mark on the page.
+
+Only top level children are examined, so a heading nested inside a block, a grid cell or a list item never splits the deck.
+The same limit applies to `slide-options`, which has to be a top level child of the slide it configures.
+
+A heading that opens a slide stays where it was written, at the head of that slide's body, rather than being lifted out and re-emitted.
+That is what keeps `set heading(numbering: ...)`, a `show heading` rule and a reference to a labelled heading all working on it.
+
+::: {.callout-note}
+
+## A `set heading(offset: ...)` rule is invisible to the split
+
+A heading's level is read from the heading itself, under whichever of `level`, `depth` and `offset` the author reached for.
+An offset set by a rule lives in the style wrapper, and Typst exposes no way to read a wrapper's rules, so such a heading splits at the level it was written at rather than the level it renders at.
+Write the level you mean, or set `slide-level` to match the offset.
+An `offset` passed to `heading` itself is a field, so it is read and counted.
+:::
+
+## `slide`
+
+Read from `src/core/slides.typ`.
+
+```typst
+#slide(title: [A slide of one's own])[
+  An explicit slide is complete in itself.
+]
+```
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `body` | content | | The slide's content, as the one positional argument. |
+| `title` | content or `none` | `none` | The slide's title. |
+| `level` | positive integer or `none` | `none` | The heading level the title stands at. Defaults to the deck's `slide-level` when a title is given. |
+| `..attrs` | named only | | Slide options, validated as for `slide-options`. |
+
+: `slide` arguments. {.striped .hover tbl-colwidths="[15,20,12,53]"}
+
+A second positional argument is rejected, as is a `slide-options` call inside the body: an explicit slide's options are its own arguments, so write `slide(smaller: true)[...]`.
+
+## `slide-options`
+
+Read from `src/core/slides.typ`.
+
+```typst
+== Set smaller
+
+#slide-options(smaller: true)
+```
+
+Named arguments only.
+The call is a marker the splitter consumes and never renders, and it must be written immediately after the slide's heading: nothing but the heading and blank content may precede it.
+Two markers on one slide are an error rather than one of them silently winning.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `smaller` | boolean | `false` | Sets the slide's text one step down the theme's `scale-ratio`, title and body together. |
+
+: Slide options, from `src/core/record.typ`. {.striped .hover tbl-colwidths="[15,13,12,60]"}
+
+One option today.
+`steps`, `appendix` and `layout` arrive alongside the code that reads them, so the vocabulary grows rather than shipping names that mean nothing yet.
+
+## `theme-tokens` and `theme-merge`
+
+Read from `src/theme/theme.typ`.
+
+```typst
+#let base = theme-tokens(bg: rgb("#fbfbfd"), fg: rgb("#1c1c22"))
+#let dark = theme-merge(base, (bg: rgb("#1c1c22"), fg: white))
+```
+
+`theme-tokens(..overrides)` takes named arguments only and returns the canonical defaults with those overrides applied.
+`theme-merge(base, overrides)` takes a complete token dictionary and a dictionary of overrides, and validates every key of both.
+
+`base` must be complete rather than a subset.
+A partial one would flow downstream and fail where it is read, naming a missing key, rather than here, naming the theme that lacks it.
+
+`extra` merges key by key rather than replacing wholesale, so setting one token of your own leaves the base theme's others in place.
+
+### Token vocabulary
+
+Read from `src/theme/tokens.typ`.
+The colour, typography and geometry groupings are documentation rather than structure: the dictionary is flat, so a theme merges without recursion and a generated theme is one dictionary literal.
+
+| Token | Accepts | Default | Description |
+| --- | --- | --- | --- |
+| `bg` | colour | `white` | The page fill. |
+| `fg` | colour | `rgb("#111111")` | The text colour. |
+| `dim-opacity` | ratio from 0% to 100% | `30%` | Reserved for dimmed content behind an overlay step. Validated, and read by nothing until the step engine lands. |
+| `font-base` | family name, coverage-scoped entry, or a non-empty array of them | `"Libertinus Serif"` | The body font. |
+| `font-heading` | as `font-base` | `"Libertinus Serif"` | The heading font. |
+| `size-base` | positive absolute length | `24pt` | The body text size. An `em` value is rejected here, since it would be relative to itself. |
+| `scale-ratio` | number of at least 1 | `1.2` | The step between heading sizes, and what `smaller` divides by. |
+| `weight-heading` | integer from 100 to 900, or a weight name | `"semibold"` | The heading weight. |
+| `leading` | length | `0.75em` | The paragraph leading. |
+| `margin` | length | `2cm` | The page margin. |
+| `extra` | dictionary | `(:)` | Tokens of your own. The one key whose contents are not validated. |
+
+: The token vocabulary. {.striped .hover tbl-colwidths="[15,25,15,45]"}
+
+The named weights are `thin`, `extralight`, `light`, `regular`, `medium`, `semibold`, `bold`, `extrabold` and `black`.
+
+A heading's size is `size-base` multiplied by `scale-ratio` raised to `max(0, 3 - level)`, so a section title reads as larger than a slide title and both read as larger than the body, and level 3 and below sit at the base size.
+On a slide set `smaller`, the base of that calculation is the slide's own reduced size, so the title shrinks with the body rather than staying as large on the slide that asked for room.
+
+`extra` exists so that a token of your own has somewhere to live.
+The strictness everywhere else is the point: a mistyped token name that is quietly ignored is how a theme rots.
+`extra` is not itself a token name, so `theme-tokens(extra: ...)` is accepted as a key while `check-token` reports `extra` as an unknown token name.
+
+## The slide record
+
+Read from `src/core/record.typ`.
+A record is the one dictionary a slide is described by, and is what the renderer reads.
+It is not exported, and is documented here because it is the contract the machine surface will be built on.
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `kind` | `"content"` or `"section"` | A section slide is a divider, and must have a title. |
+| `title` | content or `none` | The heading's body, describing the slide. |
+| `level` | positive integer or `none` | The level that heading stands at. |
+| `label` | label or `none` | The heading's label, carried because content equality ignores labels. |
+| `attrs` | dictionary | Every slide option, each unnamed one at its default. |
+| `body` | content | What renders, the opening heading included. |
+
+: The slide record. {.striped .hover tbl-colwidths="[12,25,63]"}
+
+`title` and `level` stand or fall together: a title with no level describes a heading at no level, and a level with no title describes a heading that is not there.
+
+There is no `layout` key.
+Layouts arrive with the code that resolves them, and a key nothing reads is a key whose meaning no reader can check.
+
+## Validation
+
+Every validation in the package routes through `src/utils/errors.typ`, so every message has the same grammar:
+
+```text
+<scope>: <problem>; got <repr(value)>. <hint>
+```
+
+`<scope>` is the function the author called, not the helper that raised the error: a token rejected on behalf of `theme-tokens` names `theme-tokens`.
+Typst cannot catch a panic, so every one of these is a compile error rather than something a deck can recover from.
+
+Three shapes cover the failures:
+
+Enumerated values
+
+: `deck: aspect-ratio must be one of "16-9", "4-3"; got "21-9".`
+
+Types and shapes
+
+: `theme-tokens: bg must be a colour; got 1.`
+
+Everything else
+
+: `slide-options must come before the slide's content. Move the slide-options call to just after the heading.`
+
+`tests/expect-fail/` is the authoritative list of what each guard rejects: one file per case, each carrying the exact message it must produce.
+A guard cannot be exercised from inside a unit test, because Typst cannot catch a panic, so those cases compile files that are asserted to fail.
+
+## Limitations
+
+What is specified but not implemented, as of the current development state:
+
+Overlay steps
+
+: `#pause` and the step functions do not exist, so a slide renders as one page. `dim-opacity` and the `steps` slide option are part of the same milestone.
+
+Layouts and chrome
+
+: A slide is its title and its body. There is no header, footer, progress indicator, slide number or logo, and no layout system to place them.
+
+The element catalogue
+
+: Callouts, columns and the rest of the structural elements are not implemented.
+
+Reconstruction of unknown elements
+
+: The traversal refuses, loudly, to rebuild an element it has no registry entry for, rather than guessing. A deck that silently lost a step boundary is worse than one that failed to build. `notes/roundtrip-findings.md` records which elements were characterised and how.
+
+Markers inside `context`
+
+: A marker inside a `context` block is invisible to the traversal, because a context block reports no fields until layout resolves it. Anything the traversal must see has to be written outside `context`.
+
+Cross references by name
+
+: A labelled heading is a link destination, so `#link(<label>)` works. Typst refuses `@label` on a heading that is not numbered, so referencing by name waits for the numbering rules.

@@ -22,7 +22,7 @@
 ///
 /// A rule wraps everything it governs in one of these, with the wrapped
 /// content in `child` and the rules in `styles`. It has no public binding,
-/// hence the sample value. `docs/notes/roundtrip-findings.md` records the
+/// hence the sample value. `notes/roundtrip-findings.md` records the
 /// verified positional order for reconstructing one.
 /// @category utils
 #let STYLED = text(size: 12pt)[x].func()

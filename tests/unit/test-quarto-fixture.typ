@@ -108,7 +108,7 @@
 
 // A Markdown table. `table.header` is emitted for every table with a header
 // row and was the one registry gap this fixture found; see the entry added
-// after the spike in docs/notes/roundtrip-findings.md. `table.hline` takes no
+// after the spike in notes/roundtrip-findings.md. `table.hline` takes no
 // content, so it can never carry a marker and needs no entry.
 #assert.eq(
   rebuild(

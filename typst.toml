@@ -16,6 +16,7 @@ exclude = [
   ".gitignore",
   "docs",
   "examples",
+  "notes",
   "skills",
   "tests",
   "tools",

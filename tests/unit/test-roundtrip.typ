@@ -1,7 +1,7 @@
 // Characterisation: which elements survive (node.func())(..node.fields())?
 //
 // The full findings, including the verbatim Typst error for every failing
-// element, are in docs/notes/roundtrip-findings.md. Read that file before
+// element, are in notes/roundtrip-findings.md. Read that file before
 // changing anything here.
 //
 // This file is a regression guard. When it fails after a Typst upgrade, the

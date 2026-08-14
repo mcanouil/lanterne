@@ -80,7 +80,7 @@
 #let _pieces(node, predicate, keep) = {
   if is-elem(node, STYLED) {
     // The positional order `(child, styles)` is the registry's recipe for
-    // `styled`, verified in docs/notes/roundtrip-findings.md. A Typst upgrade
+    // `styled`, verified in notes/roundtrip-findings.md. A Typst upgrade
     // that changes it has to reach this call as well as src/core/registry.typ.
     //
     // A label is not a constructor parameter, so rebuilding the wrapper drops

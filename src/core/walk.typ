@@ -23,7 +23,7 @@
 ///! error, which reports from inside this file and names no content at all.
 ///! The bound is one number for both, because the same rule counts a level in
 ///! each and neither reaches its own ceiling before the guard fires.
-///! `docs/notes/depth-limits.md` records the measurements.
+///! `notes/depth-limits.md` records the measurements.
 
 #import "marker.typ": is-marker
 #import "registry.typ": _get, builtin-registry
@@ -32,7 +32,7 @@
 
 /// The nesting depth the traversal accepts before it gives up.
 ///
-/// Measured, not guessed: `docs/notes/depth-limits.md` records the ceiling
+/// Measured, not guessed: `notes/depth-limits.md` records the ceiling
 /// Typst's own recursion limit imposes and the headroom this default leaves
 /// under it. Raising `max-depth` past that ceiling buys the bare Typst
 /// diagnostic rather than a working deck.
