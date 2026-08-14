@@ -30,11 +30,23 @@
   "black",
 )
 
-// Typst takes a font family as a name or as a fallback list, and an empty list
-// selects nothing at all rather than falling back.
+// Typst takes a font family as a name, or as a fallback list whose entries are
+// names or coverage-scoped dictionaries. The dictionary form is how a deck
+// mixes scripts, sending some codepoints to one family and the rest to
+// another, so rejecting it would make this rule stricter than the thing it
+// validates for. `covers` is left to Typst, which reports its own forms better
+// than a copy of them here would.
+//
+// An empty list is rejected because it selects nothing at all rather than
+// falling back.
+#let _is-family(entry) = {
+  if type(entry) == str { return true }
+  type(entry) == dictionary and type(entry.at("name", default: none)) == str
+}
+
 #let _is-font(value) = {
   if type(value) == str { return true }
-  type(value) == array and value.len() > 0 and value.all(v => type(v) == str)
+  type(value) == array and value.len() > 0 and value.all(_is-family)
 }
 
 #let _is-weight(value) = {
@@ -64,12 +76,12 @@
   ),
   font-base: (
     default: "Libertinus Serif",
-    expected: "a font family name or a non-empty array of them",
+    expected: "a font family name, or a non-empty array of names and coverage-scoped entries",
     ok: _is-font,
   ),
   font-heading: (
     default: "Libertinus Serif",
-    expected: "a font family name or a non-empty array of them",
+    expected: "a font family name, or a non-empty array of names and coverage-scoped entries",
     ok: _is-font,
   ),
   size-base: (

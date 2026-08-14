@@ -61,6 +61,16 @@
 // The accepting edges of each rule.
 #check-token("bg", rgb(10, 20, 30), "test")
 #check-token("font-base", ("Libertinus Serif", "New Computer Modern"), "test")
+
+// Typst takes a coverage-scoped entry in a fallback list, which is how a deck
+// mixes scripts by sending some codepoints to one family and the rest to
+// another. Validation must not be stricter than the thing it validates for.
+#check-token(
+  "font-base",
+  ((name: "Libertinus Serif", covers: regex("[0-9]")), "New Computer Modern"),
+  "test",
+)
+#check-token("font-heading", ((name: "Libertinus Serif", covers: "latin-in-cjk"),), "test")
 #check-token("weight-heading", 100, "test")
 #check-token("weight-heading", 900, "test")
 #check-token("weight-heading", "black", "test")
@@ -100,5 +110,13 @@
 //   check-token("weight-heading", 950, "theme-tokens")
 //     theme-tokens: weight-heading must be an integer from 100 to 900 or a
 //     weight name; got 950.
+//
+//   check-token("font-base", (), "theme-tokens")
+//     theme-tokens: font-base must be a font family name, or a non-empty array
+//     of names and coverage-scoped entries; got ().
+//
+//   check-token("font-base", ((covers: "latin-in-cjk"),), "theme-tokens")
+//     the same message, with `got ((covers: "latin-in-cjk"),)`. A coverage
+//     scoped entry without a family name selects nothing.
 
 tokens tests passed.
