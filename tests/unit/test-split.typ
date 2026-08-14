@@ -89,6 +89,32 @@ B
 C]
 #assert.eq(split-on(page-body, _ => false).first(), page-body)
 
+// The same, with a second rule written part way through. The outer rule is
+// still in force over the whole body, so it must go back on once rather than
+// once per stretch of children between the nested wrappers. Applying it twice
+// opens a second page group and the body renders on two pages.
+#let two-rule-body = [#set page(fill: rgb("#eeeeff"))
+A
+
+#set text(size: 20pt)
+B]
+#assert.eq(split-on(two-rule-body, _ => false).first(), two-rule-body)
+
+// A group carrying its own rule is the same shape reached another way.
+#let grouped-body = [#set page(fill: rgb("#eeeeff"))
+A
+
+#[#set text(size: 20pt)
+B]
+
+C]
+#assert.eq(split-on(grouped-body, _ => false).first(), grouped-body)
+
+// An empty segment keeps the rules in force over it. A leading boundary
+// otherwise yields a step with no page setup while its siblings have it.
+#assert.eq(split-on([#set page(fill: rgb("#eeeeff"))
+#m A], is-marker).first().func(), STYLED)
+
 // An element show rule produces the same wrapper.
 #assert.eq(
   split-on(
