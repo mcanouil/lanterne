@@ -18,7 +18,7 @@
 
 #import "marker.typ": is-marker
 #import "registry.typ": lookup
-#import "../utils/errors.typ": fail
+#import "../utils/errors.typ": fail, fail-type
 
 // Typst aborts with `maximum function call depth exceeded` somewhere between
 // 25 and 30 nesting levels, from inside library internals and with no source
@@ -59,14 +59,83 @@
 #let has-marker(node) = _has-marker(node, 0)
 
 // The fields an element gains when it is synthesised inside a show rule and
-// which are not constructor parameters. Exactly these two: `scope` on a
-// figure and `theme` on a raw are parameters, and dropping either of those
-// produces a rebuild that no longer compares equal.
+// which are not constructor parameters. Only these: `scope` on a figure and
+// `theme` on a raw are parameters, and dropping either of those produces a
+// rebuild that no longer compares equal.
+#let _SYNTHESISED = (
+  (fn: figure, names: ("counter",)),
+  (fn: raw, names: ("lines",)),
+  (fn: figure.caption, names: ("kind", "supplement", "numbering", "counter")),
+  (fn: ref, names: ("citation", "element")),
+)
+
 #let _strip-synthesised(fn, fields) = {
   let stripped = fields
-  if fn == figure { let _ = stripped.remove("counter", default: none) }
-  if fn == raw { let _ = stripped.remove("lines", default: none) }
+  for rule in _SYNTHESISED {
+    if fn == rule.fn {
+      for name in rule.names {
+        let _ = stripped.remove(name, default: none)
+      }
+    }
+  }
   stripped
+}
+
+// The recursion. Arguments are validated once by `rebuild` rather than on
+// every node, so this takes `registry` positionally and assumes it is valid.
+#let _rebuild(node, transform, registry) = {
+  if is-marker(node) { return transform(node) }
+  if (type(node) == content and node.func() == image) { return node }
+  if not has-marker(node) { return node }
+  if type(node) == array {
+    return node.map(item => _rebuild(item, transform, registry))
+  }
+
+  let fn = node.func()
+  let entry = lookup(fn, registry: registry)
+  if entry == none {
+    // `repr` is not injective over element functions, so the name alone can
+    // be ambiguous: table.header and grid.header both repr as "header". The
+    // field names distinguish them well enough to act on.
+    fail(
+      "rebuild",
+      "cannot reconstruct element "
+        + repr(fn)
+        + " with fields "
+        + repr(node.fields().keys())
+        + " containing a step marker",
+      hint: "Register it with register-container(fn, positional).",
+    )
+  }
+
+  let fields = _strip-synthesised(fn, node.fields())
+  let element-label = fields.remove("label", default: none)
+
+  // An optional positional parameter that was never set is absent from
+  // fields(), and Typst binds the positional arguments that remain by type,
+  // so `align[x]` rebuilds from its body alone.
+  let positional = entry.positional.filter(name => name in fields)
+
+  let named = (:)
+  for (name, value) in fields {
+    if not positional.contains(name) {
+      named.insert(name, _rebuild(value, transform, registry))
+    }
+  }
+  let values = positional.map(name => (
+    _rebuild(fields.at(name), transform, registry)
+  ))
+
+  // A variadic container holds its children in one field that has itself to
+  // be spread into separate arguments. A sequence takes its children whole.
+  let arguments = if (entry.spread and values.len() == 1) {
+    values.first()
+  } else {
+    values
+  }
+
+  let rebuilt = fn(..named, ..arguments)
+  if element-label == none { rebuilt } else { [#rebuilt#element-label] }
 }
 
 /// Rebuild `node`, applying `transform` to every marker it contains.
@@ -93,49 +162,11 @@
 /// @category core
 /// @returns content, or the value given when it holds no marker
 #let rebuild(node, transform, registry: none) = {
-  if is-marker(node) { return transform(node) }
-  if (type(node) == content and node.func() == image) { return node }
-  if not has-marker(node) { return node }
-  if type(node) == array {
-    return node.map(item => rebuild(item, transform, registry: registry))
+  if type(transform) != function {
+    fail-type("rebuild", "transform", transform, "a function")
   }
-
-  let fn = node.func()
-  let entry = lookup(fn, registry: registry)
-  if entry == none {
-    fail(
-      "rebuild",
-      "cannot reconstruct element " + repr(fn) + " containing a step marker",
-      hint: "Register it with register-container(fn, positional).",
-    )
+  if (registry != none and type(registry) != dictionary) {
+    fail-type("rebuild", "registry", registry, "a dictionary or none")
   }
-
-  let fields = _strip-synthesised(fn, node.fields())
-  let element-label = fields.remove("label", default: none)
-
-  // An optional positional parameter that was never set is absent from
-  // fields(), and Typst binds the positional arguments that remain by type,
-  // so `align[x]` rebuilds from its body alone.
-  let positional = entry.positional.filter(name => name in fields)
-
-  let named = (:)
-  for (name, value) in fields {
-    if not positional.contains(name) {
-      named.insert(name, rebuild(value, transform, registry: registry))
-    }
-  }
-  let values = positional.map(name => (
-    rebuild(fields.at(name), transform, registry: registry)
-  ))
-
-  // A variadic container holds its children in one field that has itself to
-  // be spread into separate arguments. A sequence takes its children whole.
-  let arguments = if (entry.spread and values.len() == 1) {
-    values.first()
-  } else {
-    values
-  }
-
-  let rebuilt = fn(..named, ..arguments)
-  if element-label == none { rebuilt } else { [#rebuilt#element-label] }
+  _rebuild(node, transform, registry)
 }

@@ -167,4 +167,20 @@
 
 #figure(caption: [c])[body #m]
 
+// A marker in the caption rather than the body reaches figure.caption, which
+// synthesises four fields that are not constructor parameters.
+#figure(caption: [c #m])[body]
+
+#show figure.caption: it => {
+  assert("kind" in it.fields())
+  assert.eq(rebuild(it, keep), it)
+  []
+}
+
+#figure(caption: [c #m])[body]
+
+// An explicitly numbered item carries `number`, which is positional-only.
+#assert.eq(rebuild(enum.item(3)[a #m], keep), enum.item(3)[a #m])
+#assert.eq(rebuild([3. a #m], keep), [3. a #m])
+
 walk rebuild tests passed.

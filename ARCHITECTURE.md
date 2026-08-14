@@ -53,8 +53,8 @@ Three concerns from `docs/notes/roundtrip-findings.md` are cross-cutting rather 
   Every rebuild drops the label, and content equality does not notice, because equality ignores labels entirely.
   The helper must strip `label` before spreading and reattach it afterwards with `[#rebuilt#label]`.
 - **Synthesised fields.**
-  Inside a show rule, `figure` gains a `counter` field and `raw` gains a `lines` field.
-  Neither is a constructor parameter, so both must be dropped when the element is reached from a show rule.
+  Inside a show rule, `figure` gains a `counter` field, `raw` gains a `lines` field, `figure.caption` gains `kind`, `supplement`, `numbering` and `counter`, and `ref` gains `citation` and `element`.
+  None of them is a constructor parameter, so all must be dropped when the element is reached from a show rule.
   Dropping more is wrong: removing `scope` from `figure` or `theme` from `raw` produces a rebuild that no longer compares equal.
 - **`image`.**
   Image equality is instance identity rather than field equality, so no rebuild can ever equal the original.
@@ -66,9 +66,14 @@ Three concerns from `docs/notes/roundtrip-findings.md` are cross-cutting rather 
 
 An element absent from the registry has no positional fields, which is the right reading when nothing has to be rebuilt.
 It is not a safe assumption when something does.
-The absence cannot be told apart from an element nobody has characterised yet, `table.header` and `grid.header` being the obvious examples in the standard library, and Typst offers no way to inspect the parameters of a function or to catch the panic that a wrong guess raises.
+The absence cannot be told apart from an element nobody has characterised yet, `outline.entry` being an obvious remaining example in the standard library, and Typst offers no way to inspect the parameters of a function or to catch the panic that a wrong guess raises.
 A fallback would therefore turn an unknown element into one of the cryptic diagnostics catalogued in `docs/notes/roundtrip-findings.md`, reported against a line inside the traversal and with no remedy attached.
 
 Refusing costs a registration for an element whose marker sits in a field that is passed by name, an `outline` title being the only realistic instance.
 It buys a message that names the element and the call that fixes it, on every element the package has not characterised.
+Because `repr` is not injective over element functions, the message carries the element's field names alongside its name, so `table.header` and `grid.header` can be told apart in the diagnostic as well as in the registry.
 A deck that silently lost a step boundary is worse than a deck that failed to build.
+
+This is not a total guarantee.
+A marker inside a `context` block is invisible to detection, because a context block reports no fields until layout resolves it, so nothing reaches reconstruction to refuse.
+`#pause` has to be written outside `context`.
