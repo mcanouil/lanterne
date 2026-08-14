@@ -1,7 +1,7 @@
 // One splitter, two predicates: headings give slides, markers give steps.
 
 #import "../../src/core/marker.typ": MARKER-PAUSE, is-marker, marker
-#import "../../src/core/split.typ": split-on
+#import "../../src/core/split.typ": split-at, split-on
 #import "../../src/core/walk.typ": has-marker
 #import "../../src/utils/elements.typ": STYLED
 
@@ -169,16 +169,26 @@ C]
 )
 
 // Rules nest, and the styles are re-applied in the order they were peeled.
-// A content block that opens with a rule is a styled element like any other,
-// so the splitter looks through it and a marker inside it does produce a
-// boundary. The same block without a rule is a plain nested sequence and does
-// not. Nothing in the content distinguishes the two shapes, so this asymmetry
-// is pinned rather than resolved.
 #let nested-rule = [#set text(size: 10pt)
 a #[#set par(leading: 1em)
 b #m c] d]
 #assert.eq(split-on(nested-rule, is-marker).len(), 2)
-#assert.eq(split-on([a #[b #m c] d], is-marker).len(), 1)
+
+// A nested sequence is looked through, whether or not it opens with a rule.
+// Markup arriving as one value is exactly this shape, so a boundary inside one
+// is a boundary: an `#include`, a `#let` fragment and a helper's return value
+// all land as a sequence among the body's children, and a deck written across
+// several files is the ordinary case.
+#assert.eq(split-on([a #[b #m c] d], is-marker).len(), 2)
+
+#let fragment = [b #m c]
+#assert.eq(split-on([a #fragment d], is-marker).len(), 2)
+#assert.eq(split-on([a #fragment d], is-marker), ([a] + [ ] + [b] + [ ], [ ] + [c] + [ ] + [d]))
+
+// A container is not a sequence, so the rule stops at the elements a body is
+// built from rather than descending into their contents.
+#assert.eq(split-on([a #block[#m] b], is-marker).len(), 1)
+#assert.eq(split-on([a #grid([#m]) b], is-marker).len(), 1)
 
 // A label survives the split.
 //
@@ -224,6 +234,100 @@ a b] <lbl>]
     is-h2,
   ).len(),
   1,
+)
+
+// ---------------------------------------------------------------------------
+// The boundary that opened a segment, handed back beside it.
+//
+// A heading is both a boundary and the slide's title, so a splitter that only
+// drops its matches cannot build a slide. `split-at` is the same walk reporting
+// what it matched, which is why every assertion here also compares its bodies
+// against `split-on` over the same input: the two must never disagree about
+// where a segment starts and ends.
+// ---------------------------------------------------------------------------
+
+#let h2 = heading(level: 2)[A]
+
+// The first segment is opened by the body rather than by a match, so its
+// boundary is none.
+#let two-headings = [intro #h2 middle #h2 tail]
+#assert.eq(split-at(two-headings, is-h2).len(), 3)
+#assert.eq(split-at(two-headings, is-h2).first().boundary, none)
+#assert.eq(split-at(two-headings, is-h2).at(1).boundary, h2)
+#assert.eq(split-at(two-headings, is-h2).last().boundary, h2)
+#assert.eq(
+  split-at(two-headings, is-h2).map(part => part.body),
+  split-on(two-headings, is-h2),
+)
+
+// The boundary is dropped from the body it opened, exactly as `split-on` drops
+// it, so a caller that re-emits the title does not emit it twice.
+#assert(split-at(two-headings, is-h2).all(part => not is-h2(part.body)))
+
+// No match at all: one part, carrying the whole body and no boundary.
+#assert.eq(split-at([a b], is-h2).len(), 1)
+#assert.eq(split-at([a b], is-h2).first().boundary, none)
+#assert.eq(split-at([a b], is-h2).first().body, [a b])
+
+// A leading match still opens the body with an empty first part, so a caller
+// can tell content before the first heading from the absence of it.
+#assert.eq(split-at([#h2 a], is-h2).len(), 2)
+#assert.eq(split-at([#h2 a], is-h2).first().boundary, none)
+#assert.eq(split-at([#h2 a], is-h2).first().body, [])
+
+// A boundary found under a style wrapper is handed back unwrapped: a caller
+// reads its fields rather than rendering it, and the wrapper belongs around the
+// segment where the rules it carries apply.
+#let styled-headings = [#set text(size: 10pt)
+intro #h2 body]
+#assert.eq(split-at(styled-headings, is-h2).len(), 2)
+#assert.eq(split-at(styled-headings, is-h2).last().boundary, h2)
+#assert.eq(split-at(styled-headings, is-h2).last().body.func(), STYLED)
+#assert.eq(
+  split-at(styled-headings, is-h2).map(part => part.body),
+  split-on(styled-headings, is-h2),
+)
+
+// The marker predicate is the other caller, and it wants what it always
+// wanted: `split-at` reports the marker, `split-on` drops it, and the segments
+// are the same either way.
+#assert.eq(split-at([a #m b], is-marker).at(1).boundary, m)
+#assert.eq(split-at(set-body, is-marker).map(part => part.body), split-on(set-body, is-marker))
+
+// ---------------------------------------------------------------------------
+// A match left where it was found.
+//
+// `keep` is what a heading needs. Lifting a heading out of the wrappers it was
+// written under and re-emitting it beside them loses everything those rules
+// carry: the document's own numbering, its `show heading` rule and the named
+// destination a reference resolves to. A match left in place keeps all three,
+// because it is the same element in the same wrapper.
+// ---------------------------------------------------------------------------
+
+// The match opens the segment and stays at its head.
+#let kept = split-at(two-headings, is-h2, keep: _ => true)
+#assert.eq(kept.len(), 3)
+#assert.eq(kept.at(1).boundary, h2)
+#assert.eq(kept.at(1).body, h2 + [ ] + [middle] + [ ])
+
+// It stays inside the wrapper rather than beside it, which is the whole point:
+// the segment is still one styled element, not a heading followed by one.
+#let kept-styled = split-at(styled-headings, is-h2, keep: _ => true).last()
+#assert.eq(kept-styled.body.func(), STYLED)
+#assert.eq(kept-styled.body.child.children.first(), h2)
+
+// The decision is per match, so a caller splitting on several kinds of boundary
+// keeps the ones it re-reads and drops the ones it consumes.
+#let mixed = split-at([a #h2 b #m c], node => is-h2(node) or is-marker(node), keep: is-h2)
+#assert.eq(mixed.len(), 3)
+#assert.eq(mixed.at(1).body.children.first(), h2)
+#assert(not mixed.at(2).body.children.any(child => child.func() == metadata))
+
+// Keeping nothing is what `split-at` does by default, and says so twice rather
+// than by omission.
+#assert.eq(
+  split-at(two-headings, is-h2).map(part => part.body),
+  split-at(two-headings, is-h2, keep: _ => false).map(part => part.body),
 )
 
 split tests passed.
