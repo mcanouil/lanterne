@@ -61,6 +61,12 @@
   "step: range is empty. Never write this!",
 )
 
+// A hint with nothing in it is absent rather than empty. A hint assembled by
+// concatenation can come out blank, and appending a stop to nothing produces
+// the dangling stop this normalisation exists to remove.
+#assert.eq(error-text("step", "range is empty", hint: ""), "step: range is empty.")
+#assert.eq(error-text("step", "range is empty", hint: "   "), "step: range is empty.")
+
 // Normalisation reaches the wrappers too, since neither builds its message
 // itself.
 #assert.eq(
