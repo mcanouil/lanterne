@@ -31,6 +31,12 @@
 #assert(has-marker($mat(1, #m; 3, 4)$))
 #assert(not has-marker($mat(1, 2; 3, 4)$))
 
+// A nested array climbs a level, so that nesting through arrays alone is
+// bounded rather than unbounded. A matrix is the ordinary shape that pays for
+// it, one level for its rows, and must keep working at a depth well under the
+// bound rather than being pushed over it.
+#assert(has-marker($mat(1, #m; 3, 4)$, max-depth: 4))
+
 // A context block reports no fields until layout, so a marker inside one is
 // invisible to the walk. Pinned so the limitation is a decision, not a
 // surprise; see the module header.
