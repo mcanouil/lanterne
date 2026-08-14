@@ -2,8 +2,12 @@
 // in output but findable by the traversal.
 
 #import "../../src/core/marker.typ": (
-  MARKER-PAUSE, is-marker, marker,
+  MARKER-PAUSE, MARKER-SLIDE-OPTIONS, is-marker, marker,
 )
+
+// Every declared kind must be constructible; an unknown kind panics via
+// fail-enum, which a compiled test cannot catch.
+#assert(is-marker(marker(MARKER-SLIDE-OPTIONS)))
 
 #let m = marker(MARKER-PAUSE)
 
