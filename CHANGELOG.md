@@ -8,3 +8,4 @@ All notable changes to this project will be documented in this file.
 - feat: add step markers.
 - feat: add container registry.
 - feat: add generic marker detection.
+- feat: add content reconstruction.
