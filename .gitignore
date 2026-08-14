@@ -1,6 +1,5 @@
 .DS_Store
 *.log
-.kata.local.toml
 
 # Quarto render artefacts beside the committed fixture.
 tests/fixtures/.quarto/
