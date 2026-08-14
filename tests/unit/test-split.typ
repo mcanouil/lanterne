@@ -2,6 +2,7 @@
 
 #import "../../src/core/marker.typ": MARKER-PAUSE, is-marker, marker
 #import "../../src/core/split.typ": split-on
+#import "../../src/core/walk.typ": has-marker
 
 #let m = marker(MARKER-PAUSE)
 
@@ -56,5 +57,91 @@
 #assert.eq(split-on([intro
 == A
 body], is-h2).len(), 2)
+
+// A set or show rule wraps everything it governs in a `styled` element, so
+// the boundaries after it sit inside that wrapper rather than beside it.
+// This is the shape a deck actually receives: `#show: deck.with(...)` hands
+// the function a styled element whenever the document sets anything after it.
+#let STYLED = text(size: 12pt)[x].func()
+
+#let set-body = [#set text(size: 10pt)
+a #m b #m c]
+#assert.eq(split-on(set-body, is-marker).len(), 3)
+#assert(split-on(set-body, is-marker).all(seg => not has-marker(seg)))
+
+// The style survives the split: every child comes back wrapped as it was
+// found. Equality against a hand-built expected value is not asserted,
+// because the rebuilt segment wraps each child while the original wraps the
+// whole sequence once, and the two are unequal as content while rendering
+// the same.
+#assert(split-on(set-body, is-marker).first().children.all(c => c.func() == STYLED))
+
+// An element show rule produces the same wrapper.
+#assert.eq(
+  split-on(
+    [#show strong: it => it
+      a #m b],
+    is-marker,
+  ).len(),
+  2,
+)
+#assert.eq(
+  split-on(
+    [#show heading: it => it
+      intro
+      == A
+      body],
+    is-h2,
+  ).len(),
+  2,
+)
+
+// Consecutive rules merge into one wrapper rather than nesting, but the
+// splitter must not depend on that.
+#assert.eq(
+  split-on(
+    [#set text(size: 10pt)
+      #set par(leading: 1em)
+      a #m b],
+    is-marker,
+  ).len(),
+  2,
+)
+
+// A rule governing a single element, with no sequence beneath it.
+#assert.eq(
+  split-on(
+    [#set text(size: 10pt)
+      #m],
+    is-marker,
+  ).len(),
+  2,
+)
+
+// A rule reached part way through the body: the wrapper is one child among
+// several, and the boundaries on both sides of it must be found.
+#assert.eq(
+  split-on(
+    [x #m y
+      #set text(size: 10pt)
+      a #m b],
+    is-marker,
+  ).len(),
+  3,
+)
+
+// `#show: doc => f(doc)` is not this case. It is applied where it is written,
+// so the body becomes whatever `f` returned, and a container is a container.
+// The documented rule that only direct children are examined covers it.
+#assert.eq(
+  split-on(
+    [#show: doc => block(doc)
+      intro
+      == A
+      body],
+    is-h2,
+  ).len(),
+  1,
+)
 
 split tests passed.

@@ -19,6 +19,7 @@
 
 #import "../../src/core/marker.typ": MARKER-PAUSE, marker
 #import "../../src/core/registry.typ": lookup
+#import "../../src/core/split.typ": split-on
 #import "../../src/core/walk.typ": has-marker, rebuild
 
 #let m = marker(MARKER-PAUSE)
@@ -305,5 +306,41 @@
   kind: "quarto-float-fig",
   supplement: "Figure",
 )
+
+// ---------------------------------------------------------------------------
+// The preamble's rules, which decide whether a generated deck can be split at
+// all. The fixture opens with `#show terms.item`, `#show raw.where(block:
+// true): set block`, `#set table` and `#set page` before the first heading,
+// and each of them wraps everything after it in a styled element.
+//
+// This is the shape a deck receives in practice, because the extension's
+// template replaces the fixture's `#show: doc => article(...)` with
+// `#show: deck.with(...)`, and every rule written after that line reaches the
+// deck function as a wrapper around the body rather than as a sibling of it.
+// ---------------------------------------------------------------------------
+
+#let is-h1 = node => {
+  if type(node) != content or node.func() != heading { return false }
+  let fields = node.fields()
+  fields.at("depth", default: fields.at("level", default: none)) == 1
+}
+
+#let generated = [
+  #show terms.item: it => block(breakable: false)[#it]
+  #show raw.where(block: true): set block(width: 100%, inset: 8pt)
+  #set table(stroke: none)
+  #set page(width: 8.5in, height: 11in)
+
+  = Columns
+  Left. Right.
+
+  = Incremental
+  One. Two.
+
+  = Callout
+  A note.
+]
+
+#assert.eq(split-on(generated, is-h1).len(), 4)
 
 quarto fixture tests passed.
