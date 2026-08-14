@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- feat: add the theme token vocabulary, with a default and a validation rule for every canonical name, and a reserved `extra` namespace for tokens of your own. An unrecognised token name is an error rather than a silent no-op, because a theme that ignores a typo rots quietly.
 - fix: an error's hint always ends the message as a sentence. A hint written without a closing mark produced a message that trailed off, which the grammar promised could not happen; one that already ends in `.`, `!` or `?` keeps the mark its author chose, and one that is blank is treated as absent rather than yielding a stop on its own.
 - feat: add error grammar module.
 - feat: add step markers.
