@@ -216,18 +216,20 @@ Reattachment works by markup concatenation, and preserves the element rather tha
 ### Synthesised fields break the rebuild inside show rules
 
 `fields()` returns more fields inside a show rule than on freshly constructed content, because the element has been synthesised.
-Two of those synthesised fields are not constructor parameters.
+Several of those synthesised fields are not constructor parameters.
 
 - `figure` gains `counter`, and rebuilding inside `show figure:` fails with `unexpected argument: counter`.
 - `raw` gains `lines`, and rebuilding inside `show raw:` fails with `unexpected argument: lines`.
+- `figure.caption` gains `kind`, `supplement`, `numbering` and `counter`, and rebuilding inside either `show figure:` or `show figure.caption:` fails with `unexpected argument: kind`.
+- `ref` gains `citation` and `element`, and rebuilding inside `show ref:` fails with `unexpected argument: citation`.
 
-Dropping exactly those two keys restores an equal rebuild in both cases.
+Dropping exactly those keys restores an equal rebuild in every case.
 Dropping more is wrong: removing `scope` from `figure` or `theme` from `raw` produces a rebuild that no longer compares equal.
 
 Every other element tested inside a show rule rebuilds correctly under the standard rule, including `heading`, `list`, `enum`, `grid`, `stack`, `table`, `terms`, `quote`, `footnote`, `math.equation`, `strong`, `emph`, `par` and `block`.
 
 If the traversal only ever sees content as authored, this does not arise.
-If it can be reached from a show rule, `counter` and `lines` need dropping.
+If it can be reached from a show rule, every key listed above needs dropping.
 
 ### Two shapes are not what they look like
 
@@ -261,13 +263,19 @@ Every entry below was verified to produce a value equal to the original.
 `spread` means the single positional field holds an array that must be spread into separate positional arguments.
 
 Recommended default: treat the corrected rule as the default and record only the positional field list per element.
-An element absent from the registry should be treated as having no positional fields, which is correct for the six in list 1.
+A listed field that the instance does not carry is skipped rather than indexed, because an unset optional positional parameter is absent from `fields()` altogether.
+That is what makes a single entry cover both `enum.item(3)[a]` and `enum.item[a]`, and both `place(top)[x]` and `place(dx: 1pt)[x]`.
+
+An element absent from the registry cannot be assumed to have no positional fields.
+That assumption holds for the six in list 1, but not in general: `rotate`, `scale`, `move` and `skew` fail with `the argument 'body' is positional`; `math.frac`, `math.attach`, `math.lr`, `math.vec`, `math.cases`, `math.accent` and `math.root` fail similarly; `table.header`, `table.footer`, `grid.header` and `grid.footer` fail with `unexpected argument: children`.
+Any traversal that descends into an equation reaches one of these immediately, so "absent from the registry" has to mean "unknown", not "safe to spread".
 
 | Element | Positional fields, in order | Spread |
 | --- | --- | --- |
 | `block`, `box`, `rect`, `circle`, `ellipse`, `square` | `body` | no |
 | `heading`, `emph`, `strong`, `figure` | `body` | no |
-| `list.item`, `enum.item` | `body` | no |
+| `list.item` | `body` | no |
+| `enum.item` | `number`, `body` | no |
 | `footnote`, `par`, `quote`, `pad`, `hide` | `body` | no |
 | `underline`, `overline`, `strike`, `highlight`, `smallcaps` | `body` | no |
 | `sub`, `super`, `repeat` | `body` | no |

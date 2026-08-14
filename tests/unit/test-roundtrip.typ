@@ -20,18 +20,30 @@
 // positional arguments, in order, after the remaining fields are passed as
 // named arguments. With `spread: true` the single positional field holds an
 // array that is itself spread, which is how variadic containers are rebuilt.
+//
+// Positionality is a property of the instance, not of the element: an unset
+// optional positional parameter is absent from fields() altogether, so the
+// recipe lists the order and only the keys actually present are passed.
+// A label is not a constructor parameter and has to be reattached in markup.
 #let rebuild(node, positional: (), spread: false) = {
   let fields = node.fields()
+  let label = fields.remove("label", default: none)
   let named = fields
   for key in positional {
     let _ = named.remove(key, default: none)
   }
-  let values = positional.map(key => fields.at(key))
-  if spread {
+  let values = positional.filter(key => key in fields).map(key => fields.at(key))
+  let rebuilt = if spread {
+    assert.eq(
+      values.len(),
+      1,
+      message: "spread needs exactly one present positional field, got " + str(values.len()),
+    )
     (node.func())(..named, ..values.first())
   } else {
     (node.func())(..named, ..values)
   }
+  if label == none { rebuilt } else { [#rebuilt#label] }
 }
 
 #let rebuilds(node, positional: (), spread: false) = {
@@ -211,5 +223,28 @@
 #let relabelled = [#stripped#labelled.label]
 #assert.eq(relabelled.func(), block)
 #assert.eq(relabelled.label, <lbl>)
+
+// rebuild does the strip and reattach itself, so callers never see the
+// `unexpected argument: label` panic the naive spread produces.
+#assert.eq(rebuild(labelled, positional: ("body",)).label, <lbl>)
+#assert(rebuilds(labelled, positional: ("body",)))
+
+// ---------------------------------------------------------------------------
+// Optional positional parameters.
+//
+// An unset optional positional is absent from fields(), so a recipe that
+// indexes every listed key blindly panics on ordinary slide content.
+// ---------------------------------------------------------------------------
+
+#assert(rebuilds(place(dx: 1pt)[x], positional: ("alignment", "body")))
+#assert(rebuilds(place(top)[x], positional: ("alignment", "body")))
+#assert(rebuilds(columns[x], positional: ("count", "body")))
+#assert(rebuilds(columns(2)[x], positional: ("count", "body")))
+#assert(rebuilds(block(width: 1cm), positional: ("body",)))
+#assert(rebuilds(enum.item(3)[a], positional: ("number", "body")))
+#assert(rebuilds(enum.item[a], positional: ("number", "body")))
+#assert(rebuilds(box(width: 1fr), positional: ("body",)))
+#assert(rebuilds(rect(width: 1cm, height: 1cm), positional: ("body",)))
+#assert(rebuilds(circle(radius: 1cm), positional: ("body",)))
 
 roundtrip tests passed.
