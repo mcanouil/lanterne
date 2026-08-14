@@ -183,4 +183,59 @@
 #assert.eq(rebuild(enum.item(3)[a #m], keep), enum.item(3)[a #m])
 #assert.eq(rebuild([3. a #m], keep), [3. a #m])
 
+// ---------------------------------------------------------------------------
+// Depth. See docs/notes/depth-limits.md for the measurements behind MAX-DEPTH.
+// ---------------------------------------------------------------------------
+
+#let nest(k, every) = {
+  let acc = m
+  for _ in range(k) { acc = if every { block(acc + m) } else { block(acc) } }
+  acc
+}
+
+// A marker at every level, nested to just under the default. This is the case
+// that used to reach Typst's own recursion limit: the guard's counter was
+// driven by a detection walk that short-circuits on the first marker, and it
+// restarted from zero at every level of the rebuild besides.
+#assert.eq(rebuild(nest(9, true), keep), nest(9, true))
+#assert.eq(rebuild(nest(19, false), keep), nest(19, false))
+
+// The marker reached first at every level, which is the exact shape the old
+// guard passed straight through: detection returned true before its counter
+// left zero, so nothing bounded the rebuild and 20 levels of this died with
+// Typst's own `maximum function call depth exceeded` and no source location.
+#let nest-first(k) = {
+  let acc = m
+  for _ in range(k) { acc = block(m + acc) }
+  acc
+}
+#assert.eq(rebuild(nest-first(9), keep), nest-first(9))
+
+// A deep subtree holding no marker is never reconstructed, but it is still
+// walked to find that out, so the budget bounds it too. 25 levels of it
+// beside a marker is content Typst handles and the walk must not reject.
+#let free(k) = {
+  let acc = [leaf]
+  for _ in range(k) { acc = block(acc) }
+  acc
+}
+#assert.eq(rebuild([#m #free(25)], keep), [#m #free(25)])
+
+// max-depth raises the ceiling for content that needs it.
+#assert.eq(rebuild(nest(30, false), keep, max-depth: 36), nest(30, false))
+
+// The failing half cannot be asserted, because Typst cannot catch a panic.
+// Compiled by hand, `rebuild(nest(35, false), keep)` reports
+//
+//   error: panicked with: walk: content is nested more than 30 levels deep.
+//   Flatten the nesting on this slide, or raise max-depth.
+//
+// and `rebuild(nest(30, true), keep, max-depth: 100000)`, which lifts the
+// guard entirely, reports Typst's own
+//
+//   error: maximum function call depth exceeded
+//
+// with no source location. That is the ceiling no guard can raise, and why
+// the default sits below it rather than at it.
+
 walk rebuild tests passed.
