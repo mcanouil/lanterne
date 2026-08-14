@@ -32,6 +32,16 @@
 #assert.eq(rebuild(table([a], [b]), drop), table([a], [b]))
 #assert.eq(rebuild(1em, drop), 1em)
 
+// A marker-free sibling of a marker is handed back rather than rebuilt, which
+// is what keeps an unregistered element from failing when nothing under it
+// carries a boundary. `outline` is unregistered and holds content in a field,
+// which tests/unit/test-registry.typ pins.
+#assert.eq(rebuild([#m #outline(title: [t])], keep), [#m #outline(title: [t])])
+#assert.eq(
+  rebuild(block[#m #outline(title: [t])], sub),
+  block[z #outline(title: [t])],
+)
+
 // ---------------------------------------------------------------------------
 // A marker is replaced by whatever the transform returns, at any depth, and
 // the transform receives the marker itself rather than its container.
