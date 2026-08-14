@@ -42,4 +42,43 @@
 #assert(not has-marker(metadata((tag: "other"))))
 #assert(not has-marker([*a* b]))
 
+// ---------------------------------------------------------------------------
+// Depth. See docs/notes/depth-limits.md for the measurements behind MAX-DEPTH.
+// ---------------------------------------------------------------------------
+
+#let nest(k, every) = {
+  let acc = m
+  for _ in range(k) { acc = if every { block(acc + m) } else { block(acc) } }
+  acc
+}
+
+// A marker at every level is the case the guard used to miss entirely:
+// detection short-circuits on the first one it meets, so the counter never
+// climbed and the rebuild that followed died inside Typst instead.
+#assert(has-marker(nest(9, true)))
+#assert(has-marker(nest(19, false)))
+
+// The shape generated content actually reaches: a two column grid holding a
+// callout, itself three blocks deep, with a nested list and #strong inside
+// #emph. Measured at 14 of the 20 levels allowed.
+#assert(has-marker(grid(
+  columns: (1fr, 1fr),
+  block(fill: rgb("#dae6fb"), block(inset: 8pt, block(fill: white, inset: 8pt)[
+    #list([One.], [Two. #emph[deep #strong[deeper #m]]])
+  ])),
+  [b],
+)))
+
+// max-depth is the escape hatch, and it works in both directions.
+#assert(has-marker(nest(30, false), max-depth: 40))
+#assert(has-marker(block[#m], max-depth: 1))
+
+// The failing half cannot be asserted, because Typst cannot catch a panic.
+// Compiled by hand, `has-marker(nest(30, false))` reports
+//
+//   error: panicked with: walk: content is nested more than 20 levels deep.
+//   Flatten the nesting on this slide, or raise max-depth.
+//
+// which is the message the bare Typst diagnostic used to replace.
+
 walk detection tests passed.
