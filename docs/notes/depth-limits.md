@@ -24,15 +24,18 @@ The probe nests `block` elements, either with a single marker at the bottom or w
 
 | Walk | Shape | Deepest authored blocks | Deepest depth units |
 | --- | --- | --- | --- |
-| `has-marker` | marker at the bottom | 76 | 77 |
-| `has-marker` | marker at every level | 19 | 39 |
-| `rebuild` | marker at the bottom | 37 | 38 |
-| `rebuild` | marker at every level | 12 | 25 |
+| `has-marker` | marker at the bottom | 75 | 76 |
+| `has-marker` | marker at every level | 18 | 37 |
+| `rebuild` | marker at the bottom | 75 | 76 |
+| `rebuild` | marker at every level | 25 | 51 |
 
-A marker at every level costs two depth units per authored block, because the marker makes the block's body a sequence, and it is the expensive case in both walks: the detection call at each level cannot short-circuit its way out of the subtree below it.
+A marker at every level costs two depth units per authored block, because the marker makes the block's body a sequence, and it is the expensive case in both walks.
 
-`rebuild` is the stricter walk and sets the budget.
-Every level of a rebuild pays for a detection call as well, so the two limits are not independent and a single number governs both.
+The two rebuild rows are what changed when reconstruction stopped calling detection at every level and started reporting what it found as it descended.
+A detection frame used to sit on the stack above every reconstruction frame, which is what held those rows at 37 and 12 authored blocks.
+Reconstruction now costs what detection alone costs, and it exceeds detection on the marker-at-every-level shape because detection walks an array through `.any`, adding a closure frame at each level, where reconstruction walks it with a plain loop.
+
+Detection is therefore the stricter walk on the shape that binds, and one number still governs both: no walk reaches its own ceiling before the guard fires.
 
 ## The realistic case
 
@@ -44,24 +47,27 @@ Small changes to that shape move the figure by a unit or two, so treat it as rou
 
 ## A subtree that is walked but never rebuilt
 
-The budget also bounds detection over subtrees that hold no marker and are handed straight back.
-That is not wasted: detection has to reach the bottom of a subtree to know there is no marker in it, and those frames sit on top of the rebuild frames already on the stack.
+The budget also bounds the descent into subtrees that hold no marker and are handed straight back.
+That is not wasted: the walk has to reach the bottom of a subtree to know there is no marker in it.
 
-The two costs are not equal, and the trade is roughly linear.
-With the guard lifted, a rebuild standing at depth `d` tolerates a marker-free tail of about `74 - 2d` units: 62 at depth 4, 44 at depth 10, 14 at depth 20.
-One budget of 30 sits inside that surface everywhere it is reachable, which is why detection and reconstruction share a number rather than each carrying one.
+The two costs are now equal, and the trade is one for one.
+With the guard lifted, a rebuild standing at `a` authored blocks tolerates a marker-free tail of 68 blocks at `a = 4`, 62 at `a = 10` and 52 at `a = 20`, each of which reaches the same total.
+It used to be two for one, because the tail was walked by a separate detection call whose frames stacked on top of the reconstruction's.
+One budget of 30 sits well inside that surface, which is why detection and reconstruction share a number rather than each carrying one.
 
 ## The choice
 
 `MAX-DEPTH = 30`.
 
 - Roughly twice the headroom over the deepest realistic content measured.
-- Set against 38, the ceiling for a rebuild whose markers sit at a few levels, which is what real content looks like.
+- Below every ceiling in the table above, the lowest of which is 37.
 
-It is deliberately **not** set against 25, the marker-at-every-level ceiling.
-Guarding that shape means rejecting content at 26 to 38 that Typst compiles without complaint, and a guard that rejects working decks is worse than one that misses a shape nobody writes.
-A marker at every level of a tree that deep therefore still gets Typst's bare diagnostic.
-No guard can prevent that: the limit is the interpreter's.
+The number is unchanged by the fusion, which raised two of those ceilings rather than lowering any.
+Raising it to match would buy headroom nothing needs: the deepest realistic content measures 14 to 15, and the pinned message in six `tests/expect-fail/` cases names the number.
+
+One thing did change.
+The marker-at-every-level shape used to hit Typst's own limit at 25 units, under the budget, so it got the bare diagnostic no guard could replace.
+Its ceiling is now 37, above the budget, so every measured shape reaches lanterne's message first.
 
 `has-marker` and `rebuild` both take `max-depth` for content that needs more, up to the ceilings above and no further.
 

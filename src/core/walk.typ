@@ -21,12 +21,12 @@
 ///! Both walks are bounded by `MAX-DEPTH`, so content nested past it fails
 ///! with a message naming the cause rather than with Typst's own recursion
 ///! error, which reports from inside this file and names no content at all.
-///! The bound is one number for both, because a rebuild pays for a detection
-///! call at every level it descends. `docs/notes/depth-limits.md` records the
-///! measurements.
+///! The bound is one number for both, because the same rule counts a level in
+///! each and neither reaches its own ceiling before the guard fires.
+///! `docs/notes/depth-limits.md` records the measurements.
 
 #import "marker.typ": is-marker
-#import "registry.typ": lookup
+#import "registry.typ": _get, builtin-registry
 #import "../utils/elements.typ": is-elem
 #import "../utils/errors.typ": fail, fail-type
 
@@ -37,12 +37,10 @@
 /// under it. Raising `max-depth` past that ceiling buys the bare Typst
 /// diagnostic rather than a working deck.
 ///
-/// 30 is set against the ceiling real content meets, 38 for a rebuild with
-/// markers at a few levels, and leaves roughly twice the headroom over the
-/// deepest generated content measured, 14. A marker at every level of a tree
-/// this deep is past Typst's own limit at 25 and gets its bare diagnostic
-/// instead, which no guard can prevent: the choice is which of the two shapes
-/// is served, and content nobody writes is the one to give up.
+/// 30 leaves roughly twice the headroom over the deepest generated content
+/// measured, 14, and sits below every ceiling in the note, the lowest of which
+/// is 37 for detection over a marker at every level. Every measured shape
+/// therefore reaches this message rather than Typst's own.
 /// @category core
 #let MAX-DEPTH = 30
 
@@ -136,42 +134,65 @@
   stripped
 }
 
-// The recursion. Arguments are validated once by `rebuild` rather than on
-// every node, so this takes `registry` positionally and assumes it is valid.
+// The recursion, fused: it reports whether a marker was under it as well as
+// what it built, so each node is walked once rather than once for every level
+// above it. Detection used to run separately at each level, which cost
+// (D+1)(D+2)/2 walks over a chain of depth D and, worse, put a detection frame
+// on the stack above every rebuild frame.
 //
-// Depth is carried here and handed to the detection walk rather than left to
-// it, because detection short-circuits on the first marker it meets and so
-// never climbs on a body carrying markers at several levels, and because a
-// detection call starting from zero part way down a rebuild knows nothing of
-// the frames already on the stack. Either alone is enough to let the guard
-// pass a tree that then dies inside Typst with no source location.
+// `found` is what keeps reconstruction narrow: a subtree holding no marker
+// hands back the value it was given rather than a rebuilt copy, so an
+// unregistered element is an error only when a marker sits under it.
+//
+// Every field is descended into, including the ones stripped below, so `found`
+// means what the separate detection call meant: a marker anywhere `fields()`
+// exposes. A marker in a synthesised field is still dropped by the
+// reconstruction afterwards, exactly as it was before.
+//
+// Arguments are validated once by `rebuild`, so the registry arrives resolved
+// and is read through the registry's own accessor rather than the public
+// `lookup`, which would re-check both of them at every element.
 #let _rebuild(node, transform, registry, depth, max-depth) = {
-  if is-marker(node) { return transform(node) }
-  if is-elem(node, image) { return node }
-  // No depth check here: the detection call on the next line makes the same
-  // one on the same node at the same depth, and the two shapes that skip it,
-  // a marker and an image, have both already returned.
-  if not _has-marker(node, depth, max-depth) { return node }
+  if is-marker(node) { return (node: transform(node), found: true) }
+  // An image is an opaque leaf: its equality is instance identity, so no
+  // reconstruction of one can equal the original.
+  if is-elem(node, image) { return (node: node, found: false) }
+
   if type(node) in (array, dictionary) {
     // Climbs on a nested container for the reason `_has-marker` does.
-    // Detection runs first and raises on the same shape, so this cannot be
-    // reached today; it is here so the two walks cannot disagree about what a
-    // level is.
-    let step = value => _rebuild(
-      value,
-      transform,
-      registry,
-      _container-depth(value, depth),
-      max-depth,
-    )
-    if type(node) == array { return node.map(step) }
+    let children = if type(node) == array { node } else { node.values() }
+    let built = ()
+    let found = false
+    for child in children {
+      let reached = _container-depth(child, depth)
+      if reached > max-depth { _depth-error(max-depth) }
+      let result = _rebuild(child, transform, registry, reached, max-depth)
+      built.push(result.node)
+      found = found or result.found
+    }
+    if not found { return (node: node, found: false) }
+    if type(node) == array { return (node: built, found: true) }
     let rebuilt = (:)
-    for (key, value) in node { rebuilt.insert(key, step(value)) }
-    return rebuilt
+    for (index, key) in node.keys().enumerate() {
+      rebuilt.insert(key, built.at(index))
+    }
+    return (node: rebuilt, found: true)
   }
 
+  if type(node) != content { return (node: node, found: false) }
+  if depth > max-depth { _depth-error(max-depth) }
+
+  let built = (:)
+  let found = false
+  for (name, value) in node.fields() {
+    let result = _rebuild(value, transform, registry, depth + 1, max-depth)
+    built.insert(name, result.node)
+    found = found or result.found
+  }
+  if not found { return (node: node, found: false) }
+
   let fn = node.func()
-  let entry = lookup(fn, registry: registry)
+  let entry = _get(registry, fn, "rebuild")
   if entry == none {
     // `repr` is not injective over element functions, so the name alone can
     // be ambiguous: table.header and grid.header both repr as "header". The
@@ -187,7 +208,7 @@
     )
   }
 
-  let fields = _strip-synthesised(fn, node.fields())
+  let fields = _strip-synthesised(fn, built)
   let element-label = fields.remove("label", default: none)
 
   // An optional positional parameter that was never set is absent from
@@ -197,13 +218,9 @@
 
   let named = (:)
   for (name, value) in fields {
-    if not positional.contains(name) {
-      named.insert(name, _rebuild(value, transform, registry, depth + 1, max-depth))
-    }
+    if not positional.contains(name) { named.insert(name, value) }
   }
-  let values = positional.map(name => (
-    _rebuild(fields.at(name), transform, registry, depth + 1, max-depth)
-  ))
+  let values = positional.map(name => fields.at(name))
 
   // A variadic container holds its children in one field that has itself to
   // be spread into separate arguments. A sequence takes its children whole.
@@ -214,7 +231,10 @@
   }
 
   let rebuilt = fn(..named, ..arguments)
-  if element-label == none { rebuilt } else { [#rebuilt#element-label] }
+  (
+    node: if element-label == none { rebuilt } else { [#rebuilt#element-label] },
+    found: true,
+  )
 }
 
 /// Rebuild `node`, applying `transform` to every marker it contains.
@@ -254,5 +274,9 @@
   if type(max-depth) != int or max-depth < 1 {
     fail-type("rebuild", "max-depth", max-depth, "a positive integer")
   }
-  _rebuild(node, transform, registry, 0, max-depth)
+  // Resolved once here so the walk reads the registry through `_get` rather
+  // than through `lookup`, which would re-run both checks above at every
+  // element it reached.
+  let resolved = if registry == none { builtin-registry() } else { registry }
+  _rebuild(node, transform, resolved, 0, max-depth).node
 }
