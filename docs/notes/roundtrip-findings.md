@@ -307,6 +307,32 @@ Any traversal that descends into an equation reaches one of these immediately, s
 | `curve` | `components` | yes |
 | `math.mat` | `rows` | yes |
 
+### Transforms and maths
+
+Named above as failing the plain spread, and recorded here with the recipe each needs.
+Every row was re-verified against Typst 0.15.1 by applying the listed fields to a constructed instance and comparing the result with the original.
+
+Note the asymmetry in the first two rows: `rotate` takes its angle positionally while `scale`, `move` and `skew` take only a body, because their own parameters are named.
+Reading the group as "the transforms take `body`" is wrong for exactly one of the four.
+
+| Element | Positional fields, in order | Spread |
+| --- | --- | --- |
+| `rotate` | `angle`, `body` | no |
+| `scale`, `move`, `skew` | `body` | no |
+| `math.frac` | `num`, `denom` | no |
+| `math.attach` | `base` | no |
+| `math.accent` | `base`, `accent` | no |
+| `math.root` | `index`, `radicand` | no |
+| `math.class` | `class`, `body` | no |
+| `math.underbrace` | `body`, `annotation` | no |
+| `math.op` | `text` | no |
+| `math.lr`, `math.mid` | `body` | no |
+| `footnote.entry` | `note` | no |
+| `math.vec`, `math.cases` | `children` | yes |
+
+`math.attach` carries only `base` positionally: its scripts are named parameters and appear in `fields()` as `t` and `b`, so they are handed back by name like any other.
+`footnote.entry` is here rather than beside `footnote` because `repr` renders it as `entry`, which `outline.entry` also renders as, and only one of the two is registered.
+
 ### Entries added after the spike
 
 The spike probed elements a deck author writes by hand.
