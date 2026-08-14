@@ -70,6 +70,10 @@
   "test",
 )
 #check-token("font-heading", ((name: "Libertinus Serif", covers: "latin-in-cjk"),), "test")
+
+// Typst also takes a bare coverage-scoped entry, with no list around it.
+#check-token("font-base", (name: "Libertinus Serif", covers: "latin-in-cjk"), "test")
+#check-token("font-heading", (name: "Libertinus Serif", covers: regex("[0-9]")), "test")
 #check-token("weight-heading", 100, "test")
 #check-token("weight-heading", 900, "test")
 #check-token("weight-heading", "black", "test")
