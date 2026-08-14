@@ -36,5 +36,6 @@ Consult this file before introducing a new abbreviation, and add an entry when y
 ## Naming rules
 
 Public functions are kebab-case with a family prefix: `theme-*`, `layout-*`, `emit-*`.
-Private helpers are `_` prefixed and never exported.
+Private helpers are `_` prefixed.
+Typst has no module privacy, so a wildcard import still reaches them; the prefix marks them as off limits rather than enforcing it.
 British spelling is used throughout, including `colour` in any user-facing name.

@@ -11,29 +11,36 @@
 /// Render an array of values as a comma-joined list of `repr` forms.
 /// @category utils
 /// @returns str
-#let quote-each(values) = {
-  assert(values.len() > 0, message: "errors: quote-each needs a non-empty array.")
+#let repr-each(values) = {
+  assert(values.len() > 0, message: "errors: repr-each needs a non-empty array.")
   values.map(repr).join(", ")
 }
 
-#let _with-hint(text, hint) = if hint == none { text } else { text + " " + hint }
+#let _with-hint(message, hint) = if hint == none { message } else { message + " " + hint }
 
 /// "<scope>: <problem>." plus optional hint.
 /// @category utils
 /// @returns str
 #let error-text(scope, problem, hint: none) = {
+  assert(type(scope) == str, message: "errors: scope must be a string; got " + repr(scope) + ".")
+  assert(
+    type(problem) == str,
+    message: "errors: problem must be a string; got " + repr(problem) + ".",
+  )
   _with-hint(scope + ": " + problem + ".", hint)
 }
 
-/// "<scope>: <name> must be one of "a", "b"; got <repr(value)>."
+/// "<scope>: <name> must be one of "a", 1, none; got <repr(value)>."
+/// An empty `valid` reports that the parameter permits nothing.
 /// @category utils
 /// @returns str
 #let enum-text(scope, name, value, valid, hint: none) = {
-  error-text(
-    scope,
-    name + " must be one of " + quote-each(valid) + "; got " + repr(value),
-    hint: hint,
-  )
+  let problem = if valid.len() == 0 {
+    name + " has no permitted values; got " + repr(value)
+  } else {
+    name + " must be one of " + repr-each(valid) + "; got " + repr(value)
+  }
+  error-text(scope, problem, hint: hint)
 }
 
 /// "<scope>: <name> must be <expected>; got <repr(value)>."
@@ -59,7 +66,9 @@
   panic(type-text(scope, name, value, expected, hint: hint))
 }
 
-/// Assert with a grammar-conformant message, built only when `cond` fails.
+/// Assert with a grammar-conformant message.
+/// The message string is assembled only when `cond` fails, but `scope`,
+/// `problem` and `hint` are still evaluated at the call site.
 /// @category utils
 #let check(cond, scope, problem, hint: none) = {
   if not cond { fail(scope, problem, hint: hint) }

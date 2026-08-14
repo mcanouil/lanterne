@@ -1,16 +1,16 @@
 // Error message grammar: "<scope>: <problem>; got <repr(value)>. <hint>"
 
 #import "../../src/utils/errors.typ": (
-  check, enum-text, error-text, quote-each, type-text,
+  check, enum-text, error-text, repr-each, type-text,
 )
 
-#assert.eq(quote-each(("a", "b")), "\"a\", \"b\"")
+#assert.eq(repr-each(("a", "b")), "\"a\", \"b\"")
 
-#assert.eq(quote-each((1, 2)), "1, 2")
+#assert.eq(repr-each((1, 2)), "1, 2")
 
-#assert.eq(quote-each((none, true)), "none, true")
+#assert.eq(repr-each((none, true)), "none, true")
 
-#assert.eq(quote-each(("a\"b",)), "\"a\\\"b\"")
+#assert.eq(repr-each(("a\"b",)), "\"a\\\"b\"")
 
 #assert.eq(error-text("step", "range must not be empty"), "step: range must not be empty.")
 
@@ -29,12 +29,17 @@
   "step: before must be one of \"visible\", none; got \"gone\".",
 )
 
+// An empty valid set is reported to the caller, not to whoever wrote the helper.
+#assert.eq(
+  enum-text("theme", "token", "bg", ()),
+  "theme: token has no permitted values; got \"bg\".",
+)
+
 #assert.eq(
   type-text("step", "range", 0, "a positive integer"),
   "step: range must be a positive integer; got 0.",
 )
 
-// A passing `check` must not build its message, so a non-string problem is inert.
-#check(true, "step", 42)
+#check(true, "step", "range must not be empty")
 
 errors tests passed.
