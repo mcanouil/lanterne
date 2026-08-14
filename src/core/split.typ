@@ -52,9 +52,23 @@
     // The positional order `(child, styles)` is the registry's recipe for
     // `styled`, verified in docs/notes/roundtrip-findings.md. A Typst upgrade
     // that changes it has to reach this call as well as src/core/registry.typ.
-    return _pieces(node.child, predicate).map(piece => (
+    //
+    // A label is not a constructor parameter, so rebuilding the wrapper drops
+    // it and it has to be reattached by markup, exactly as `_rebuild` does in
+    // src/core/walk.typ. Content equality ignores labels, so nothing that
+    // compares segments can notice the loss.
+    let element-label = node.fields().at("label", default: none)
+    let rebuilt = _pieces(node.child, predicate).map(piece => (
       (STYLED(piece.sum(default: []), node.styles),)
     ))
+    if element-label == none { return rebuilt }
+    // A label can sit on one piece only. Emitting it on each would make the
+    // deck fail with a duplicate label, which is worse than a reference
+    // landing at the end of the group. Specification 4.6 rules that a labelled
+    // element behind a pause keeps its label on the final step, and the same
+    // rule holds here.
+    let last = rebuilt.last().first()
+    return rebuilt.slice(0, -1) + (([#last#element-label],),)
   }
   if is-elem(node, SEQUENCE) {
     let pieces = ((),)
