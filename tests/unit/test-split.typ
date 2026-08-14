@@ -3,6 +3,7 @@
 #import "../../src/core/marker.typ": MARKER-PAUSE, is-marker, marker
 #import "../../src/core/split.typ": split-on
 #import "../../src/core/walk.typ": has-marker
+#import "../../src/utils/elements.typ": STYLED
 
 #let m = marker(MARKER-PAUSE)
 
@@ -62,8 +63,6 @@ body], is-h2).len(), 2)
 // the boundaries after it sit inside that wrapper rather than beside it.
 // This is the shape a deck actually receives: `#show: deck.with(...)` hands
 // the function a styled element whenever the document sets anything after it.
-#let STYLED = text(size: 12pt)[x].func()
-
 #let set-body = [#set text(size: 10pt)
 a #m b #m c]
 #assert.eq(split-on(set-body, is-marker).len(), 3)

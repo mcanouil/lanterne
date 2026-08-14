@@ -28,12 +28,8 @@
 ///! written at body level from one written inside a group, so the ambiguity
 ///! is resolved in favour of finding the boundary.
 
+#import "../utils/elements.typ": SEQUENCE, STYLED, is-elem
 #import "../utils/errors.typ": fail-type
-
-#let _SEQUENCE = [*a* b].func()
-#let _STYLED = text(size: 12pt)[x].func()
-
-#let _is(node, fn) = type(node) == content and node.func() == fn
 
 // The pieces `node` contributes to the split, as an array of arrays of nodes.
 // Every piece but the last is a finished segment; the last is open and joins
@@ -52,26 +48,28 @@
 // and enum all have a `children` field, and treating one as a sequence would
 // split it into its cells.
 #let _pieces(node, predicate) = {
-  if _is(node, _STYLED) {
+  if is-elem(node, STYLED) {
+    // The positional order `(child, styles)` is the registry's recipe for
+    // `styled`, verified in docs/notes/roundtrip-findings.md. A Typst upgrade
+    // that changes it has to reach this call as well as src/core/registry.typ.
     return _pieces(node.child, predicate).map(piece => (
-      (_STYLED(piece.sum(default: []), node.styles),)
+      (STYLED(piece.sum(default: []), node.styles),)
     ))
   }
-  if _is(node, _SEQUENCE) {
+  if is-elem(node, SEQUENCE) {
     let pieces = ((),)
     for child in node.children {
-      let from-child = if _is(child, _STYLED) {
+      let from-child = if is-elem(child, STYLED) {
         _pieces(child, predicate)
       } else if predicate(child) {
         ((), ())
       } else {
         ((child,),)
       }
-      pieces = (
-        pieces.slice(0, -1)
-          + (pieces.last() + from-child.first(),)
-          + from-child.slice(1)
-      )
+      // The first piece a child yields continues the open piece; the rest are
+      // segments the child closed and are appended as they are.
+      pieces.last() += from-child.first()
+      pieces += from-child.slice(1)
     }
     return pieces
   }

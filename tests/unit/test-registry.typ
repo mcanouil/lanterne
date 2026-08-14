@@ -17,10 +17,7 @@
 #import "../../src/core/registry.typ": (
   builtin-registry, lookup, register-container,
 )
-
-// Element functions with no public binding, obtained from a sample value.
-#let SEQUENCE = [*a* b].func()
-#let STYLED = text(size: 12pt)[x].func()
+#import "../../src/utils/elements.typ": SEQUENCE, STYLED
 
 // ---------------------------------------------------------------------------
 // Lookup resolves an entry for each shape in the findings table.

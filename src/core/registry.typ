@@ -24,11 +24,8 @@
 ///! changing anything here, and re-run tests/unit/test-roundtrip.typ after a
 ///! Typst upgrade.
 
+#import "../utils/elements.typ": SEQUENCE, STYLED
 #import "../utils/errors.typ": fail, fail-type
-
-// Element functions with no public binding, obtained from a sample value.
-#let _SEQUENCE = [*a* b].func()
-#let _STYLED = text(size: 12pt)[x].func()
 
 // `repr` is not injective over element functions: list.item, enum.item and
 // terms.item all render as "item", as do table.cell and grid.cell, and
@@ -90,11 +87,11 @@
   (fns: (h, v), positional: ("amount",)),
   (fns: (ref,), positional: ("target",)),
   (fns: (cite,), positional: ("key",)),
-  (fns: (_SEQUENCE,), positional: ("children",)),
+  (fns: (SEQUENCE,), positional: ("children",)),
   (fns: (align, place), positional: ("alignment", "body")),
   (fns: (columns,), positional: ("count", "body")),
   (fns: (terms.item,), positional: ("term", "description")),
-  (fns: (_STYLED,), positional: ("child", "styles")),
+  (fns: (STYLED,), positional: ("child", "styles")),
   (fns: (link,), positional: ("dest", "body")),
   (
     fns: (
