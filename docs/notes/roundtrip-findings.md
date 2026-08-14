@@ -13,6 +13,16 @@ The mechanism is nonetheless salvageable, and cheaply.
 A single corrected rule reconstructs 58 of the 59 elements, and that rule was verified against every element in the candidate set.
 It is stated in [The rule that does hold](#the-rule-that-does-hold), and the recipe for each element is tabulated in [Registry recommendations](#registry-recommendations-for-task-5).
 
+## The compiler floor
+
+`typst.toml` pins `compiler = "0.15.0"`, one patch below the version everything here was characterised on.
+
+That gap is measured rather than assumed.
+The whole suite was run against a `typst 0.15.0` binary and passes, this note's characterisation test included, so the floor states what the package needs rather than the newest version it happens to have been developed on.
+
+Re-run the suite on the floor whenever the pin moves or an entry here changes.
+`.github/actions/typst-version` feeds this pin straight to CI, so CI tests the floor and nothing above it.
+
 ## Method
 
 Probed against `typst 0.15.1`.
