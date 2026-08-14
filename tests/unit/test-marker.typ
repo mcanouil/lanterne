@@ -5,8 +5,9 @@
   MARKER-PAUSE, MARKER-SLIDE-OPTIONS, is-marker, marker,
 )
 
-// Every declared kind must be constructible; an unknown kind panics via
-// fail-enum, which a compiled test cannot catch.
+// Every declared kind must be constructible. An unknown kind panics, which no
+// assertion in this file can catch, so it is compiled as its own case in
+// tests/expect-fail/marker-unknown-kind.typ.
 #assert(is-marker(marker(MARKER-SLIDE-OPTIONS)))
 
 #let m = marker(MARKER-PAUSE)
