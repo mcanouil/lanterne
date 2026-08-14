@@ -6,6 +6,10 @@
 ///!
 ///! Grammar: "<scope>: <problem>; got <repr(value)>. <hint>"
 ///!
+///! A hint is a sentence and is finished as one here when the caller has not
+///! written it that way, so the single trailing stop the grammar promises
+///! holds whatever a call site passes.
+///!
 ///! Never inline a panic string elsewhere in src/; route every validation here.
 
 /// Render an array of values as a comma-joined list of `repr` forms.
@@ -16,7 +20,20 @@
   values.map(repr).join(", ")
 }
 
-#let _with-hint(message, hint) = if hint == none { message } else { message + " " + hint }
+// The grammar promises one trailing stop. A hint is a sentence, so a hint that
+// does not already end as one is finished here rather than at every call site,
+// where a missing stop is invisible until a user reads the message.
+#let _SENTENCE-ENDS = (".", "!", "?")
+
+#let _with-hint(message, hint) = {
+  if hint == none { return message }
+  assert(
+    type(hint) == str,
+    message: "errors: hint must be a string or none; got " + repr(hint) + ".",
+  )
+  let finished = if _SENTENCE-ENDS.any(end => hint.ends-with(end)) { hint } else { hint + "." }
+  message + " " + finished
+}
 
 /// "<scope>: <problem>." plus optional hint.
 /// @category utils

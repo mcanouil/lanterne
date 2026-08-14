@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- fix: an error's hint always ends the message with a single full stop. A hint written without one produced a message that trailed off, which the grammar promised could not happen.
 - feat: add error grammar module.
 - feat: add step markers.
 - feat: add container registry.
