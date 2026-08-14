@@ -60,7 +60,7 @@
 
 // The shape generated content actually reaches: a two column grid holding a
 // callout, itself three blocks deep, with a nested list and #strong inside
-// #emph. Measured at 14 of the 20 levels allowed.
+// #emph. Measured at 14 of the 30 levels allowed.
 #assert(has-marker(grid(
   columns: (1fr, 1fr),
   block(fill: rgb("#dae6fb"), block(inset: 8pt, block(fill: white, inset: 8pt)[

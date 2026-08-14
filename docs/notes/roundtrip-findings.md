@@ -314,13 +314,14 @@ Generated output reaches wider, so entries added later are recorded here with th
 
 | Element | Positional fields, in order | Spread | Why it was added |
 | --- | --- | --- | --- |
-| `table.header` | `children` | yes | Emitted by Quarto for every Markdown table that has a header row, as seen in `tests/fixtures/quarto-deck.typ`. |
+| `table.header`, `table.footer`, `grid.header`, `grid.footer` | `children` | yes | Quarto emits a header for every Markdown table that has a header row, as seen in `tests/fixtures/quarto-deck.typ`. |
 
-Before this entry, a marker in a header cell panicked with `cannot reconstruct element header containing a step marker`, which is the correct behaviour for an unregistered element and the wrong outcome for a table a user simply wrote in Markdown.
+Before these entries, a marker in a header cell panicked with `cannot reconstruct element header containing a step marker`, which is the correct behaviour for an unregistered element and the wrong outcome for a table a user simply wrote in Markdown.
 
-`table.footer`, `grid.header` and `grid.footer` share the recipe and are deliberately absent.
-Nothing observed emits them, and the registry records verified need rather than symmetry.
-`table.footer` is the unregistered element that `tests/unit/test-walk-rebuild.typ` uses to demonstrate the hard failure and its remedy.
+The other three share the recipe and are registered alongside it.
+`repr` cannot tell `table.header` from `grid.header`, so `tests/unit/test-registry.typ` asserts all four by function value rather than by name.
+
+`outline.entry`, not one of these, is the unregistered element that `tests/unit/test-walk-rebuild.typ` uses to demonstrate the hard failure and its remedy.
 
 `table.hline` and `table.vline` need no entry.
 Neither takes content, so neither can carry a marker.
