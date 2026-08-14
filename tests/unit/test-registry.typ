@@ -69,10 +69,11 @@
 #assert.eq(entry-count, 72)
 
 // ---------------------------------------------------------------------------
-// An element absent from the registry has no positional fields.
+// An element absent from the registry is unknown.
 //
 // The six elements of list 1 in the findings note reconstruct under a plain
-// spread of their fields, so they are deliberately not registered.
+// spread of their fields, so they are deliberately not registered. Absence
+// says nothing about any other element.
 // ---------------------------------------------------------------------------
 
 #assert.eq(lookup(linebreak), none)
