@@ -198,10 +198,13 @@ An image, an explicit fill and a stroke inside a dimmed region therefore do not 
 
 A heading inside a stepped region is refused, at the call the author wrote: an outline entry and a bookmark that come and go between steps are worse than a compile error.
 Move the heading out of the region, or raise `slide-level` so it opens a slide of its own.
+The guard cannot see into a `context` block or a closure's body, for the same reason a marker cannot: neither reports its content to the traversal until it runs.
+A heading written inside either shape compiles and puts a heading on one step only, which is the same documented limitation section 4.4 records for a marker inside `context`.
 
 `#pause` is a step boundary, written as a top level child of a slide body.
 The expansion cuts the body there and wraps everything after it in an open ended `uncover`, so an author who writes pauses never writes an index.
 A pause nested inside a block, a list item or another container is refused, since the split cannot reach it there and the slide would silently lose the step.
+A pause inside a `context` block is the one exception: it is invisible to the split rather than refused, so `#context [#pause]` renders one page rather than two.
 
 `context-slide(fn)` hands a slide body the resolved step index and total, calling `fn(index, total)` on every step.
 It is the one supported way to write step dependent content inside `context`, since a marker inside a `context` block reports no fields until layout resolves it and is invisible to the traversal.
@@ -380,3 +383,7 @@ Markers inside `context`
 Cross references by name
 
 : A labelled heading is a link destination, so `#link(<label>)` works. Typst refuses `@label` on a heading that is not numbered, so referencing by name waits for the numbering rules.
+
+Labels on a stepped slide
+
+: A slide's body is emitted once per step, so a labelled element on a slide with more than one step is emitted once per step too, and Typst refuses the document with a duplicate label error. A slide with a single step is unaffected. Label suppression on every step but the last is specification 4.6's work, and it arrives with the correctness milestone.

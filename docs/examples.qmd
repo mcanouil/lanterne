@@ -181,6 +181,10 @@ back to the slide that carries the label.
 
 Typst refuses `@what-a-deck-is` on a heading that is not numbered, so a reference by name waits for the numbering rules rather than being faked.
 
+A slide's body is emitted once per step, so a label on a slide of more than one step is emitted once per step too, and Typst refuses the document with a duplicate label error.
+A slide with a single step, such as the one above, is unaffected.
+Suppressing the label on every step but the last arrives with the correctness milestone.
+
 ## Revealing content with a pause
 
 `#pause` is a step boundary, written as a top level child of the slide body.

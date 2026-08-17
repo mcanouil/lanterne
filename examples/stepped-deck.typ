@@ -61,8 +61,7 @@ stroke inside a focused region do not dim.
 #only("2", [This line renders on step two alone: absent before it and absent after.])
 
 The rest of the slide is visible on every step, and the step the line
-disappears into still reserves the space it took, so the slide does not
-reflow.
+disappears into reserves no space at all, so the slide reflows around it.
 
 == A slide that counts its own steps
 
