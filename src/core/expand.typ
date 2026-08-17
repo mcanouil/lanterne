@@ -33,9 +33,10 @@
 //
 // A pause the split cannot reach is refused. The split examines top level
 // children only, so a pause inside a block or a list item produces no boundary
-// and would render as nothing at all, silently costing the slide a step. The
-// two counts disagreeing is exactly that case, and comparing them needs no
-// second traversal.
+// and would render as nothing at all, silently costing the slide a step.
+// `collect-markers` descends further, into every field the walk reaches, so
+// its count includes such a pause; the split's count does not, and the two
+// disagreeing is exactly that case.
 #let _paused(body, scope) = {
   let segments = split-on(body, _is-pause)
   let boundaries = segments.len() - 1
@@ -74,6 +75,9 @@
     // contribute to the count: `total` was already fixed by the time this
     // callback ran.
     let built = (node.value.payload.fn)(index, total)
+    if type(built) != content {
+      fail-type(scope, "context-slide result", built, "content")
+    }
     return rebuild(
       built,
       child => _resolve(child, index, total, dim, registry, scope),
@@ -139,6 +143,13 @@
   }
   if keep != none and keep != "final" and type(keep) != array {
     fail-type(scope, "keep", keep, "none, \"final\", or an array of spans")
+  }
+  if type(keep) == array {
+    for entry in keep {
+      if type(entry) != dictionary or "from" not in entry or "to" not in entry {
+        fail-type(scope, "a keep entry", entry, "a span from parse-range, a dictionary carrying from and to")
+      }
+    }
   }
 
   let paused = _paused(body, scope)
