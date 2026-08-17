@@ -17,6 +17,12 @@
 // What comes back is the marker itself, so a caller reads its payload.
 #assert.eq(collect-markers([a #m]).first(), m)
 
+// The order is the order the walk reaches them, not merely their count: two
+// markers with different payloads come back first before second.
+#let first = marker(MARKER-PAUSE, payload: (n: 1))
+#let second = marker(MARKER-PAUSE, payload: (n: 2))
+#assert.eq(collect-markers([#first #second]), (first, second))
+
 // has-marker still answers the question it always did.
 #assert.eq(has-marker([#block[#m]]), true)
 

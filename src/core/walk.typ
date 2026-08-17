@@ -119,13 +119,18 @@
 /// an outline entry that appears and disappears between steps is worse than a
 /// compile error.
 ///
+/// Typst 0.15 offers no reliable way to test whether a function is an element
+/// function, so `fn` is checked only for being a function: an ordinary closure
+/// passes validation and then matches nothing, since `is-elem` compares
+/// `node.func()` against it and no content is built by a closure.
+///
 /// Content inside a `context` block is not reachable through `fields()` and is
 /// not searched, exactly as it is not searched for a marker.
 /// @category core
 /// @returns bool
 #let has-element(node, fn, max-depth: MAX-DEPTH) = {
   if type(fn) != function {
-    fail-type("has-element", "fn", fn, "an element function")
+    fail-type("has-element", "fn", fn, "a function")
   }
   if type(max-depth) != int or max-depth < 1 {
     fail-type("has-element", "max-depth", max-depth, "a positive integer")
@@ -164,7 +169,11 @@
 /// A marker inside another marker's payload is included, which `has-marker`
 /// does not need to do because one is enough to answer its question.
 ///
-/// `max-depth` bounds the walk exactly as it bounds the others. See `MAX-DEPTH`.
+/// `max-depth` bounds the walk, but not exactly as it bounds the others:
+/// `_collect` descends into a marker's own payload, where `has-marker` and
+/// `rebuild` stop at the marker itself, so a marker costs about two extra
+/// levels of depth here and a body of nested markers reaches the ceiling at a
+/// shallower authored depth than either other walk does. See `MAX-DEPTH`.
 /// @category core
 /// @returns array
 #let collect-markers(node, max-depth: MAX-DEPTH) = {
