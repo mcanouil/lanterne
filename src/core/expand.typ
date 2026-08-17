@@ -68,7 +68,17 @@
 #let _resolve(node, index, total, dim, registry, scope) = {
   let kind = _kind(node)
   if kind == MARKER-CONTEXT-SLIDE {
-    return (node.value.payload.fn)(index, total)
+    // The callback's result goes through the same rebuild pass as the rest of
+    // the body, so a marker it returns resolves for the step being rendered
+    // rather than passing through untouched. What it returns still cannot
+    // contribute to the count: `total` was already fixed by the time this
+    // callback ran.
+    let built = (node.value.payload.fn)(index, total)
+    return rebuild(
+      built,
+      child => _resolve(child, index, total, dim, registry, scope),
+      registry: registry,
+    )
   }
   if kind != MARKER-STEP {
     // A pause is consumed by `_paused`, and a slide marker and an option marker
@@ -145,7 +155,11 @@
   } else if keep == "final" {
     (total,)
   } else {
-    indices.filter(index => in-spans(keep, index))
+    // A selection that keeps nothing still renders the slide's final step,
+    // because a handout setting narrows what is shown and never drops a
+    // slide outright.
+    let kept = indices.filter(index => in-spans(keep, index))
+    if kept.len() == 0 { (total,) } else { kept }
   }
 
   (

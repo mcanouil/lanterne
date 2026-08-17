@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- fix: a handout selection that matches none of a slide's steps now renders the slide's final step instead of dropping the slide entirely.
+- fix: a stepped region returned by a `context-slide` callback now resolves per step instead of rendering as nothing on every step.
 - feat: A slide body expands into one body per step. `#pause` cuts the body and reveals each segment in turn, a stepped region resolves to one of four states on every step, and a step written inside another step resolves with it. A heading inside a stepped region and a pause inside a container are both refused, since either renders a deck that builds and is wrong.
 - feat: Add step ranges. A range is written as an integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`, and a malformed one fails with a message naming the forms it accepts rather than being clamped to something that builds and is wrong.
 - feat: Add the step surface. `step` takes a range and two states, and `uncover`, `only`, `dim` and `focus` are that one primitive with its states set. `#pause` marks a boundary, `context-slide` receives the resolved step index and total, and `emit-step` is the same primitive behind a surface a filter can emit.
