@@ -155,7 +155,7 @@
   } else if handout == true {
     "final"
   } else {
-    parse-range(handout, scope)
+    parse-range(handout, scope, name: "handout")
   }
   // The theme is validated by the one function that validates a theme, so a
   // token rejected here reads the same as one rejected where it was written.

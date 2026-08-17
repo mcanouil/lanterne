@@ -43,7 +43,7 @@ Read from `src/render/deck.typ`.
 | `theme` | dictionary or `none` | `none` | A token dictionary from `theme-tokens` or `theme-merge`. `none` takes the canonical defaults. |
 | `aspect-ratio` | `"16-9"` or `"4-3"` | `"16-9"` | The page shape. |
 | `slide-level` | non-negative integer | `2` | The heading level that opens a slide. `0` disables heading splitting. |
-| `handout` | boolean or a range | `false` | `false` renders every step. `true` collapses each slide to its final step. A range, in the forms `parse-range` accepts, collapses it to the steps the range selects. |
+| `handout` | boolean or a range | `false` | `false` renders every step. `true` collapses each slide to its final step. A range, written as an integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`, collapses it to the steps the range selects. |
 | `registry` | dictionary or `none` | `none` | A container registry from `register-container`, for a step written inside a container of your own. `none` reads the built in registry. |
 | `info` | dictionary | `(:)` | Document metadata, passed to `set document`. |
 
@@ -205,6 +205,8 @@ A heading written inside either shape compiles and puts a heading on one step on
 The expansion cuts the body there and wraps everything after it in an open ended `uncover`, so an author who writes pauses never writes an index.
 A pause nested inside a block, a list item or another container is refused, since the split cannot reach it there and the slide would silently lose the step.
 A pause inside a `context` block is the one exception: it is invisible to the split rather than refused, so `#context [#pause]` renders one page rather than two.
+A heading written after a pause is refused as well: the segment following a pause is wrapped in an `uncover` of its own, so the same heading guard fires on it.
+Move the heading out of the region, or raise `slide-level` so it opens a slide of its own.
 
 `context-slide(fn)` hands a slide body the resolved step index and total, calling `fn(index, total)` on every step.
 It is the one supported way to write step dependent content inside `context`, since a marker inside a `context` block reports no fields until layout resolves it and is invisible to the traversal.
@@ -387,3 +389,7 @@ Cross references by name
 Labels on a stepped slide
 
 : A slide's body is emitted once per step, so a labelled element on a slide with more than one step is emitted once per step too, and Typst refuses the document with a duplicate label error. A slide with a single step is unaffected. Label suppression on every step but the last is specification 4.6's work, and it arrives with the correctness milestone.
+
+Headings and bookmarks on a stepped slide
+
+: A slide's title is the heading the author wrote, and a stepped slide's body, heading included, is emitted once per step, so `query(heading)` returns it once per step, `#outline()` lists the slide once per step, and the PDF carries a duplicate bookmark for each. A slide with a single step is unaffected. Suppression on every step but the last is specification 4.6's work, and it arrives with the correctness milestone.
