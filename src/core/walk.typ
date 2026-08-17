@@ -70,8 +70,8 @@
   if type(child) in (array, dictionary) { depth + 1 } else { depth }
 }
 
-#let _has-marker(node, depth, max-depth) = {
-  if is-marker(node) { return true }
+#let _any(node, predicate, depth, max-depth) = {
+  if predicate(node) { return true }
   if type(node) in (array, dictionary) {
     // A dictionary is walked for its values: a key is a string and can hold no
     // marker.
@@ -79,13 +79,13 @@
     return children.any(child => {
       let reached = _container-depth(child, depth)
       if reached > max-depth { _depth-error(max-depth) }
-      _has-marker(child, reached, max-depth)
+      _any(child, predicate, reached, max-depth)
     })
   }
   if type(node) != content { return false }
   if depth > max-depth { _depth-error(max-depth) }
   for (_, value) in node.fields() {
-    if _has-marker(value, depth + 1, max-depth) { return true }
+    if _any(value, predicate, depth + 1, max-depth) { return true }
   }
   false
 }
@@ -108,7 +108,79 @@
   if type(max-depth) != int or max-depth < 1 {
     fail-type("has-marker", "max-depth", max-depth, "a positive integer")
   }
-  _has-marker(node, 0, max-depth)
+  _any(node, is-marker, 0, max-depth)
+}
+
+/// Whether `node` contains content built by the element function `fn`, at any
+/// depth.
+///
+/// The same walk as `has-marker`, asked a different question. The step engine
+/// uses it to refuse a heading inside a stepped region, per specification 4.4:
+/// an outline entry that appears and disappears between steps is worse than a
+/// compile error.
+///
+/// Typst 0.15 offers no reliable way to test whether a function is an element
+/// function, so `fn` is checked only for being a function: an ordinary closure
+/// passes validation and then matches nothing, since `is-elem` compares
+/// `node.func()` against it and no content is built by a closure.
+///
+/// Content inside a `context` block is not reachable through `fields()` and is
+/// not searched, exactly as it is not searched for a marker.
+/// @category core
+/// @returns bool
+#let has-element(node, fn, max-depth: MAX-DEPTH) = {
+  if type(fn) != function {
+    fail-type("has-element", "fn", fn, "a function")
+  }
+  if type(max-depth) != int or max-depth < 1 {
+    fail-type("has-element", "max-depth", max-depth, "a positive integer")
+  }
+  _any(node, child => is-elem(child, fn), 0, max-depth)
+}
+
+// A second recursion rather than the one above, for two reasons. It accumulates
+// where the other short-circuits, and it descends into a marker where the other
+// stops at one: a step written inside another step's payload has to be counted,
+// and the payload is reached through the metadata element's own fields.
+#let _collect(node, depth, max-depth) = {
+  let found = if is-marker(node) { (node,) } else { () }
+  if type(node) in (array, dictionary) {
+    let children = if type(node) == array { node } else { node.values() }
+    for child in children {
+      let reached = _container-depth(child, depth)
+      if reached > max-depth { _depth-error(max-depth) }
+      found += _collect(child, reached, max-depth)
+    }
+    return found
+  }
+  if type(node) != content { return found }
+  if depth > max-depth { _depth-error(max-depth) }
+  for (_, value) in node.fields() {
+    found += _collect(value, depth + 1, max-depth)
+  }
+  found
+}
+
+/// Every lanterne marker in `node`, in the order the walk reaches them.
+///
+/// The markers come back whole, so a caller reads each payload: the step engine
+/// counts pauses and reads the spans of every stepped region from this.
+///
+/// A marker inside another marker's payload is included, which `has-marker`
+/// does not need to do because one is enough to answer its question.
+///
+/// `max-depth` bounds the walk, but not exactly as it bounds the others:
+/// `_collect` descends into a marker's own payload, where `has-marker` and
+/// `rebuild` stop at the marker itself, so a marker costs about two extra
+/// levels of depth here and a body of nested markers reaches the ceiling at a
+/// shallower authored depth than either other walk does. See `MAX-DEPTH`.
+/// @category core
+/// @returns array
+#let collect-markers(node, max-depth: MAX-DEPTH) = {
+  if type(max-depth) != int or max-depth < 1 {
+    fail-type("collect-markers", "max-depth", max-depth, "a positive integer")
+  }
+  _collect(node, 0, max-depth)
 }
 
 // The fields an element gains when it is synthesised inside a show rule and
