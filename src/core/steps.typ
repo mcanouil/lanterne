@@ -20,7 +20,12 @@
 ///!
 ///! A heading inside a stepped region is refused here, at the call the author
 ///! wrote, per specification 4.4. An outline entry and a PDF bookmark that
-///! appear and disappear between steps are worse than a compile error.
+///! appear and disappear between steps are worse than a compile error. The
+///! refusal runs through `has-element`, whose own depth guard reports under
+///! the fixed scope `"walk"` rather than under the caller's scope, so a region
+///! nested past `walk.MAX-DEPTH` levels deep reports `walk: content is nested
+///! more than 30 levels deep` instead of naming `step`, `uncover`, `dim`,
+///! `focus` or `only`. That guard is not this module's to rename.
 
 #import "marker.typ": MARKER-CONTEXT-SLIDE, MARKER-PAUSE, MARKER-STEP, marker
 #import "range.typ": parse-range
@@ -79,6 +84,13 @@
 }
 
 /// Hidden before its range and visible from there on.
+///
+/// A closed upper bound such as `"2-4"` still raises the slide's step count to
+/// its end, per the counting rule the whole engine follows, even though `after`
+/// is `"visible"` and the content already shows past the range's own steps: the
+/// slide gains steps that all render identically. Use `only` if you want the
+/// content to disappear again, or `step(..., after: "hidden")` if you want it
+/// to hide.
 /// @category step
 /// @returns content
 #let uncover(range, body, scope: "uncover") = step(
@@ -106,6 +118,14 @@
 /// Typst 0.15 has no content opacity, so the renderer dims by setting the text
 /// fill from the `dim-opacity` token. An image, an explicit fill and a stroke
 /// inside a dimmed region therefore do not dim.
+///
+/// A closed upper bound such as `"2-4"` still raises the slide's step count to
+/// its end, per the counting rule the whole engine follows, even though `after`
+/// is `"visible"` and the content is already at full strength past the range's
+/// own steps: the slide gains steps that all render identically. Use `focus`
+/// if you want the content to dim again once the range ends, or
+/// `step(..., after: "dimmed")` for the same effect with `focus`'s other side
+/// left alone.
 /// @category step
 /// @returns content
 #let dim(range, body, scope: "dim") = step(
