@@ -24,7 +24,30 @@
 /// @category core
 #let MARKER-SLIDE = "slide"
 
-#let _KINDS = (MARKER-PAUSE, MARKER-SLIDE-OPTIONS, MARKER-SLIDE)
+/// Kind tag for a stepped region.
+///
+/// Its payload carries the spans the region is visible on, the state it takes
+/// before them and the state it takes after them, and the body all three apply
+/// to.
+/// @category core
+#let MARKER-STEP = "step"
+
+/// Kind tag for the callback form of a slide.
+///
+/// Its payload carries a closure, which the step resolution calls with the
+/// resolved step index and total. It exists because a marker inside a `context`
+/// block is unreachable, so a body that needs the step index has to be given it
+/// rather than read it.
+/// @category core
+#let MARKER-CONTEXT-SLIDE = "context-slide"
+
+#let _KINDS = (
+  MARKER-PAUSE,
+  MARKER-SLIDE-OPTIONS,
+  MARKER-SLIDE,
+  MARKER-STEP,
+  MARKER-CONTEXT-SLIDE,
+)
 
 /// Build a marker of the given kind.
 /// An unknown kind is rejected here, because a marker no consumer matches
