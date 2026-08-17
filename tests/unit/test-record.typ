@@ -23,7 +23,7 @@
 #assert.eq(full.title, [Title])
 #assert.eq(full.level, 1)
 #assert.eq(full.label, <slide>)
-#assert.eq(full.attrs, (smaller: true))
+#assert.eq(full.attrs, (smaller: true, steps: none))
 #assert.eq(full.body, [body])
 
 // The key set is fixed, so a reader never guesses whether a key is there.
@@ -58,10 +58,13 @@
 // Every record carries the full option set, so a reader never repeats a
 // default that could then drift from the one declared here.
 #assert.eq(bare.attrs, default-attrs())
-#assert.eq(default-attrs(), (smaller: false))
+#assert.eq(default-attrs(), (smaller: false, steps: none))
 
 // An option given fills its own key and leaves the rest at their defaults.
-#assert.eq(slide-record([body], attrs: (smaller: true)).attrs, (smaller: true))
+#assert.eq(
+  slide-record([body], attrs: (smaller: true)).attrs,
+  (smaller: true, steps: none),
+)
 
 // `check-attrs` is what the slide-options marker validates through, so a
 // mistyped option fails where it is written rather than where it is read.

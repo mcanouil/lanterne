@@ -8,11 +8,12 @@
 // not is internal on purpose, so adding a name here is a decision about the
 // package's public contract rather than a convenience.
 //
-// `register-container` is deliberately absent. It builds a registry value, and
-// the only function that reads one is `rebuild`, which is internal, so the
-// export would hand a user something with nowhere to put it. It arrives with
-// the deck option that takes a registry.
+// `register-container` is exported now that `deck` takes a `registry`, so a
+// registry it builds has somewhere to be spent.
 
+#import "src/core/registry.typ": register-container
 #import "src/core/slides.typ": slide, slide-options
+#import "src/core/steps.typ": context-slide, dim, focus, only, pause, step, uncover
+#import "src/emit/step.typ": emit-step
 #import "src/render/deck.typ": deck
 #import "src/theme/theme.typ": theme-merge, theme-tokens

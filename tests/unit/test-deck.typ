@@ -7,7 +7,9 @@
 // spurious blank page between two slides passes every structural assertion in
 // tests/unit/test-slides.typ.
 
+#import "../../src/core/registry.typ": register-container
 #import "../../src/core/slides.typ": slide, slide-options
+#import "../../src/core/steps.typ": focus, only, pause
 // `_heading-size` is private and is read here anyway: inside a `show heading`
 // rule the size it produces has not been applied yet, so the scale cannot be
 // observed from a rendered heading.
@@ -86,14 +88,59 @@ body])
 == Referenced <slide-ref>
 @slide-ref])
 
+// A pause makes a slide render one page per step, so total pages exceed slide
+// count. Three pages here: two for the first slide and one for the second.
+#let stepped = [== One
+a #pause b
+== Two
+c]
+#deck(stepped)
+
+// handout: true collapses every slide to its final step, so the same body is
+// two pages, one per slide.
+#deck(stepped, handout: true)
+
+// A handout range selects steps by the same parser a step range uses, so a
+// slide of three steps rendered as "1-2" is two pages.
+#deck([== Selected
+a #pause b #pause c], handout: "1-2")
+
+// dim-region reads dim-opacity the right way round: reversing the mapping to
+// transparentize(tokens.dim-opacity) would still pass every other test here,
+// since every other one leaves dim-opacity at its default. handout: "1" pins
+// the rendered step to the one guaranteed dimmed by focus's own before state.
+#deck(
+  [== Dimmed
+  #focus("3", [
+    #context assert.eq(text.fill, rgb("#1122339e"))
+  ])],
+  theme: theme-tokens(fg: rgb("#112233"), dim-opacity: 62%),
+  handout: "1",
+)
+
+// registry threading is not the wrong-type guard alone: dropping registry:
+// registry from the expand call inside deck breaks a step written inside a
+// container of the author's own while failing no other test. math.cancel is
+// not one of the built in containers, so this only resolves once registered.
+#let registered = register-container(math.cancel, ("body",))
+#deck(
+  [== Registered
+  $ #math.cancel(only("2", [x <registered-mark>])) $],
+  registry: registered,
+)
+// Removed on step 1 and visible on step 2, so the label is found once across
+// the whole document rather than on every page or none of them.
+#context assert.eq(query(<registered-mark>).len(), 1)
+
 // The default aspect ratio is 16-9, matching what a projector expects.
 #deck([== Default
 #context {
   assert(calc.abs(page.width / page.height - 16 / 9) < 0.01)
-  // Twelve pages: three, one, two, one, one, one, one, one and this one. No
-  // deck opens a page it was not asked for, which is what a count catches and a
-  // record assertion cannot.
-  assert.eq(counter(page).final().first(), 12)
+  // Twenty two pages: three, one, two, one, one, one, one, one, then three,
+  // two and two from the stepped decks, one from the dimmed deck, two from
+  // the registered deck, and this one. No deck opens a page it was not asked
+  // for, which is what a count catches and a record assertion cannot.
+  assert.eq(counter(page).final().first(), 22)
   // The author's `show heading` rule ran on the slide's title, which is only
   // possible because the title is still the heading they wrote.
   assert.eq(query(<rule-reached>).len(), 1)

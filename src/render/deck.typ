@@ -21,7 +21,14 @@
 ///! renderer's job, and the renderer slots arrive with the theming milestone,
 ///! so emitting a plain one here would be code that milestone replaces rather
 ///! than extends.
+///!
+///! A slide renders one page per step rather than one page, the expansion
+///! deciding how many. The dimmed state is the one place this renderer
+///! compromises: Typst 0.15 has no content opacity, so a dimmed region is
+///! rendered by setting its text fill rather than by fading it.
 
+#import "../core/expand.typ": expand
+#import "../core/range.typ": parse-range
 #import "../core/slides.typ": slides
 #import "../theme/theme.typ": theme-merge, theme-tokens
 #import "../utils/errors.typ": fail-enum, fail-type
@@ -59,7 +66,7 @@
   base * calc.pow(tokens.scale-ratio, calc.max(0, 3 - level))
 }
 
-#let _slide-page(record, tokens, paper) = {
+#let _slide-page(record, body, tokens, paper) = {
   // `smaller` is per slide rather than per deck, so it is read here rather than
   // folded into the theme.
   let size = if record.attrs.smaller {
@@ -84,9 +91,9 @@
     // A section slide is a divider, so what it carries sits in the middle of
     // the page rather than at the top of it.
     if record.kind == "section" {
-      align(center + horizon, record.body)
+      align(center + horizon, body)
     } else {
-      record.body
+      body
     }
   })
 }
@@ -101,8 +108,12 @@
 ///
 /// `theme` is a token dictionary from `theme-tokens` or `theme-merge`, and
 /// defaults to the canonical one. `aspect-ratio` selects the page shape.
-/// `slide-level` is the heading level that opens a slide, per `slides`. `info`
-/// sets the document metadata and takes `title`, `author` and `date`.
+/// `slide-level` is the heading level that opens a slide, per `slides`.
+/// `handout` is `false` for every step, `true` to collapse each slide to its
+/// final step, or a range collapsing it to the steps the range selects.
+/// `registry` is a container registry from `register-container`, for a step
+/// written inside a container of your own. `info` sets the document metadata
+/// and takes `title`, `author` and `date`.
 /// @category deck
 /// @returns content
 #let deck(
@@ -110,6 +121,8 @@
   theme: none,
   aspect-ratio: "16-9",
   slide-level: 2,
+  handout: false,
+  registry: none,
   info: (:),
 ) = {
   let scope = "deck"
@@ -131,6 +144,19 @@
       fail-type(scope, "info." + name, value, spec.expected)
     }
   }
+  if type(registry) != dictionary and registry != none {
+    fail-type(scope, "registry", registry, "a registry from register-container, or none")
+  }
+  // false is every step, true is the final one, and anything else is a range
+  // read by the same parser a step range uses, so one set of messages covers
+  // both.
+  let keep = if handout == false {
+    none
+  } else if handout == true {
+    "final"
+  } else {
+    parse-range(handout, scope, name: "handout")
+  }
   // The theme is validated by the one function that validates a theme, so a
   // token rejected here reads the same as one rejected where it was written.
   let tokens = if theme == none { theme-tokens() } else { theme-merge(theme, (:)) }
@@ -138,10 +164,28 @@
   // message names the function the author called and there is one copy of it.
   let records = slides(body, slide-level: slide-level, scope: scope)
 
+  // The dimmed state is built here, because this is the layer that has the
+  // tokens. Typst 0.15 has no content opacity, so dimming sets the text fill:
+  // an image, an explicit fill and a stroke inside a dimmed region do not dim,
+  // which is documented at the export rather than faked with an overlay.
+  let dim-region = region => text(
+    fill: tokens.fg.transparentize(100% - tokens.dim-opacity),
+    region,
+  )
   // Metadata is set before any page is opened, because Typst resolves the
   // document's own properties once and before it lays anything out.
   set document(..info)
   for record in records {
-    _slide-page(record, tokens, _PAPERS.at(aspect-ratio))
+    let expanded = expand(
+      record.body,
+      dim-region,
+      steps: record.attrs.steps,
+      keep: keep,
+      registry: registry,
+      scope: scope,
+    )
+    for part in expanded.steps {
+      _slide-page(record, part.body, tokens, _PAPERS.at(aspect-ratio))
+    }
   }
 }

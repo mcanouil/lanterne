@@ -1,10 +1,10 @@
 ---
 title: "Reference"
 subtitle: "Every name Lanterne exports, and what it accepts."
-description: "The five exports of lib.typ, the theme token vocabulary, the slide options, and what each call rejects."
+description: "The fourteen exports of lib.typ, the theme token vocabulary, the slide options, and what each call rejects."
 ---
 
-`lib.typ` is a pure re-export facade: it exports five names and defines none.
+`lib.typ` is a pure re-export facade: it exports fourteen names and defines none.
 Everything below was read out of the source, and each section names the file it came from, so it can be checked against the code rather than trusted.
 
 | Export | Source | Purpose |
@@ -14,12 +14,20 @@ Everything below was read out of the source, and each section names the file it 
 | `slide-options` | `src/core/slides.typ` | Options for the slide a heading opened. |
 | `theme-tokens` | `src/theme/theme.typ` | A theme: the defaults with named overrides applied. |
 | `theme-merge` | `src/theme/theme.typ` | Overrides merged into a complete theme. |
+| `step` | `src/core/steps.typ` | A region visible on some steps and not on others. |
+| `uncover` | `src/core/steps.typ` | Hidden before its range, visible from there on. |
+| `only` | `src/core/steps.typ` | Laid out on its range's steps, and on no others. |
+| `dim` | `src/core/steps.typ` | Dimmed before its range, full strength from there on. |
+| `focus` | `src/core/steps.typ` | Dimmed outside its range, so one region is emphasised at a time. |
+| `pause` | `src/core/steps.typ` | A step boundary; everything after it reveals on the next step. |
+| `context-slide` | `src/core/steps.typ` | A slide body handed the resolved step index and total. |
+| `emit-step` | `src/emit/step.typ` | The step primitive behind a surface a filter can emit. |
+| `register-container` | `src/core/registry.typ` | Records an element's positional fields, for `deck`'s `registry` option. |
 
 : The public surface. {.striped .hover tbl-colwidths="[20,30,50]"}
 
 Anything a module exports that is not listed here is internal on purpose.
-`register-container` is the notable absence: it builds a container registry, and the only function that reads one is internal, so exporting it would hand out a value with nowhere to put it.
-It arrives with the deck option that takes a registry.
+`register-container` is exported now that `deck` takes a `registry`, so a registry it builds has somewhere to be spent.
 
 ## `deck`
 
@@ -35,6 +43,8 @@ Read from `src/render/deck.typ`.
 | `theme` | dictionary or `none` | `none` | A token dictionary from `theme-tokens` or `theme-merge`. `none` takes the canonical defaults. |
 | `aspect-ratio` | `"16-9"` or `"4-3"` | `"16-9"` | The page shape. |
 | `slide-level` | non-negative integer | `2` | The heading level that opens a slide. `0` disables heading splitting. |
+| `handout` | boolean or a range | `false` | `false` renders every step. `true` collapses each slide to its final step. A range, written as an integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`, collapses it to the steps the range selects. |
+| `registry` | dictionary or `none` | `none` | A container registry from `register-container`, for a step written inside a container of your own. `none` reads the built in registry. |
 | `info` | dictionary | `(:)` | Document metadata, passed to `set document`. |
 
 : `deck` arguments. {.striped .hover tbl-colwidths="[15,18,12,55]"}
@@ -86,6 +96,18 @@ Write the level you mean, or set `slide-level` to match the offset.
 An `offset` passed to `heading` itself is a field, so it is read and counted.
 :::
 
+### One page per step
+
+A slide renders one page per step rather than one page.
+The step count comes from the region and pause markers a slide's body carries, from any `context-slide` callback's own `slide-options(steps: ...)` floor, and is at least one.
+
+`handout` collapses the steps a deck renders.
+`false`, the default, renders every step.
+`true` renders each slide's final step alone, which is what a handout wants.
+A range renders the steps it selects, still one page per selected step.
+
+`registry` is threaded to the expansion, so a stepped region written inside a container registered with `register-container` still resolves.
+
 ## `slide`
 
 Read from `src/core/slides.typ`.
@@ -124,11 +146,116 @@ Two markers on one slide are an error rather than one of them silently winning.
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
 | `smaller` | boolean | `false` | Sets the slide's text one step down the theme's `scale-ratio`, title and body together. |
+| `steps` | positive integer or `none` | `none` | Raises the slide's step count to at least this many. Needed when a `context-slide` callback wants more steps than the rest of the body advertises, since a range written inside a callback cannot be counted. |
 
 : Slide options, from `src/core/record.typ`. {.striped .hover tbl-colwidths="[15,13,12,60]"}
 
-One option today.
-`steps`, `appendix` and `layout` arrive alongside the code that reads them, so the vocabulary grows rather than shipping names that mean nothing yet.
+Two options today.
+`appendix` and `layout` arrive alongside the code that reads them, so the vocabulary grows rather than shipping names that mean nothing yet.
+
+## `step`, `uncover`, `only`, `dim`, `focus`, `pause` and `context-slide`
+
+Read from `src/core/steps.typ`.
+
+```typst
+== A slide with a region that arrives on step two
+
+#uncover("2-")[This appears from step two onward.]
+```
+
+`step(range, body, before: "hidden", after: "visible")` is the one primitive.
+`range` is an integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`, one based.
+Inside the range, `body` is always visible.
+`before` and `after` are the states it takes outside the range, below and above it.
+
+| Option | Type | Default | Description |
+| --- | --- | --- | --- |
+| `range` | integer, array of integers, or string | | The steps the region is visible on. |
+| `body` | content | | The region. Cannot contain a heading. |
+| `before` | one of the four states | `"hidden"` | The state below the range's lowest step. |
+| `after` | one of the four states | `"visible"` | The state above the range. |
+
+: `step` arguments. {.striped .hover tbl-colwidths="[15,25,15,45]"}
+
+The four states are `visible`, `hidden`, `dimmed` and `removed`.
+`hidden` lays the region out and reserves its space with `hide`, so nothing on the slide reflows when it appears.
+`removed` is not laid out at all.
+`dimmed` renders the region at the `dim-opacity` token's value.
+
+`uncover`, `only`, `dim` and `focus` are `step` with its states set:
+
+| Function | `before` | `after` | Effect |
+| --- | --- | --- | --- |
+| `uncover(range, body)` | `hidden` | `visible` | Hidden before its range, visible from there on. |
+| `only(range, body)` | `removed` | `removed` | Laid out on the range's steps, and on no others. |
+| `dim(range, body)` | `dimmed` | `visible` | Dimmed before its range, full strength from there on. |
+| `focus(range, body)` | `dimmed` | `dimmed` | Dimmed outside its range, so one region is emphasised at a time. |
+
+: The four aliases. {.striped .hover tbl-colwidths="[25,15,15,45]"}
+
+Typst 0.15 has no content opacity, so `dim` and `focus` dim by setting the text fill from the `dim-opacity` token.
+An image, an explicit fill and a stroke inside a dimmed region therefore do not dim.
+
+A heading inside a stepped region is refused, at the call the author wrote: an outline entry and a bookmark that come and go between steps are worse than a compile error.
+Move the heading out of the region, or raise `slide-level` so it opens a slide of its own.
+The guard cannot see into a `context` block or a closure's body, for the same reason a marker cannot: neither reports its content to the traversal until it runs.
+A heading written inside either shape compiles and puts a heading on one step only, which is the same documented limitation section 4.4 records for a marker inside `context`.
+
+`#pause` is a step boundary, written as a top level child of a slide body.
+The expansion cuts the body there and wraps everything after it in an open ended `uncover`, so an author who writes pauses never writes an index.
+A pause nested inside a block, a list item or another container is refused, since the split cannot reach it there and the slide would silently lose the step.
+A pause inside a `context` block is the one exception: it is invisible to the split rather than refused, so `#context [#pause]` renders one page rather than two.
+A heading written after a pause is refused as well: the segment following a pause is wrapped in an `uncover` of its own, so the same heading guard fires on it.
+Move the heading out of the region, or raise `slide-level` so it opens a slide of its own.
+
+`context-slide(fn)` hands a slide body the resolved step index and total, calling `fn(index, total)` on every step.
+It is the one supported way to write step dependent content inside `context`, since a marker inside a `context` block reports no fields until layout resolves it and is invisible to the traversal.
+A range written inside the callback cannot be counted, because what the callback returns does not exist when the step count is computed; raise the count with the slide's `steps` option instead.
+
+## `emit-step`
+
+Read from `src/emit/step.typ`.
+
+```typst
+#emit-step(range: "2-", body: [Appears from step two.])
+```
+
+The machine facing counterpart to `step`: plain dictionaries, strings and content only, no closure arguments and no positional variadics, so a filter emitting it has nothing to learn beyond four key names.
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `range` | integer or string | required | The steps the region is visible on. |
+| `before` | one of the four states, as a string | `"hidden"` | The state below the range. |
+| `after` | one of the four states, as a string | `"visible"` | The state above the range. |
+| `body` | content | `[]` | The region. |
+
+: `emit-step` arguments. {.striped .hover tbl-colwidths="[15,25,15,45]"}
+
+`emit-step` delegates to `step` rather than reimplementing it, passing its own scope, so a malformed range emitted by a filter reports under `emit-step` while one written by hand reports under `step`.
+
+## `register-container`
+
+Read from `src/core/registry.typ`.
+
+```typst
+#let registry = register-container(my-box, ("body",))
+#show: deck.with(registry: registry)
+```
+
+Records which fields of an element must be handed back positionally when a stepped region inside it is reconstructed.
+The result is a value, not document state, so it has to be passed to `deck`'s `registry` option to take effect.
+
+| Argument | Type | Default | Description |
+| --- | --- | --- | --- |
+| `fn` | function | | The element function, such as `my-box` above or a built in like `rect`. |
+| `positional` | array of strings | | The field names taken positionally, in declaration order. |
+| `spread` | boolean | `false` | Whether the one positional field holds an array that must itself be spread into separate arguments. |
+| `registry` | dictionary or `none` | `none` | A registry to extend. `none` extends the built in set. |
+
+: `register-container` arguments. {.striped .hover tbl-colwidths="[15,20,12,53]"}
+
+Registering the same function twice replaces the earlier entry.
+`notes/roundtrip-findings.md` records the entries verified against Typst 0.15.1, and an element absent from the registry is refused rather than guessed at when a step inside it needs reconstructing.
 
 ## `theme-tokens` and `theme-merge`
 
@@ -156,7 +283,7 @@ The colour, typography and geometry groupings are documentation rather than stru
 | --- | --- | --- | --- |
 | `bg` | colour | `white` | The page fill. |
 | `fg` | colour | `rgb("#111111")` | The text colour. |
-| `dim-opacity` | ratio from 0% to 100% | `30%` | Reserved for dimmed content behind an overlay step. Validated, and read by nothing until the step engine lands. |
+| `dim-opacity` | ratio from 0% to 100% | `30%` | The text fill opacity a dimmed region renders at, read by `dim` and `focus`. |
 | `font-base` | family name, coverage-scoped entry, or a non-empty array of them | `"Libertinus Serif"` | The body font. |
 | `font-heading` | as `font-base` | `"Libertinus Serif"` | The heading font. |
 | `size-base` | positive absolute length | `24pt` | The body text size. An `em` value is rejected here, since it would be relative to itself. |
@@ -231,9 +358,13 @@ A guard cannot be exercised from inside a unit test, because Typst cannot catch 
 
 What is specified but not implemented, as of the current development state:
 
-Overlay steps
+Content opacity
 
-: `#pause` and the step functions do not exist, so a slide renders as one page. `dim-opacity` and the `steps` slide option are part of the same milestone.
+: Typst 0.15 has no content opacity, so `dim` and `focus` set the text fill of a dimmed region rather than fading it. An image, an explicit fill and a stroke inside a dimmed region do not dim.
+
+Counters and chrome that read a step
+
+: A figure behind a pause re-increments across the steps of its slide until then, which is recorded rather than hidden. A progress bar and a slide number that read the step index arrive with the renderer slots.
 
 Layouts and chrome
 
@@ -254,3 +385,11 @@ Markers inside `context`
 Cross references by name
 
 : A labelled heading is a link destination, so `#link(<label>)` works. Typst refuses `@label` on a heading that is not numbered, so referencing by name waits for the numbering rules.
+
+Labels on a stepped slide
+
+: A slide's body is emitted once per step, so a labelled element on a slide with more than one step is emitted once per step too, and Typst refuses the document with a duplicate label error. A slide with a single step is unaffected. Label suppression on every step but the last is specification 4.6's work, and it arrives with the correctness milestone.
+
+Headings and bookmarks on a stepped slide
+
+: A slide's title is the heading the author wrote, and a stepped slide's body, heading included, is emitted once per step, so `query(heading)` returns it once per step, `#outline()` lists the slide once per step, and the PDF carries a duplicate bookmark for each. A slide with a single step is unaffected. Suppression on every step but the last is specification 4.6's work, and it arrives with the correctness milestone.
