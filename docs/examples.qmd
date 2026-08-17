@@ -5,7 +5,8 @@ description: "Worked Typst source for slide splitting, per-slide options and the
 ---
 
 Every snippet on this page compiles against the current state of `main`.
-The complete deck they are drawn from is [`examples/hello-deck.typ`](https://github.com/mcanouil/lanterne/blob/main/examples/hello-deck.typ), which `tools/check.sh` compiles alongside the unit tests, so an example that stops building fails the suite.
+Most of it is drawn from [`examples/hello-deck.typ`](https://github.com/mcanouil/lanterne/blob/main/examples/hello-deck.typ); the section on steps is drawn from [`examples/stepped-deck.typ`](https://github.com/mcanouil/lanterne/blob/main/examples/stepped-deck.typ).
+Both compile alongside the unit tests, so an example that stops building fails the suite.
 
 ::: {.callout-note}
 
@@ -179,3 +180,96 @@ back to the slide that carries the label.
 ```
 
 Typst refuses `@what-a-deck-is` on a heading that is not numbered, so a reference by name waits for the numbering rules rather than being faked.
+
+## Revealing content with a pause
+
+`#pause` is a step boundary, written as a top level child of the slide body.
+It cuts the body there, and everything after it is revealed on the next step, so a slide with two pauses renders three pages.
+
+```typst
+== Revealed in turn
+
+The first line is on screen from the start.
+
+#pause
+
+A pause opens a step boundary, so this line waits for the second step.
+
+#pause
+
+A third step reveals this line, and nothing above it moves when it appears.
+```
+
+Three pages: the first with one line, the second with two, the third with all three.
+
+## An open ended step range
+
+`uncover(range, body)` is hidden before its range and visible from there on.
+An open ended range such as `"2-"` renders as many steps as the slide needs and no fewer: a slide with nothing else stepped still gets two steps out of it.
+
+```typst
+== An open ended uncover
+
+#uncover("2-")[
+  This region stays hidden through the first step and stays visible from the
+  second step onward, however many steps the slide ends up with.
+]
+
+Ordinary content sits alongside it, visible from the start.
+```
+
+The hidden region still reserves its space, so nothing on the slide reflows when it appears.
+
+## Dimming and focusing a region
+
+`focus(range, body)` is dimmed outside its range, so one region is emphasised at a time and the rest stay legible.
+`dim(range, body)` is the same idea in one direction: dimmed before its range, full strength from there on.
+
+```typst
+== Two regions, one in focus
+
+#focus("1", [The first region is full strength on step one.])
+
+#focus("2", [The second region takes its turn on step two.])
+```
+
+Typst 0.15 has no content opacity, so `dim` and `focus` dim by setting the text fill from the theme's `dim-opacity` token.
+An image, an explicit fill and a stroke inside a dimmed region therefore do not dim.
+
+## Showing content for one step only
+
+`only(range, body)` is laid out on its range's steps and on no others: absent before the range and absent after it, reserving no space in either state.
+
+```typst
+== Shown for one step only
+
+#only("2", [This line renders on step two alone: absent before it and absent after.])
+
+The rest of the slide is visible on every step.
+```
+
+## A slide that counts its own steps
+
+`context-slide(fn)` hands a slide body the resolved step index and total, calling `fn(index, total)` on every step.
+A range written inside the callback cannot be counted, because what the callback returns does not exist when the step count is computed, so the slide's own `steps` option raises the count instead.
+
+```typst
+== A slide that counts its own steps
+
+#slide-options(steps: 4)
+
+#context-slide((index, total) => [Step #index of #total.])
+```
+
+Four pages, each reporting its own place in the four the option asked for.
+
+## Collapsing a deck to a handout
+
+`handout` collapses the steps a deck renders.
+`true` renders each slide's final step alone; a range renders the steps it selects.
+
+```typst
+#show: deck.with(handout: true)
+```
+
+A handout of the stepped deck above renders one page per slide, each showing everything the slide's last step reveals.

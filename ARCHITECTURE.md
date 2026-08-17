@@ -113,3 +113,66 @@ The same rule governs the option vocabulary, which ships `smaller` alone, and th
 
 Growing a vocabulary is additive and breaks no deck.
 Shipping a name that means nothing yet cannot be taken back.
+
+## The expansion is a separate module from the step surface
+
+`src/core/steps.typ` is the step surface: the calls an author writes, `step`, `uncover`, `only`, `dim`, `focus`, `pause` and `context-slide`.
+`src/core/expand.typ` is the resolution: turning a stepped body into one body per step, reading the markers `steps.typ` built.
+`steps.typ` carries the name specification 3.1 gave the step surface module, so the file an author reads to learn the calls is the file the specification already points at.
+
+### Decision
+
+The two stay separate modules rather than one.
+
+`steps.typ` validates at the call the author wrote: a range is parsed, a state is checked against the enumeration, and a heading inside the region is refused there, all before the marker exists.
+That is what lets an error name the call and the line, per specification's own grammar for every guard in the package.
+
+`expand.typ` cannot do any of that at the point a marker is built, because it does not run until the whole slide body is known.
+Counting a slide's steps needs every marker collected first: the total is the highest step any span mentions, or one more than the number of pauses, whichever is larger, and neither number exists until the traversal has walked the body once.
+A module that validated per call and also counted across calls would run two passes for two different reasons at two different times, inside one function.
+
+Splitting on that boundary, call time against resolution time, is the same reason `slides.typ` and `record.typ` stay apart: `slide-record` validates what one slide was given, and `slides` decides which segment of the document became that slide.
+
+## The step surface and the machine surface converge on one primitive
+
+`step` in `src/core/steps.typ` is the one primitive; `uncover`, `only`, `dim` and `focus` are it with `before` and `after` set.
+`emit-step` in `src/emit/step.typ` is the same primitive behind a surface built for a filter: plain dictionaries, strings and content, no closures, no positional variadics.
+
+### Decision
+
+`emit-step` delegates to `step` and passes its own scope, so a range malformed by a filter reports under `emit-step` and one written by hand reports under `step`.
+Neither module imports the other's callers; both import the one primitive that validates.
+
+### Why not the other direction
+
+The ergonomic alternative looked like having `steps.typ`'s aliases call through `emit-step`, so the range and state parsing lived in one place nearer the filter-facing surface.
+That inverts the layer order the rest of the package holds to.
+`src/emit/` exists to translate a machine shape into what `src/core/` already validates, which is why it imports from `core` and `core` imports nothing from `emit`.
+Reversing that particular import would leave every other module in `core`, `record.typ`, `slides.typ`, `range.typ`, still depending on nothing above it, except this one function depending on the layer built to depend on it.
+A reader tracing why an ordinary `#pause` call touches the emitter would find no reason, because there is none: the convergence a filter needs is at `step`, not at `emit-step`.
+
+## The dimmed state sets the text fill
+
+`_resolve` in `src/core/expand.typ` renders a `dimmed` region by calling `dim`, a function threaded in as an argument rather than read from a default.
+`deck` in `src/render/deck.typ` builds that function from the theme: `text(fill: tokens.fg.transparentize(100% - tokens.dim-opacity), region)`.
+
+### Decision
+
+Dimming sets the text fill because Typst 0.15 has no content opacity, and `src/core/` reads no theme, so the renderer is the only layer that has both the tokens and the moment the body is threaded through `rebuild`.
+
+### What this does not cover
+
+`text` governs glyph colour only.
+An image inside a dimmed region does not dim, because an image carries no fill.
+An explicit fill on a shape, a block or a colour set some other way inside the region does not dim either, because it was never routed through `tokens.fg`.
+A stroke is the same: nothing here touches `stroke`.
+This is documented at the export, in `docs/reference.qmd` and in `steps.typ`'s own doc comment for `dim` and `focus`, rather than discovered on stage.
+
+### Why an overlay rectangle was rejected
+
+An overlay that visually dims a region has to be sized and positioned to match it, which needs to know what the region measures once laid out.
+Typst answers that only inside `context`, through `measure` or `layout`, and a marker inside a `context` block is already established as invisible to the traversal: a context block reports no fields until layout resolves it, which is why `#pause` and every step function have to be written outside one.
+An overlay approach would reintroduce exactly that problem to solve a problem the traversal already has an answer for, and would do it inside `_resolve`, which has to return content synchronously from a plain recursive walk with no layout pass available to it.
+
+Setting the text fill needs neither a size nor a position.
+It composes with `rebuild`'s synchronous transform the same way the `visible`, `hidden` and `removed` states already do, and it is one call rather than a second content layer to keep in front of or behind the first.

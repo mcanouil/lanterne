@@ -6,7 +6,10 @@
 // only that something of that name exists.
 
 #import "../../lib.typ"
+#import "../../src/core/registry.typ"
 #import "../../src/core/slides.typ"
+#import "../../src/core/steps.typ"
+#import "../../src/emit/step.typ"
 #import "../../src/render/deck.typ"
 #import "../../src/theme/theme.typ"
 
@@ -15,22 +18,30 @@
 #assert.eq(lib.deck, deck.deck)
 #assert.eq(lib.slide, slides.slide)
 #assert.eq(lib.slide-options, slides.slide-options)
+#assert.eq(lib.register-container, registry.register-container)
+#assert.eq(lib.context-slide, steps.context-slide)
+#assert.eq(lib.dim, steps.dim)
+#assert.eq(lib.focus, steps.focus)
+#assert.eq(lib.only, steps.only)
+#assert.eq(lib.pause, steps.pause)
+#assert.eq(lib.step, steps.step)
+#assert.eq(lib.uncover, steps.uncover)
+#assert.eq(lib.emit-step, step.emit-step)
 
 // The surface is what the package promises and no more. A module exporting
 // something absent here is internal on purpose: `lookup`, `has-marker`,
 // `rebuild`, `split-on` and `check-token` are all reachable from src/ and none
 // of them is public.
 //
-// `register-container` is absent for a sharper reason than the rest. It builds
-// a registry value, and `rebuild` is the only function that reads one, so
-// exporting it would promise a capability with no public way to spend it. It
-// arrives with the deck option that takes a registry.
-//
-// `slides` is absent as well: a deck is split by `deck`, and calling the
-// splitter directly buys records nothing public consumes.
+// `slides` is absent: a deck is split by `deck`, and calling the splitter
+// directly buys records nothing public consumes.
 #assert.eq(
   dictionary(lib).keys().sorted(),
-  ("deck", "slide", "slide-options", "theme-merge", "theme-tokens"),
+  (
+    "context-slide", "deck", "dim", "emit-step", "focus", "only", "pause",
+    "register-container", "slide", "slide-options", "step", "theme-merge",
+    "theme-tokens", "uncover",
+  ),
 )
 
 // The facade is used as a wildcard import, which is the form every deck and

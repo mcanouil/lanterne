@@ -8,6 +8,7 @@
 // tests/unit/test-slides.typ.
 
 #import "../../src/core/slides.typ": slide, slide-options
+#import "../../src/core/steps.typ": pause
 // `_heading-size` is private and is read here anyway: inside a `show heading`
 // rule the size it produces has not been applied yet, so the scale cannot be
 // observed from a rendered heading.
@@ -86,14 +87,31 @@ body])
 == Referenced <slide-ref>
 @slide-ref])
 
+// A pause makes a slide render one page per step, so total pages exceed slide
+// count. Three pages here: two for the first slide and one for the second.
+#let stepped = [== One
+a #pause b
+== Two
+c]
+#deck(stepped)
+
+// handout: true collapses every slide to its final step, so the same body is
+// two pages, one per slide.
+#deck(stepped, handout: true)
+
+// A handout range selects steps by the same parser a step range uses, so a
+// slide of three steps rendered as "1-2" is two pages.
+#deck([== Selected
+a #pause b #pause c], handout: "1-2")
+
 // The default aspect ratio is 16-9, matching what a projector expects.
 #deck([== Default
 #context {
   assert(calc.abs(page.width / page.height - 16 / 9) < 0.01)
-  // Twelve pages: three, one, two, one, one, one, one, one and this one. No
-  // deck opens a page it was not asked for, which is what a count catches and a
-  // record assertion cannot.
-  assert.eq(counter(page).final().first(), 12)
+  // Nineteen pages: three, one, two, one, one, one, one, one, then three, two
+  // and two from the stepped decks, and this one. No deck opens a page it was
+  // not asked for, which is what a count catches and a record assertion cannot.
+  assert.eq(counter(page).final().first(), 19)
   // The author's `show heading` rule ran on the slide's title, which is only
   // possible because the title is still the heading they wrote.
   assert.eq(query(<rule-reached>).len(), 1)
