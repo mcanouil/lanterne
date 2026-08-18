@@ -56,6 +56,12 @@
 // `image` is in the search as well as being the fallback, because it only wins
 // by default when nothing else is there: an image written before a table makes
 // an image figure, and an image written after one does not.
+//
+// The search is bounded on its own rather than out of the budget the walk that
+// reached the figure has left, so a figure sitting deep in a body gets a fresh
+// allowance for its own contents. That is more permissive than the one bound
+// the guard otherwise states, and it is the safe direction: it can only accept
+// content the walk would have rejected, never reject content it would accept.
 #let _KINDS = (image, table, raw)
 
 #let _kind-of(node, max-depth) = {
@@ -150,6 +156,11 @@
 // read inside `context` because a set rule decides it, and reading a style is
 // not introspection: it feeds no convergence loop, where reading a counter
 // would.
+//
+// A figure kind that is present but numbers nothing still emits its `context`
+// block, since whether it numbers cannot be known outside one. The block
+// renders nothing and updates nothing. The equation and footnote shifts are
+// skipped outright when their counts are zero, which is knowable here.
 #let _shift(counts, sign) = {
   let shifted = []
   for entry in counts.figures {

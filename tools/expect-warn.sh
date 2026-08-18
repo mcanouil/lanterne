@@ -68,6 +68,13 @@ done
 
 printf '%-13s %d/%d\n' "expect-warn:" "${passed}" "${total}"
 
+# An empty directory would report 0/0 and pass, which disarms the only check
+# that exercises the stderr rule in tools/check.sh and in the CI action.
+if [[ ${total} -eq 0 ]]; then
+  printf '\nno expect-warn cases found, so nothing exercises the warning rule.\n' >&2
+  exit 1
+fi
+
 if [[ ${failures} -gt 0 ]]; then
   printf '\n%d case(s) did not warn as recorded.\n' "${failures}" >&2
   exit 1

@@ -99,8 +99,10 @@
 )
 #assert.eq(increments(stepped).figures.first().styled, 1)
 
-// Both shifts are content, and a body that numbers nothing produces none of
-// it, so a static slide carries no freezing machinery at all.
+// Both shifts are content, and a body holding nothing that could number
+// produces none of it, so a static slide carries no freezing machinery at all.
+// A body whose figures are turned off by a set rule is not this case: the
+// shift is still emitted, and decides inside `context` that it moves nothing.
 #assert.eq(type(rewind(increments([#figure(rect())]))), content)
 #assert.eq(type(advance(increments([#figure(rect())]))), content)
 #assert.eq(rewind(increments([])), [])

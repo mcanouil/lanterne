@@ -65,7 +65,9 @@
   let equations = query(math.equation).map(it => counter(math.equation).at(it.location()).first())
   let notes = query(footnote).map(it => counter(footnote).at(it.location()).first())
   // Two equations and two footnotes, each numbered the same on both steps.
-  assert.eq(equations, (1, 2, 1, 2))
+  // The unnumbered deck at the end of this file contributes equations of its
+  // own, which advance nothing, so only this slide's four are read here.
+  assert.eq(equations.slice(0, 4), (1, 2, 1, 2))
   assert.eq(notes, (1, 2, 1, 2))
 }
 
@@ -158,4 +160,36 @@
     numbers-of(("inner", "middle", "trailing")),
     (("inner", 1), ("middle", 2), ("trailing", 3), ("trailing", 3)),
   )
+}
+
+// The other side of the eligibility read, which every deck in this file has so
+// far avoided: this file numbers equations at the top, while Typst's own
+// default is none, and a figure can be turned off the same way. An element
+// that does not number must not be rewound, or the counter goes backwards on
+// every step and the next slide numbers below where it started.
+#[
+  #set math.equation(numbering: none)
+  #set figure(numbering: none)
+
+  #deck([
+    == Unnumbered
+    $ x = 1 $
+    #figure(rect(width: 4mm, height: 2mm), caption: [quiet])
+    #pause
+    tail
+  ])
+]
+
+#context {
+  let unnumbered = query(figure).filter(it => it.caption.body.text == "quiet")
+  // Two step pages, so two copies. Neither advances the counter, so both read
+  // the same value, whatever the decks above left it at.
+  assert.eq(unnumbered.len(), 2)
+  let numbers = unnumbered.map(it => it.counter.at(it.location()).first())
+  assert.eq(numbers.first(), numbers.last())
+
+  // Nothing was rewound below where it started either, which is what a rewind
+  // of an element that never advanced would produce.
+  assert(query(math.equation).all(it => counter(math.equation).at(it.location()).first() >= 0))
+  assert(numbers.all(value => value >= 0))
 }

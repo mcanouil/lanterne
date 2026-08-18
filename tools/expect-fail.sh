@@ -64,6 +64,13 @@ done
 
 printf '%-13s %d/%d\n' "expect-fail:" "${passed}" "${total}"
 
+# As in tools/expect-warn.sh: an empty directory would report 0/0 and pass,
+# leaving every guard in src/ unexercised with the build still green.
+if [[ ${total} -eq 0 ]]; then
+  printf '\nno expect-fail cases found, so no guard is exercised.\n' >&2
+  exit 1
+fi
+
 if [[ ${failures} -gt 0 ]]; then
   printf '\n%d case(s) did not fail as recorded.\n' "${failures}" >&2
   exit 1
