@@ -62,12 +62,47 @@
   (body: built, pauses: boundaries)
 }
 
+// The state a stepped region takes on `index`. Three zones, per the step
+// model: inside the spans it is visible, below the lowest step they mention it
+// takes `before`, and above them it takes `after`.
+#let _state-at(payload, index) = {
+  if in-spans(payload.spans, index) { "visible" } else if index < first-step(payload.spans) {
+    payload.before
+  } else {
+    payload.after
+  }
+}
+
+// Whether the step being built is the one that keeps the labels of a subtree.
+//
+// A label may be emitted once, and a slide body is emitted once per step, so
+// exactly one step keeps each. It is the first step at which the subtree is
+// shown, so a reference and a bookmark land where the thing they point at
+// first appears.
+//
+// `laid-out` is the fallback rather than the rule, and it is not the same set:
+// a hidden region is laid out and numbers, but pointing a reference at a page
+// where its target is invisible is worse than pointing at the page where it
+// appears. It matters when a handout renders no step at which the subtree is
+// shown, where the alternative is a label that exists nowhere and a reference
+// that fails to resolve.
+#let _keeps-labels(index, shown, laid-out) = {
+  if shown.len() > 0 { return index == shown.first() }
+  if laid-out.len() > 0 { return index == laid-out.first() }
+  true
+}
+
 // The content a marker resolves to on `index`, of `total`.
 //
 // The recursion is deliberate: `rebuild` stops at a marker and does not descend
 // into its payload, so a step inside a step is resolved by this call and not by
 // the pass that reached it. Innermost first, therefore, and the states compose.
-#let _resolve(node, index, total, dim, registry, scope) = {
+//
+// `shown` and `laid-out` are the rendered steps at which the subtree being
+// resolved is shown and at which it is laid out at all. Entering a region
+// narrows both, so nesting composes: a region visible on a step where its
+// parent is hidden is shown on no step at all.
+#let _resolve(node, index, total, dim, registry, scope, shown, laid-out) = {
   let kind = _kind(node)
   if kind == MARKER-CONTEXT-SLIDE {
     // The callback's result goes through the same rebuild pass as the rest of
@@ -81,7 +116,8 @@
     }
     return rebuild(
       built,
-      child => _resolve(child, index, total, dim, registry, scope),
+      child => _resolve(child, index, total, dim, registry, scope, shown, laid-out),
+      keep-labels: _keeps-labels(index, shown, laid-out),
       registry: registry,
     )
   }
@@ -96,18 +132,17 @@
     )
   }
   let payload = node.value.payload
+  // The region's own reach, computed before its body is built, because the
+  // body has to know which step keeps its labels.
+  let inside-shown = shown.filter(step => _state-at(payload, step) in ("visible", "dimmed"))
+  let inside-laid-out = laid-out.filter(step => _state-at(payload, step) != "removed")
   let inner = rebuild(
     payload.body,
-    child => _resolve(child, index, total, dim, registry, scope),
+    child => _resolve(child, index, total, dim, registry, scope, inside-shown, inside-laid-out),
+    keep-labels: _keeps-labels(index, inside-shown, inside-laid-out),
     registry: registry,
   )
-  let state = if in-spans(payload.spans, index) {
-    "visible"
-  } else if index < first-step(payload.spans) {
-    payload.before
-  } else {
-    payload.after
-  }
+  let state = _state-at(payload, index)
   if state == "visible" { return inner }
   if state == "hidden" { return hide(inner) }
   if state == "dimmed" { return dim(inner) }
@@ -185,7 +220,12 @@
       index: index,
       body: rebuild(
         paused.body,
-        node => _resolve(node, index, total, dim, registry, scope),
+        node => _resolve(node, index, total, dim, registry, scope, selected, selected),
+        // Whatever sits outside a stepped region is shown on every step that
+        // renders, so the first of them keeps its labels. `selected` rather
+        // than every step, because a handout renders a subset and a label has
+        // to survive on a page that exists.
+        keep-labels: index == selected.first(),
         registry: registry,
       ),
     )),

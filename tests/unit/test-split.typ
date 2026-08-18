@@ -205,15 +205,15 @@ a b] <lbl> y]
 
 // When a boundary cuts through the labelled group, the label can only go on
 // one piece: emitting it on each would make the deck fail with a duplicate
-// label, which is worse than the reference landing at the end of the group.
-// Specification 4.6 already rules that a labelled element behind a pause keeps
-// its label on the final step, so the last piece carries it here too.
+// label. Specification 4.6 rules that a label stays with the first appearance
+// of what carries it, so the first piece carries it here too and a reference
+// lands where the group opens.
 #let labelled-split = [x #[#set text(size: 9pt)
 a #m b] <lbl> y]
 #let split-pieces = split-on(labelled-split, is-marker)
 #assert.eq(split-pieces.len(), 2)
-#assert.eq(label-of(styled-of(split-pieces.first())), none)
-#assert.eq(label-of(styled-of(split-pieces.last())), <lbl>)
+#assert.eq(label-of(styled-of(split-pieces.first())), <lbl>)
+#assert.eq(label-of(styled-of(split-pieces.last())), none)
 
 // The same wrapper with nothing beside it. The first assertion above passes on
 // its own even when the wrapper is handed back whole and unsplit, so this pins

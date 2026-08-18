@@ -55,5 +55,5 @@ A page break at body level opens a slide of its own, with no title.
 A labelled heading is a destination, so #link(<what-a-deck-is>)[this link] jumps
 back to the slide that carries the label.
 
-Typst refuses `@what-a-deck-is` on a heading that is not numbered, so a
-reference by name waits for the numbering rules rather than being faked here.
+Typst refuses `@what-a-deck-is` on a heading that is not numbered, so write
+`#set heading(numbering: ...)` to reference a slide by name.

@@ -364,7 +364,7 @@ Content opacity
 
 Counters and chrome that read a step
 
-: A figure behind a pause re-increments across the steps of its slide until then, which is recorded rather than hidden. A progress bar and a slide number that read the step index arrive with the renderer slots.
+: A progress bar and a slide number that read the step index arrive with the renderer slots. A figure, a block equation and a footnote already keep their numbers across the steps of a slide.
 
 Layouts and chrome
 
@@ -384,12 +384,12 @@ Markers inside `context`
 
 Cross references by name
 
-: A labelled heading is a link destination, so `#link(<label>)` works. Typst refuses `@label` on a heading that is not numbered, so referencing by name waits for the numbering rules.
+: A labelled heading is a link destination, so `#link(<label>)` works. Typst refuses `@label` on a heading that is not numbered, so write `#set heading(numbering: ...)` to reference a slide by name.
 
 Labels on a stepped slide
 
-: A slide's body is emitted once per step, so a labelled element on a slide with more than one step is emitted once per step too, and Typst refuses the document with a duplicate label error. A slide with a single step is unaffected. Label suppression on every step but the last is specification 4.6's work, and it arrives with the correctness milestone.
+: A slide's body is emitted once per step, so a label on it is dropped on every step but the one that keeps it, which is the first step where the element it marks is shown. A reference and a bookmark therefore land where that element first appears. A label on an image is the one case that cannot be dropped, since an image cannot be rebuilt, and a labelled image on a slide of several steps is refused with a message naming the remedy.
 
 Headings and bookmarks on a stepped slide
 
-: A slide's title is the heading the author wrote, and a stepped slide's body, heading included, is emitted once per step, so `query(heading)` returns it once per step, `#outline()` lists the slide once per step, and the PDF carries a duplicate bookmark for each. A slide with a single step is unaffected. Suppression on every step but the last is specification 4.6's work, and it arrives with the correctness milestone.
+: A slide's title is the heading the author wrote, and a stepped slide's body, heading included, is emitted once per step, so `query(heading)` returns it once per step, `#outline()` lists the slide once per step, and the PDF carries a duplicate bookmark for each. A slide with a single step is unaffected. The heading counter is not affected, because a repeated step page carries `set heading(numbering: none)`. The outline and bookmark rules arrive with the rest of specification 4.7.

@@ -94,16 +94,16 @@
     ))
     if element-label == none { return rebuilt }
     // A label can sit on one piece only. Emitting it on each would make the
-    // deck fail with a duplicate label, which is worse than a reference
-    // landing at the end of the group. Specification 4.6 rules that a labelled
-    // element behind a pause keeps its label on the final step, and the same
-    // rule holds here.
-    let last = rebuilt.last()
+    // deck fail with a duplicate label. Specification 4.6 rules that the label
+    // stays with the first appearance of what carries it, so a reference lands
+    // where the group opens rather than where it ends, and the same rule holds
+    // here.
+    let first = rebuilt.first()
     let relabelled = (
-      nodes: ([#(last.nodes.first())#element-label],),
-      boundary: last.boundary,
+      nodes: ([#(first.nodes.sum(default: []))#element-label],),
+      boundary: first.boundary,
     )
-    return rebuilt.slice(0, -1) + (relabelled,)
+    return (relabelled,) + rebuilt.slice(1)
   }
   if is-elem(node, SEQUENCE) {
     let pieces = ((nodes: (), boundary: none),)
