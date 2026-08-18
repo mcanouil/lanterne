@@ -27,15 +27,35 @@ compile_glob() {
   local label_passed=0
   local label_total=0
 
+  local out
+  local reason
+
   for f in ${glob}; do
     label_total=$((label_total + 1))
     total=$((total + 1))
-    if typst compile "${f}" --root "${REPO_ROOT}" "${OUT_DIR}/$(basename "${f%.typ}").pdf" 2>/dev/null; then
+    reason=""
+    # Only stderr is captured, and stdout is dropped, so that whatever the
+    # compiler prints on a successful run cannot be read as a diagnostic.
+    if out=$(typst compile "${f}" --root "${REPO_ROOT}" "${OUT_DIR}/$(basename "${f%.typ}").pdf" 2>&1 1>/dev/null); then
+      # A compile that exits zero and warns fails here. A warning is how Typst
+      # reports content that did not converge, and a deck that did not converge
+      # renders wrong numbers rather than failing to render, which is the one
+      # outcome this package refuses.
+      if [[ -n "${out}" ]]; then
+        reason="reported a warning"
+      fi
+    else
+      reason="failed to compile"
+    fi
+
+    if [[ -z "${reason}" ]]; then
       label_passed=$((label_passed + 1))
     else
       failures=$((failures + 1))
-      printf '  FAIL  %s  %s\n' "${label}" "${f}"
-      typst compile "${f}" --root "${REPO_ROOT}" "${OUT_DIR}/$(basename "${f%.typ}").pdf" || true
+      printf '  FAIL  %s  %s  %s\n' "${label}" "${f}" "${reason}"
+      if [[ -n "${out}" ]]; then
+        printf '%s\n' "${out}"
+      fi
     fi
   done
 
@@ -45,10 +65,14 @@ compile_glob() {
 compile_glob "unit" "tests/unit/*.typ"
 compile_glob "examples" "examples/*.typ"
 
-# The cases that must fail. Run even when a compile above failed, so one run
-# reports everything rather than hiding the second suite behind the first.
+# The cases that must fail, then the cases that must warn. Both run even when a
+# compile above failed, so one run reports everything rather than hiding a later
+# suite behind an earlier one.
 expect_fail_status=0
 "${REPO_ROOT}/tools/expect-fail.sh" || expect_fail_status=$?
+
+expect_warn_status=0
+"${REPO_ROOT}/tools/expect-warn.sh" || expect_warn_status=$?
 
 if [[ ${failures} -gt 0 ]]; then
   printf '\n%d failure(s) out of %d compile(s).\n' "${failures}" "${total}" >&2
@@ -57,6 +81,10 @@ fi
 
 if [[ ${expect_fail_status} -ne 0 ]]; then
   exit "${expect_fail_status}"
+fi
+
+if [[ ${expect_warn_status} -ne 0 ]]; then
+  exit "${expect_warn_status}"
 fi
 
 printf '\n%d compile(s) ok.\n' "${total}"

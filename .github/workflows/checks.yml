@@ -85,11 +85,21 @@ jobs:
         shell: bash
         run: tools/expect-fail.sh
 
+      # Cases that must compile and warn. A compile that warns is a failure
+      # everywhere else, so nothing else reaches that rule: the unit tests
+      # compile silently and an expect-fail case never exits zero.
+      - name: Run expect-warn cases
+        id: expect-warn
+        if: always()
+        shell: bash
+        run: tools/expect-warn.sh
+
       - name: Summary
         if: always()
         shell: bash
         env:
           EXPECT_FAIL_OUTCOME: ${{ steps.expect-fail.outcome }}
+          EXPECT_WARN_OUTCOME: ${{ steps.expect-warn.outcome }}
           UNIT_PASSED: ${{ steps.unit.outputs.passed }}
           UNIT_TOTAL: ${{ steps.unit.outputs.total }}
           UNIT_FAILED: ${{ steps.unit.outputs.failed }}
@@ -125,6 +135,9 @@ jobs:
             echo ""
             echo "### Expect-fail cases"
             echo "- Status: ${EXPECT_FAIL_OUTCOME:-skipped}"
+            echo ""
+            echo "### Expect-warn cases"
+            echo "- Status: ${EXPECT_WARN_OUTCOME:-skipped}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
   shell-checks:

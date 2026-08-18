@@ -54,9 +54,11 @@ Keep contributed content accessible:
 The package metadata, compiler version, and excluded paths are defined in [`typst.toml`](typst.toml).
 The library entry point is [`lib.typ`](lib.typ).
 Source modules live under [`src/`](src/).
-Tests live under [`tests/unit/`](tests/unit), which assert the accepting paths, and [`tests/expect-fail/`](tests/expect-fail), which compile the rejections.
+Tests live under [`tests/unit/`](tests/unit), which assert the accepting paths, [`tests/expect-fail/`](tests/expect-fail), which compile the rejections, and [`tests/expect-warn/`](tests/expect-warn), which compile the documents that must warn.
 Typst cannot catch a panic, so a validation guard cannot be exercised from inside a unit test; add a case under [`tests/expect-fail/`](tests/expect-fail) whenever you add one, and see that directory's README for the format.
-Helper scripts live under [`tools/`](tools), in particular [`tools/check.sh`](tools/check.sh) for local checks, which runs both suites.
+A compile that writes anything to stderr is a failure, even when it exits zero.
+A warning is how Typst reports content that did not converge, and such a document renders wrong numbers rather than failing to render, which is the one outcome this package refuses.
+Helper scripts live under [`tools/`](tools), in particular [`tools/check.sh`](tools/check.sh) for local checks, which runs all three suites.
 Short identifiers used across the source tree are catalogued in [`GLOSSARY.md`](GLOSSARY.md).
 Consult that glossary before you introduce new short identifiers.
 
