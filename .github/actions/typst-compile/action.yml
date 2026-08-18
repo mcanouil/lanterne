@@ -3,7 +3,7 @@
 # @author Mickaël Canouil
 
 name: Compile Typst sources
-description: Compile every Typst file in a directory and report pass/fail counts.
+description: Compile every Typst file in a directory and report pass/fail counts. A file that warns fails.
 
 inputs:
   label:
@@ -19,16 +19,16 @@ inputs:
 
 outputs:
   passed:
-    description: "Number of files that compiled successfully."
+    description: "Number of files that compiled with nothing on stderr."
     value: ${{ steps.compile.outputs.passed }}
   total:
     description: "Total number of files considered."
     value: ${{ steps.compile.outputs.total }}
   failed:
-    description: "Number of files that failed to compile."
+    description: "Number of files that failed to compile or reported a warning."
     value: ${{ steps.compile.outputs.failed }}
   failures:
-    description: "Newline-joined paths of files that failed to compile."
+    description: "Newline-joined paths of files that failed to compile or reported a warning."
     value: ${{ steps.compile.outputs.failures }}
 
 runs:
@@ -56,15 +56,26 @@ runs:
         compile_one() {
           set -euo pipefail
           f="$1"
+          # Anything on stderr fails the file, not just a non-zero exit. A
+          # warning is how Typst reports content that did not converge, and a
+          # deck that did not converge renders wrong numbers rather than
+          # failing to render.
           if out=$(typst compile "${f}" --root "${ROOT}" "/tmp/$(basename "${f%.typ}").pdf" 2>&1); then
-            status=pass
+            if [[ -n "${out}" ]]; then
+              status=fail
+              reason="reported a warning"
+            else
+              status=pass
+              reason=""
+            fi
           else
             status=fail
+            reason="failed to compile the file"
           fi
           {
             echo "::group::Compile ${f}"
             [[ -n "${out}" ]] && printf '%s\n' "${out}"
-            [[ "${status}" == "fail" ]] && echo "::error file=${f}::Typst compilation failed"
+            [[ "${status}" == "fail" ]] && echo "::error file=${f}::Typst ${reason}"
             echo "::endgroup::"
           } > "${RESULTS}/logs/${f//\//_}.log"
           echo "${status} ${f}" >> "${RESULTS}/status"

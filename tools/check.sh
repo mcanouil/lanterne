@@ -27,15 +27,25 @@ compile_glob() {
   local label_passed=0
   local label_total=0
 
+  local out
+
   for f in ${glob}; do
     label_total=$((label_total + 1))
     total=$((total + 1))
-    if typst compile "${f}" --root "${REPO_ROOT}" "${OUT_DIR}/$(basename "${f%.typ}").pdf" 2>/dev/null; then
+    # stderr is captured rather than discarded, because a compile that exits
+    # zero and warns is a failure here. A warning is how Typst reports content
+    # that did not converge, and a deck that did not converge renders wrong
+    # numbers rather than failing to render, which is the one outcome this
+    # package refuses.
+    if out=$(typst compile "${f}" --root "${REPO_ROOT}" "${OUT_DIR}/$(basename "${f%.typ}").pdf" 2>&1) &&
+      [[ -z "${out}" ]]; then
       label_passed=$((label_passed + 1))
     else
       failures=$((failures + 1))
       printf '  FAIL  %s  %s\n' "${label}" "${f}"
-      typst compile "${f}" --root "${REPO_ROOT}" "${OUT_DIR}/$(basename "${f%.typ}").pdf" || true
+      if [[ -n "${out}" ]]; then
+        printf '%s\n' "${out}"
+      fi
     fi
   done
 
