@@ -388,7 +388,7 @@ Cross references by name
 
 Labels on a stepped slide
 
-: A slide's body is emitted once per step, so a label on it is dropped on every step but the one that keeps it, which is the first step where the element it marks is shown. A reference and a bookmark therefore land where that element first appears. A label on an image is the one case that cannot be dropped, since an image cannot be rebuilt, and a labelled image on a slide of several steps is refused with a message naming the remedy.
+: A slide's body is emitted once per step, so a label on it is dropped on every step but the one that keeps it, which is the first step where the element it marks is shown. A reference therefore lands where that element first appears. A label on an image is the one case that cannot be dropped, since an image cannot be rebuilt, and a labelled image on a slide of several steps is refused with a message naming the remedy.
 
 Headings and bookmarks on a stepped slide
 

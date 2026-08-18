@@ -77,8 +77,9 @@
 //
 // A label may be emitted once, and a slide body is emitted once per step, so
 // exactly one step keeps each. It is the first step at which the subtree is
-// shown, so a reference and a bookmark land where the thing they point at
-// first appears.
+// shown, so a reference lands where the thing it points at first appears. A
+// bookmark is not affected either way: one comes from a heading rather than
+// from a label.
 //
 // `laid-out` is the fallback rather than the rule, and it is not the same set:
 // a hidden region is laid out and numbers, but pointing a reference at a page
@@ -86,6 +87,10 @@
 // appears. It matters when a handout renders no step at which the subtree is
 // shown, where the alternative is a label that exists nowhere and a reference
 // that fails to resolve.
+//
+// Neither set covers a region that is removed on every rendered step, such as
+// an `only` region a handout drops. Its content is never emitted, so its label
+// exists nowhere whatever this answers, and a reference to it fails.
 #let _keeps-labels(index, shown, laid-out) = {
   if shown.len() > 0 { return index == shown.first() }
   if laid-out.len() > 0 { return index == laid-out.first() }
@@ -132,6 +137,19 @@
     )
   }
   let payload = node.value.payload
+  let state = _state-at(payload, index)
+  // A removed region is not laid out, so its body is never built. Building it
+  // anyway would drop labels from content this step does not emit, and would
+  // refuse a labelled image that appears on exactly one step and duplicates
+  // nowhere.
+  //
+  // What it would have numbered is advanced in its place, because a hidden
+  // region still numbers and a removed one does not, so without this a figure
+  // after an `only` region takes a different number on the steps that drop the
+  // region. The count comes from the payload as written, so a removed region
+  // nested inside another is counted once, by the outer one.
+  if state == "removed" { return advance(increments(payload.body)) }
+
   // The region's own reach, computed before its body is built, because the
   // body has to know which step keeps its labels.
   let inside-shown = shown.filter(step => _state-at(payload, step) in ("visible", "dimmed"))
@@ -142,17 +160,9 @@
     keep-labels: _keeps-labels(index, inside-shown, inside-laid-out),
     registry: registry,
   )
-  let state = _state-at(payload, index)
   if state == "visible" { return inner }
   if state == "hidden" { return hide(inner) }
-  if state == "dimmed" { return dim(inner) }
-  // removed: not laid out, so it reserves no space. What it would have
-  // numbered is advanced in its place, because a hidden region still numbers
-  // and a removed one does not, so without this a figure after an `only`
-  // region takes a different number on the steps that drop the region. The
-  // count comes from the payload as written rather than from `inner`, so a
-  // removed region nested inside another is counted once, by the outer one.
-  advance(increments(payload.body))
+  dim(inner)
 }
 
 /// Expand a slide body into one body per step.
@@ -225,7 +235,7 @@
         // renders, so the first of them keeps its labels. `selected` rather
         // than every step, because a handout renders a subset and a label has
         // to survive on a page that exists.
-        keep-labels: index == selected.first(),
+        keep-labels: _keeps-labels(index, selected, selected),
         registry: registry,
       ),
     )),

@@ -77,6 +77,33 @@
 // `keep` decides, per match, whether the match stays at the head of the segment
 // it opened. A match left in place stays inside the wrappers it was written
 // under, which is the only way the rules in force over it still reach it.
+// A label reattached to exactly one piece of a group the split divided.
+//
+// It goes on the first piece that carries something, rather than on the first
+// piece outright: a group whose first child is a boundary opens with an empty
+// piece, and a label there is a reference that resolves to a page showing
+// nothing, or none at all once the splitter drops a blank lead-in segment.
+// Emitting it on every piece is not an option, since the deck would then fail
+// with a duplicate label.
+//
+// Specification 4.6 rules that a label stays with the first appearance of what
+// carries it, so a reference lands where the group opens rather than where it
+// ends.
+#let _relabel(pieces, element-label, carrying: none) = {
+  if element-label == none { return pieces }
+  // Emptiness is read from the pieces as they were before a wrapper was put
+  // back around them, since a wrapper around nothing still renders nothing.
+  let read = if carrying == none { pieces } else { carrying }
+  let index = read.position(piece => piece.nodes.len() > 0)
+  if index == none { return pieces }
+  let piece = pieces.at(index)
+  pieces.at(index) = (
+    nodes: ([#(piece.nodes.sum(default: []))#element-label],),
+    boundary: piece.boundary,
+  )
+  pieces
+}
+
 #let _pieces(node, predicate, keep) = {
   if is-elem(node, STYLED) {
     // The positional order `(child, styles)` is the registry's recipe for
@@ -88,24 +115,19 @@
     // src/core/walk.typ. Content equality ignores labels, so nothing that
     // compares segments can notice the loss.
     let element-label = node.fields().at("label", default: none)
-    let rebuilt = _pieces(node.child, predicate, keep).map(piece => (
+    let inner = _pieces(node.child, predicate, keep)
+    let rebuilt = inner.map(piece => (
       nodes: (STYLED(piece.nodes.sum(default: []), node.styles),),
       boundary: piece.boundary,
     ))
-    if element-label == none { return rebuilt }
-    // A label can sit on one piece only. Emitting it on each would make the
-    // deck fail with a duplicate label. Specification 4.6 rules that the label
-    // stays with the first appearance of what carries it, so a reference lands
-    // where the group opens rather than where it ends, and the same rule holds
-    // here.
-    let first = rebuilt.first()
-    let relabelled = (
-      nodes: ([#(first.nodes.sum(default: []))#element-label],),
-      boundary: first.boundary,
-    )
-    return (relabelled,) + rebuilt.slice(1)
+    return _relabel(rebuilt, element-label, carrying: inner)
   }
   if is-elem(node, SEQUENCE) {
+    // A label on a sequence is read exactly as one on a wrapper is. Without
+    // this, a label on a plain group that a pause cuts through is dropped and
+    // a reference to it fails with a message about a label that does not
+    // exist, which names neither the group nor the pause.
+    let element-label = node.fields().at("label", default: none)
     let pieces = ((nodes: (), boundary: none),)
     for child in node.children {
       let from-child = if is-elem(child, STYLED) or is-elem(child, SEQUENCE) {
@@ -125,7 +147,7 @@
       pieces.last() = open
       pieces += from-child.slice(1)
     }
-    return pieces
+    return _relabel(pieces, element-label)
   }
   if predicate(node) {
     return ((nodes: (), boundary: none), (nodes: _kept(node, keep), boundary: node))

@@ -26,7 +26,7 @@ Covers every guard in `src/`: token name and value validation, theme constructio
 `expand`'s own six guards are covered too: its `body`, `dim`, `steps` and `keep` argument validation, a pause the split cannot reach, and an unexpected marker reaching step resolution.
 The heading refusal a stepped region delegates to and a `context-slide` callback that returns something other than content are covered alongside them, and so is the shape of each `keep` entry.
 The counting the freezing arithmetic rests on is covered as well: `increments`'s `body`, and `collect`'s predicate and depth bound.
-So are `rebuild`'s `match` and `keep-labels` arguments, and the labelled image that label suppression cannot rebuild.
+So is `rebuild`'s `keep-labels` argument, along with the two labels suppression refuses rather than drops: one on an image, which cannot be rebuilt, and one on a stepped region itself.
 
 Add a case with the guard, in the same commit.
 A guard with no case here is a guard that can be deleted without the build noticing.

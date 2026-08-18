@@ -218,3 +218,37 @@ A heading is kept from advancing instead, by a `set heading(numbering: none)` ru
 
 One walk of the slide body per slide, plus one walk per region resolved to `removed` on each step that removes it, both bounded by `MAX-DEPTH` and neither cached.
 The walk is the one detection already makes, a removed region is a small subtree, and a count that is recomputed cannot go stale.
+
+## A label survives on one step, chosen by where its element first shows
+
+A slide body is emitted once per step, so every label on it is emitted once per step.
+Typst accepts the duplicate and fails where one is referenced, so the deck builds until an author writes `@fig`.
+
+### Decision
+
+`rebuild` takes `keep-labels`, and every step but one is built with it `false`, which drops a label rather than reattaching it.
+Carrying a label is a reason to rebuild in its own right, so the walk reaches a labelled element that has no marker near it.
+
+The step that keeps a label is the first rendered step at which the element is shown, rather than the last.
+A reference then lands where the thing it points at first appears.
+Where no rendered step shows it, which a handout can produce, the first step that lays it out keeps it instead, since a label that exists nowhere fails a reference outright.
+
+The splitter follows the same rule for a group a boundary cuts through, and puts the label on the first piece that carries something rather than on the first piece outright.
+
+### Why not the last step
+
+Specification 4.6 said the last step, which was written before the rule had to cover a slide title.
+A title is shown on every step, so the last step would send a reference and an outline entry to the end of a slide's animation rather than to its start.
+
+### What this does not cover
+
+A label on the stepped region itself, as `#uncover("2-", [...]) <region>`, is refused: the marker is replaced by the content it resolves to, so no step could carry the label.
+
+A label on a group nested inside a slide, where the group is flattened into the body around it, is lost by Typst's own content model rather than by this rule.
+A label on an image cannot be dropped, since an image cannot be reconstructed, so a labelled image on a slide of several steps is refused.
+A label a `context-slide` callback emits survives only on the step that keeps the labels of the region around it.
+
+### What it costs
+
+The reconstruction surface widens from the path to a marker to the path to a marker or a label, on every step but the one keeping the labels.
+An unregistered container on such a path is a hard error where it was not one before, and the message says which of the two reasons brought the walk there.

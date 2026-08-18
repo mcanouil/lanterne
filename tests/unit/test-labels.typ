@@ -14,6 +14,12 @@
 
 #set heading(numbering: "1.")
 
+// Pages are read relative to the slide the label belongs to, so a deck added
+// above cannot break an assertion about a deck below it. `opens` is the page
+// the slide's first step renders on.
+#let opens(title) = query(heading).find(it => it.body == title).location().page()
+#let page-of(name) = query(name).first().location().page()
+
 // A labelled title and a labelled figure behind a pause, on the same slide,
 // with a reference to each.
 #deck([
@@ -33,8 +39,8 @@
   // The title is shown on every step, so it keeps the first. The figure is
   // revealed on the second, so it keeps that one, and a reference lands where
   // the figure appears rather than on a page where it is hidden.
-  assert.eq(query(<title>).first().location().page(), 1)
-  assert.eq(query(<paused>).first().location().page(), 2)
+  assert.eq(page-of(<title>), opens([Titled]))
+  assert.eq(page-of(<paused>), opens([Titled]) + 1)
 }
 
 // A region laid out on no early step keeps its label on the first step that
@@ -48,9 +54,8 @@
 
 #context {
   assert.eq(query(<late>).len(), 1)
-  // Pages 4 and 5 are this slide's two steps, and the region is shown on the
-  // second of them.
-  assert.eq(query(<late>).first().location().page(), 5)
+  // The slide renders two steps, and the region is shown on the second.
+  assert.eq(page-of(<late>), opens([Late]) + 1)
 }
 
 // A handout that renders no step at which the region is shown still has to put
@@ -83,7 +88,36 @@
 
 #context {
   assert.eq(query(<nested>).len(), 1)
-  // Pages 7 to 9 are this slide's three steps, and the label lands on the
-  // third, where the outer region stops removing the inner one.
-  assert.eq(query(<nested>).first().location().page(), 9)
+  // Three steps, and the label lands on the third, where the outer region
+  // stops removing the inner one.
+  assert.eq(page-of(<nested>), opens([Nested]) + 2)
+}
+
+// A labelled image inside a region that is dropped on some steps is not
+// refused: the image is emitted on exactly one step, so no label duplicates
+// and nothing has to be rebuilt on the steps that drop it.
+#deck([
+  == Only image
+  #only("2", [#image("/tests/fixtures/quarto-deck-figure.svg", width: 5mm) <picture>])
+  #pause
+  tail
+])
+
+#context {
+  assert.eq(query(<picture>).len(), 1)
+  assert.eq(page-of(<picture>), opens([Only image]) + 1)
+}
+
+// A label on a group whose first child is a boundary goes to the first piece
+// that carries something. Putting it on the empty piece the boundary opens
+// would resolve a reference to a page showing nothing, or lose it altogether
+// once the splitter drops that piece.
+#deck([
+  #[#set text(size: 9pt)
+    == Wrapped
+    body] <wrapper>
+])
+
+#context {
+  assert.eq(query(<wrapper>).len(), 1)
 }

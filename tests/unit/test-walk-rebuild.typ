@@ -178,20 +178,6 @@
 #assert.eq(rebuild([#block[#m] <lbl>].children.first(), sub, keep-labels: false), block[z])
 
 // ---------------------------------------------------------------------------
-// What counts as a node to transform.
-//
-// `match` is a marker by default, and a caller that has to rewrite something
-// else, such as a footnote inside a hidden region, supplies its own test
-// rather than a second traversal.
-// ---------------------------------------------------------------------------
-
-#assert.eq(rebuild(block[#box[x]], sub, match: node => node.func() == box), block[z])
-#assert.eq(rebuild(block[#box[x]], sub, match: node => node.func() == box).func(), block)
-
-// A match that never fires leaves the subtree as it was.
-#assert.eq(rebuild(block[#box[x]], sub, match: node => false), block[#box[x]])
-
-// ---------------------------------------------------------------------------
 // An image is an opaque leaf.
 //
 // Image equality is instance identity rather than field equality, so any
