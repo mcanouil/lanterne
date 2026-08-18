@@ -59,14 +59,15 @@ runs:
           # Anything on stderr fails the file, not just a non-zero exit. A
           # warning is how Typst reports content that did not converge, and a
           # deck that did not converge renders wrong numbers rather than
-          # failing to render.
-          if out=$(typst compile "${f}" --root "${ROOT}" "/tmp/$(basename "${f%.typ}").pdf" 2>&1); then
+          # failing to render. Only stderr is captured, and stdout is dropped,
+          # so that whatever the compiler prints on a successful run cannot be
+          # read as a diagnostic.
+          status=pass
+          reason=""
+          if out=$(typst compile "${f}" --root "${ROOT}" "/tmp/$(basename "${f%.typ}").pdf" 2>&1 1>/dev/null); then
             if [[ -n "${out}" ]]; then
               status=fail
               reason="reported a warning"
-            else
-              status=pass
-              reason=""
             fi
           else
             status=fail
