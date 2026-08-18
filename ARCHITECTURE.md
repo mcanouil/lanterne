@@ -205,8 +205,16 @@ The measurement is in `notes/counter-findings.md`, and the rejected mechanism is
 
 ### What this does not cover
 
+This ruling is about counters alone.
+The label and footnote rules of specification 4.6 are separate mechanisms and are not covered here.
+
 A counter of the author's own cannot be frozen: its updates are opaque content, so the count a relative shift needs cannot be taken from the body.
-The same applies to anything numbered inside a `context` block, inside a `show` rule body, or by a `context-slide` callback, none of which the walk can see.
+The same applies to anything numbered inside a `context` block, inside a `show` rule body, or by a `context-slide` callback, none of which the walk can see, and to a `set` rule written inside a slide body, since eligibility is read where the shift is written.
 
 `counter(heading)` is hierarchical, so subtraction has no inverse for it.
 A heading is kept from advancing instead, by a `set heading(numbering: none)` rule on the step pages that repeat it.
+
+### What it costs
+
+One walk of the slide body per slide, plus one walk per region resolved to `removed` on each step that removes it, both bounded by `MAX-DEPTH` and neither cached.
+The walk is the one detection already makes, a removed region is a small subtree, and a count that is recomputed cannot go stale.

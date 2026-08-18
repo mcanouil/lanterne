@@ -6,10 +6,11 @@
 // The decks are called rather than shown, as in test-deck.typ, so several fit
 // in one document and the queries below read all of them.
 
-#import "../../src/core/steps.typ": only, pause
-#import "../../src/render/deck.typ": deck
+#import "/src/core/steps.typ": only, pause
+#import "/src/render/deck.typ": deck
 
 #set math.equation(numbering: "(1)")
+#set heading(numbering: "1.")
 
 // A figure revealed by a pause keeps its number on every step, a figure after
 // a region that is dropped on some steps keeps its number too, and the slide
@@ -69,13 +70,59 @@
 }
 
 // A slide of one step is left exactly as it was: nothing is rewound, and the
-// numbering runs on as it does in a document with no steps at all.
+// numbering runs on as it does in a document with no steps at all. The kind is
+// its own so that the numbers are read against a counter no other deck in this
+// file touches, and adding a figure above cannot move them.
+#let plain(name) = figure(
+  rect(width: 4mm, height: 2mm),
+  caption: name,
+  kind: "static",
+  supplement: [Static],
+)
+
 #deck([
   == Static
-  #figure(rect(width: 4mm, height: 2mm), caption: [one])
-  #figure(rect(width: 4mm, height: 2mm), caption: [two])
+  #plain([one])
+  #plain([two])
 ])
 
 #context {
-  assert.eq(numbers-of(("one", "two")), (("one", 5), ("two", 6)))
+  assert.eq(numbers-of(("one", "two")), (("one", 1), ("two", 2)))
+}
+
+// The heading counter is hierarchical, so it is stopped rather than rewound:
+// a stepped slide must not advance it once per step, or every heading after it
+// numbers too high.
+#deck([
+  == Stepped
+  a #pause b
+
+  == Counted <after-steps>
+])
+
+#context {
+  // Six headings precede this point, one per slide in this file: Figures,
+  // After, Equations and notes, Static, Stepped, and this one. The stepped
+  // slide renders two pages and must still count once, so a seventh here
+  // would mean a step page advanced the counter.
+  assert.eq(counter(heading).at(query(<after-steps>).first().location()), (0, 6))
+}
+
+// A handout renders the final step alone, where the region is gone, and the
+// counters are still advanced where it stood. The figure after it therefore
+// carries the number it carries in the full deck, so a reference into the deck
+// means the same in both.
+#deck(
+  [
+    == Handout
+    #only("1", figure(rect(width: 4mm, height: 2mm), caption: [dropped]))
+    #figure(rect(width: 4mm, height: 2mm), caption: [kept])
+    #pause
+    tail
+  ],
+  handout: true,
+)
+
+#context {
+  assert.eq(numbers-of(("dropped", "kept")), (("kept", 6),))
 }

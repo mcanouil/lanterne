@@ -20,6 +20,18 @@
 #assert.eq(increments([#figure(raw("code"))]).figures.first().kind, raw)
 #assert.eq(increments([#figure([#raw("code")])]).figures.first().kind, raw)
 
+// A body holding both takes the kind of whichever comes first, which is what
+// Typst does: reading the table first would shift a counter the caption never
+// draws its number from.
+#assert.eq(
+  increments([#figure([#table(columns: 1, [x]) #raw("code")])]).figures.first().kind,
+  table,
+)
+#assert.eq(
+  increments([#figure([#raw("code") #table(columns: 1, [x])])]).figures.first().kind,
+  raw,
+)
+
 // A kind written on the call is read as it stands, whether a string or an
 // element function, since each has a counter of its own.
 #assert.eq(increments([#figure(circle(), kind: "custom")]).figures.first().kind, "custom")

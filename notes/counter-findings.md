@@ -76,9 +76,13 @@ Reading a style inside `context` is safe, unlike reading a counter: `figure.numb
 | `[#table(...)]` | `table` |
 | `raw(...)` or `[#raw(...)]` | `raw` |
 | `rect()`, plain text, a grid, a box | `image` |
+| `[#table(...) #raw(...)]` | `table` |
+| `[#raw(...) #table(...)]` | `raw` |
 
 So anything that is neither a table nor a raw block is an image figure, and the inference has to search the body rather than test the top node.
-A body holding both a table and a raw block is read here as a table.
+
+The last two rows were measured rather than assumed, and they overturned the first version of this rule.
+A body holding both takes the kind of whichever comes first, so an inference that always preferred the table would shift `counter(figure.where(kind: table))` while the caption drew its number from the raw counter, leaving both wrong.
 
 A `kind` written on the call is read as it stands, whether a string or an element function.
 A `kind` set by a `set` rule is not readable: it lives in the style wrapper, which Typst exposes no way to inspect, exactly as `notes/content-model-findings.md` records for a heading offset.
@@ -103,10 +107,24 @@ The order in which entries are first cited can differ from a deck with no steps,
 ## What is not counted
 
 Content inside a `context` block, inside a `show` rule body, or returned by a `context-slide` callback is not visible to the walk, so what it numbers is neither counted nor compensated.
-This is the same blindness the traversal already documents for a step marker, and specification 4.4 carries the row.
+This is the same blindness the traversal already documents for a step marker, and specification 4.4 carries a row for it.
+
+A `set` rule written inside a slide body is not read either.
+Eligibility is read where the shift is written, which is the head of the page, so only the ambient numbering is honoured: a `set figure(numbering: none)` half way down a slide leaves those figures counted as though they numbered, and the rewind then subtracts increments that never happened.
+Write such a rule outside the deck.
 
 A counter of the author's own cannot be frozen at all.
 Its updates are opaque content, and a relative shift needs a count that only the author can supply.
+A `state` of the author's own cannot be frozen either, and for the reason the whole capture approach failed: a state holds an arbitrary value, so putting one back needs the introspective read that does not converge, and an arbitrary update cannot be inverted.
+`frozen-counters` and `frozen-states` are therefore dropped from specification 4.6 rather than deferred.
+
+## What it costs
+
+The count is a walk of the slide body, once per slide, plus one walk per region that resolves to `removed`, on every step that removes it.
+Both are bounded by `MAX-DEPTH` and neither is cached.
+
+This is accepted rather than optimised.
+The walk is the same one detection already makes for every step, a removed region is a small subtree by construction, and a count that is recomputed cannot go stale.
 
 ## Regression guard
 

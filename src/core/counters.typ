@@ -32,7 +32,7 @@
 ///! a heading is kept from advancing instead, by a set rule on the pages that
 ///! repeat it.
 
-#import "walk.typ": MAX-DEPTH, collect, has-element
+#import "walk.typ": MAX-DEPTH, collect
 #import "../utils/elements.typ": is-elem
 #import "../utils/errors.typ": fail-type
 
@@ -42,16 +42,21 @@
 // neither a table nor a raw block is an image figure, which is Typst's own
 // rule rather than a guess.
 //
-// A body holding both is read as a table, since one of the two has to win and
-// the table is the outer shape in every case that arises.
-#let _kind-of(node) = {
+// A body holding both a table and a raw block takes the kind of whichever
+// comes first, which was measured rather than assumed: reading the table first
+// would put the shift on the table counter while the caption drew its number
+// from the raw one.
+#let _kind-of(node, max-depth) = {
   let fields = node.fields()
   let given = fields.at("kind", default: auto)
   if given != auto { return given }
-  let body = fields.at("body", default: [])
-  if has-element(body, table) { return table }
-  if has-element(body, raw) { return raw }
-  image
+  let candidates = collect(
+    fields.at("body", default: []),
+    child => is-elem(child, table) or is-elem(child, raw),
+    max-depth: max-depth,
+  )
+  if candidates.len() == 0 { return image }
+  candidates.first().func()
 }
 
 // Where an instance takes its numbering from. An absent field means the style
@@ -113,7 +118,7 @@
     } else if source == "off" {
       continue
     } else if is-elem(node, figure) {
-      figures = _tally(figures, _kind-of(node), source)
+      figures = _tally(figures, _kind-of(node, max-depth), source)
     } else if node.fields().at("block", default: false) {
       // An inline equation is never numbered, so it never advances the
       // counter, and a block equation nests an inline one inside itself.
