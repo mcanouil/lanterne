@@ -176,3 +176,37 @@ An overlay approach would reintroduce exactly that problem to solve a problem th
 
 Setting the text fill needs neither a size nor a position.
 It composes with `rebuild`'s synchronous transform the same way the `visible`, `hidden` and `removed` states already do, and it is one call rather than a second content layer to keep in front of or behind the first.
+
+## Counters are shifted by arithmetic, never captured
+
+A slide renders one page per step and emits its body again on each, so everything the document numbers is numbered again.
+The counters are put back by subtracting what the body advances, counted from the body itself, and a region that resolves to `removed` advances them in its place.
+
+### Decision
+
+`src/core/counters.typ` counts the increments a body makes and returns content that shifts each counter by that count.
+`deck` writes the rewind at the head of every step but the first, and only for a slide that renders more than one step.
+Nothing reads a counter.
+
+The count is taken from the body as written, markers and all, so it is the same number whatever step is being built.
+That is what makes every step advance the counters equally, which is the property the numbering rests on.
+
+Only the eligibility test reads anything, and it reads a style: a figure advances unless its numbering is `none`, an equation only when block level and numbered.
+Reading a style inside `context` is safe, where reading a counter is not.
+
+### Why capture and restore was rejected
+
+Reading the counter with `get` at the start of a slide, keeping it in a `state` and putting it back on the next step is the obvious approach, and it does not converge.
+The captured value is introspective, and it reaches the next slide through document state, so the information advances about one slide per layout run where Typst allows five.
+
+Three stepped slides already emit `value of state did not converge` and render the same figure with two different numbers; thirty emit 118 warnings.
+The document still exits zero, which is why `tools/check.sh` now fails a compile that warns.
+The measurement is in `notes/counter-findings.md`, and the rejected mechanism is kept in the build as `tests/expect-warn/state-does-not-converge.typ`.
+
+### What this does not cover
+
+A counter of the author's own cannot be frozen: its updates are opaque content, so the count a relative shift needs cannot be taken from the body.
+The same applies to anything numbered inside a `context` block, inside a `show` rule body, or by a `context-slide` callback, none of which the walk can see.
+
+`counter(heading)` is hierarchical, so subtraction has no inverse for it.
+A heading is kept from advancing instead, by a `set heading(numbering: none)` rule on the step pages that repeat it.

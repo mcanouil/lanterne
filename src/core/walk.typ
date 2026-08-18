@@ -142,23 +142,49 @@
 // where the other short-circuits, and it descends into a marker where the other
 // stops at one: a step written inside another step's payload has to be counted,
 // and the payload is reached through the metadata element's own fields.
-#let _collect(node, depth, max-depth) = {
-  let found = if is-marker(node) { (node,) } else { () }
+#let _collect(node, predicate, depth, max-depth) = {
+  let found = if predicate(node) { (node,) } else { () }
   if type(node) in (array, dictionary) {
     let children = if type(node) == array { node } else { node.values() }
     for child in children {
       let reached = _container-depth(child, depth)
       if reached > max-depth { _depth-error(max-depth) }
-      found += _collect(child, reached, max-depth)
+      found += _collect(child, predicate, reached, max-depth)
     }
     return found
   }
   if type(node) != content { return found }
   if depth > max-depth { _depth-error(max-depth) }
   for (_, value) in node.fields() {
-    found += _collect(value, depth + 1, max-depth)
+    found += _collect(value, predicate, depth + 1, max-depth)
   }
   found
+}
+
+/// Every value in `node` that `predicate` accepts, in the order the walk
+/// reaches them.
+///
+/// The accumulating counterpart to `has-marker` and `has-element`, which
+/// short-circuit on the first match. It descends into a marker's own payload,
+/// so a numbered element written inside a stepped region is reached: such an
+/// element advances its counter on every step whatever the region resolves to,
+/// so the freezing arithmetic has to see it.
+///
+/// `predicate` is called on every value the walk reaches, which includes
+/// arrays, dictionaries and plain values as well as content.
+///
+/// `max-depth` bounds the walk as it bounds `collect-markers`, and costs the
+/// same two extra levels at a marker. See `MAX-DEPTH`.
+/// @category core
+/// @returns array
+#let collect(node, predicate, max-depth: MAX-DEPTH) = {
+  if type(predicate) != function {
+    fail-type("collect", "predicate", predicate, "a function")
+  }
+  if type(max-depth) != int or max-depth < 1 {
+    fail-type("collect", "max-depth", max-depth, "a positive integer")
+  }
+  _collect(node, predicate, 0, max-depth)
 }
 
 /// Every lanterne marker in `node`, in the order the walk reaches them.
@@ -180,7 +206,7 @@
   if type(max-depth) != int or max-depth < 1 {
     fail-type("collect-markers", "max-depth", max-depth, "a positive integer")
   }
-  _collect(node, 0, max-depth)
+  _collect(node, is-marker, 0, max-depth)
 }
 
 // The fields an element gains when it is synthesised inside a show rule and

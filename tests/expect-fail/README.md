@@ -25,6 +25,7 @@ A file that compiles, or fails with a different message, or carries no `// EXPEC
 Covers every guard in `src/`: token name and value validation, theme construction and merging, the marker kinds, `register-container` and `lookup` argument validation and the spread arity rule, the registry shape check, the traversal depth bound including nesting made only of arrays or only of dictionaries, `has-marker` and `rebuild` argument validation, the unregistered element that carries a step marker, splitter argument types, slide record validation including its cross-field rules and its option vocabulary, the slide splitter's arguments and the placement rule for the option marker, the deck's own options and its document metadata vocabulary, and the error grammar's own hint guard.
 `expand`'s own six guards are covered too: its `body`, `dim`, `steps` and `keep` argument validation, a pause the split cannot reach, and an unexpected marker reaching step resolution.
 The heading refusal a stepped region delegates to and a `context-slide` callback that returns something other than content are covered alongside them, and so is the shape of each `keep` entry.
+The counting the freezing arithmetic rests on is covered as well: `increments`'s `body`, and `collect`'s predicate and depth bound.
 
 Add a case with the guard, in the same commit.
 A guard with no case here is a guard that can be deleted without the build noticing.
