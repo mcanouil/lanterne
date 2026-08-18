@@ -234,6 +234,8 @@ A reference then lands where the thing it points at first appears.
 Where no rendered step shows it, which a handout can produce, the first step that lays it out keeps it instead, since a label that exists nowhere fails a reference outright.
 
 The splitter follows the same rule for a group a boundary cuts through, and puts the label on the first piece that carries something rather than on the first piece outright.
+Within that piece it goes on the first node that carries something, since markup attaches a label to the last element of what it follows, and that is usually the space beside a boundary, which is merged away later.
+The blank test is the one `slides` drops a lead-in segment by, so a piece one of them calls empty and the other does not cannot arise.
 
 ### Why not the last step
 

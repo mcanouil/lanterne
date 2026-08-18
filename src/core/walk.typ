@@ -259,8 +259,12 @@
     if node.fields().at("label", default: none) != none {
       fail(
         "rebuild",
-        "cannot keep the label " + repr(node.fields().label) + " on a stepped region",
-        hint: "Put the label on the content inside the region instead.",
+        "cannot keep the label "
+          + repr(node.fields().label)
+          + " on a "
+          + node.value.kind
+          + " marker",
+        hint: "Put the label on the content the marker carries instead.",
       )
     }
     return (node: transform(node), found: true)

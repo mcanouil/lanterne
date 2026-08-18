@@ -41,8 +41,29 @@
 ///! same reading resolves a group written as `#[...]`, whose contents likewise
 ///! produce boundaries whether or not it opens with a rule.
 
-#import "../utils/elements.typ": SEQUENCE, STYLED, is-elem
-#import "../utils/errors.typ": fail-type
+#import "marker.typ": is-marker
+#import "../utils/elements.typ": SEQUENCE, SPACE, STYLED, is-elem
+#import "../utils/errors.typ": fail, fail-type
+
+/// Whether nothing in `node` puts a mark on the page.
+///
+/// Markup writes a space or a paragraph break wherever a line separates two
+/// children, so content that reads as empty is a run of them, and a marker
+/// renders as nothing by construction.
+///
+/// Both callers need the same answer. The splitter places a divided group's
+/// label on the first piece that carries something, and `slides` drops a
+/// lead-in segment that carries nothing, so a piece one of them called empty
+/// and the other did not would be a label placed on a segment that is then
+/// discarded.
+/// @category core
+/// @returns bool
+#let is-blank(node) = {
+  if is-elem(node, STYLED) { return is-blank(node.child) }
+  if is-elem(node, SEQUENCE) { return node.children.all(is-blank) }
+  if is-marker(node) { return true }
+  is-elem(node, SPACE) or is-elem(node, parbreak) or is-elem(node, linebreak)
+}
 
 // The nodes a match contributes to the segment it opened: itself when `keep`
 // says so, and nothing otherwise.
@@ -86,21 +107,42 @@
 // Emitting it on every piece is not an option, since the deck would then fail
 // with a duplicate label.
 //
+// Within that piece the label goes on the first node that carries something,
+// not on the piece as a whole. Markup attaches a label to the last element of
+// the content it follows, and the last element of a piece is usually the space
+// that separated it from what came next; such a label is dropped when the
+// spaces around a boundary are merged, and the deck then fails on a reference
+// to a label that no longer exists.
+//
 // Specification 4.6 rules that a label stays with the first appearance of what
 // carries it, so a reference lands where the group opens rather than where it
 // ends.
 #let _relabel(pieces, element-label, carrying: none) = {
   if element-label == none { return pieces }
   // Emptiness is read from the pieces as they were before a wrapper was put
-  // back around them, since a wrapper around nothing still renders nothing.
+  // back around them, since a wrapper around nothing still renders nothing,
+  // and it is the same test `slides` drops a blank segment by.
   let read = if carrying == none { pieces } else { carrying }
-  let index = read.position(piece => piece.nodes.len() > 0)
-  if index == none { return pieces }
-  let piece = pieces.at(index)
-  pieces.at(index) = (
-    nodes: ([#(piece.nodes.sum(default: []))#element-label],),
-    boundary: piece.boundary,
-  )
+  // A group the split did not divide keeps its label wherever it sits, blank
+  // or not: there is no second piece for it to compete with, and an empty
+  // labelled group is a legitimate anchor.
+  let index = if pieces.len() == 1 {
+    0
+  } else {
+    read.position(piece => piece.nodes.any(node => not is-blank(node)))
+  }
+  if index == none {
+    fail(
+      "split",
+      "cannot place the label " + repr(element-label) + ", because every piece of the group it marks is empty",
+      hint: "Label an element inside the group rather than the group itself.",
+    )
+  }
+  let nodes = pieces.at(index).nodes
+  let inner = nodes.position(node => not is-blank(node))
+  let target = if inner == none { nodes.len() - 1 } else { inner }
+  nodes.at(target) = [#(nodes.at(target))#element-label]
+  pieces.at(index) = (nodes: nodes, boundary: pieces.at(index).boundary)
   pieces
 }
 
