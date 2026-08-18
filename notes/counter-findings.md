@@ -92,7 +92,11 @@ A `kind` set by a `set` rule is not readable: it lives in the style wrapper, whi
 `counter(heading)` is hierarchical, and a hierarchical counter cannot be rewound by subtraction: an increment at one level truncates the levels below it, so the operation has no inverse.
 
 A heading is therefore kept from advancing rather than put back, by a `set heading(numbering: none)` rule on every step page that repeats it.
-That costs nothing a reader sees, because a heading advances only when numbered, and the same rule carries `outlined: false` and `bookmarked: false` for the duplicate outline entry and bookmark.
+That costs nothing a reader sees, because a heading advances only when numbered, and this renderer draws a slide title from `it.body`.
+
+The rule covers the counter alone today.
+A repeated step page still emits its heading, so an outline still lists a stepped slide once per step and the PDF still carries a bookmark for each.
+`outlined: false` and `bookmarked: false` belong on the same rule and arrive with the outline and bookmark work.
 
 ## Two cases that need no compensation
 
@@ -110,8 +114,14 @@ Content inside a `context` block, inside a `show` rule body, or returned by a `c
 This is the same blindness the traversal already documents for a step marker, and specification 4.4 carries a row for it.
 
 A `set` rule written inside a slide body is not read either.
-Eligibility is read where the shift is written, which is the head of the page, so only the ambient numbering is honoured: a `set figure(numbering: none)` half way down a slide leaves those figures counted as though they numbered, and the rewind then subtracts increments that never happened.
+Eligibility is read where the shift is written, so only the numbering in force there is honoured: a `set figure(numbering: none)` half way down a slide leaves those figures counted as though they numbered, and the rewind then subtracts increments that never happened.
 Write such a rule outside the deck.
+
+The two shifts also read the style at two different points.
+A rewind reads it at the head of a step page, and the advance for a removed region reads it where the region stood, so a `set` rule written between the two makes the pair disagree.
+
+The read is per family rather than per figure kind, so a rule that turns numbering off for one kind alone, such as `show figure.where(kind: table): set figure(numbering: none)`, is invisible to it: those figures are counted and rewound although they advance nothing.
+Turn numbering off for the deck rather than for one kind, or set `numbering: none` on the figures themselves, which is read per instance and is exact.
 
 A counter of the author's own cannot be frozen at all.
 Its updates are opaque content, and a relative shift needs a count that only the author can supply.

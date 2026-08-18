@@ -111,12 +111,20 @@
 // A handout renders the final step alone, where the region is gone, and the
 // counters are still advanced where it stood. The figure after it therefore
 // carries the number it carries in the full deck, so a reference into the deck
-// means the same in both.
+// means the same in both. The kind is its own, so the number says what it is
+// about rather than counting every figure written above it in this file.
+#let kept-figure(name) = figure(
+  rect(width: 4mm, height: 2mm),
+  caption: name,
+  kind: "handout",
+  supplement: [Handout],
+)
+
 #deck(
   [
     == Handout
-    #only("1", figure(rect(width: 4mm, height: 2mm), caption: [dropped]))
-    #figure(rect(width: 4mm, height: 2mm), caption: [kept])
+    #only("1", kept-figure([dropped]))
+    #kept-figure([kept])
     #pause
     tail
   ],
@@ -124,5 +132,30 @@
 )
 
 #context {
-  assert.eq(numbers-of(("dropped", "kept")), (("kept", 6),))
+  assert.eq(numbers-of(("dropped", "kept")), (("kept", 2),))
+}
+
+// A removed region nested inside another is counted once, by the outer one,
+// which is what keeps the arithmetic balanced: counting it twice would advance
+// the counters further than the step ever did.
+#let nested-figure(name) = figure(
+  rect(width: 4mm, height: 2mm),
+  caption: name,
+  kind: "nested",
+  supplement: [Nested],
+)
+
+#deck([
+  == Nested
+  #only("1", [#only("1", nested-figure([inner])) #nested-figure([middle])])
+  #nested-figure([trailing])
+  #pause
+  tail
+])
+
+#context {
+  assert.eq(
+    numbers-of(("inner", "middle", "trailing")),
+    (("inner", 1), ("middle", 2), ("trailing", 3), ("trailing", 3)),
+  )
 }

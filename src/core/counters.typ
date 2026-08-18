@@ -27,6 +27,12 @@
 ///! instance that sets its own numbering is counted apart from one that takes
 ///! it from a set rule, because only the second has to be read at render time.
 ///!
+///! That read happens where the shift is written, which is the head of a step
+///! page for a rewind and the region's own position for an advance, and it is
+///! per family rather than per figure kind. A numbering turned off inside a
+///! slide body, or for one figure kind alone, is therefore not seen.
+///! `notes/counter-findings.md` records both boundaries.
+///!
 ///! Two counters are deliberately absent. `table` has no counter in Typst at
 ///! all, and `heading` is hierarchical, so a relative shift cannot invert it:
 ///! a heading is kept from advancing instead, by a set rule on the pages that
@@ -42,17 +48,23 @@
 // neither a table nor a raw block is an image figure, which is Typst's own
 // rule rather than a guess.
 //
-// A body holding both a table and a raw block takes the kind of whichever
-// comes first, which was measured rather than assumed: reading the table first
-// would put the shift on the table counter while the caption drew its number
-// from the raw one.
+// A body holding more than one of them takes the kind of whichever comes
+// first, which was measured rather than assumed: reading the table first would
+// put the shift on the table counter while the caption drew its number from
+// the counter of the element that actually opened the body.
+//
+// `image` is in the search as well as being the fallback, because it only wins
+// by default when nothing else is there: an image written before a table makes
+// an image figure, and an image written after one does not.
+#let _KINDS = (image, table, raw)
+
 #let _kind-of(node, max-depth) = {
   let fields = node.fields()
   let given = fields.at("kind", default: auto)
   if given != auto { return given }
   let candidates = collect(
     fields.at("body", default: []),
-    child => is-elem(child, table) or is-elem(child, raw),
+    child => _KINDS.any(kind => is-elem(child, kind)),
     max-depth: max-depth,
   )
   if candidates.len() == 0 { return image }
@@ -113,8 +125,13 @@
     let source = _source-of(node)
     if is-elem(node, footnote) {
       // Typst rejects a footnote numbering of none, so a footnote always
-      // advances and nothing about it has to be read from the style.
-      footnotes += 1
+      // advances and nothing about it has to be read from the style. One
+      // written as `footnote(<label>)` is a second reference to a note that
+      // already exists, and it advances nothing: counting it would rewind the
+      // counter further than the slide moved it.
+      if type(node.fields().at("body", default: [])) != label {
+        footnotes += 1
+      }
     } else if source == "off" {
       continue
     } else if is-elem(node, figure) {

@@ -67,6 +67,28 @@
 // for one, so there is nothing to read from the style.
 #assert.eq(increments([a#footnote[n] b#footnote[m]]).footnotes, 2)
 
+// A footnote written as a reference to one that already exists advances
+// nothing, so counting it would rewind further than the slide moved.
+#assert.eq(increments([a#footnote[n] b#footnote(<n>)]).footnotes, 1)
+
+// An image before a table makes an image figure, and one after it does not,
+// so the search covers all three kinds rather than treating image as a
+// fallback alone.
+#assert.eq(
+  increments([#figure([#image("/tests/fixtures/quarto-deck-figure.svg") #table(columns: 1, [x])])])
+    .figures
+    .first()
+    .kind,
+  image,
+)
+#assert.eq(
+  increments([#figure([#table(columns: 1, [x]) #image("/tests/fixtures/quarto-deck-figure.svg")])])
+    .figures
+    .first()
+    .kind,
+  table,
+)
+
 // The walk reaches a numbered element wherever it sits, including inside a
 // container and inside a step marker's payload, since a figure behind an
 // uncover advances the counter exactly as one in plain body does.
