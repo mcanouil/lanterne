@@ -27,6 +27,7 @@
 ///! compromises: Typst 0.15 has no content opacity, so a dimmed region is
 ///! rendered by setting its text fill rather than by fading it.
 
+#import "../core/counters.typ": increments, rewind
 #import "../core/expand.typ": expand
 #import "../core/range.typ": parse-range
 #import "../core/slides.typ": slides
@@ -66,7 +67,19 @@
   base * calc.pow(tokens.scale-ratio, calc.max(0, 3 - level))
 }
 
-#let _slide-page(record, body, tokens, paper) = {
+// A step page that repeats a slide already emitted carries its headings a
+// second time, and a numbered heading would advance the heading counter once
+// per step. That counter is hierarchical, so it cannot be put back by
+// subtraction the way a figure's is; the heading is stopped from advancing it
+// instead. Nothing a reader sees changes, because a heading advances the
+// counter only when it is numbered, and this renderer draws the title from
+// `it.body`.
+#let _unnumbered(body) = [
+  #set heading(numbering: none)
+  #body
+]
+
+#let _slide-page(record, body, tokens, paper, prelude: [], repeated: false) = {
   // `smaller` is per slide rather than per deck, so it is read here rather than
   // folded into the theme.
   let size = if record.attrs.smaller {
@@ -83,6 +96,10 @@
       size: _heading-size(it.level, size, tokens),
       it.body,
     ))
+    // The counter shifts for this step, before anything is laid out and
+    // outside the alignment below, so that a step numbers what the slide's
+    // first step numbered. They render as nothing and reserve no space.
+    prelude
     // The title is not placed here. It is the heading the author wrote, still
     // at the head of the body and still inside the wrappers it was written
     // under, which is what keeps the document's own numbering, `show` rules and
@@ -90,11 +107,12 @@
     //
     // A section slide is a divider, so what it carries sits in the middle of
     // the page rather than at the top of it.
-    if record.kind == "section" {
+    let placed = if record.kind == "section" {
       align(center + horizon, body)
     } else {
       body
     }
+    if repeated { _unnumbered(placed) } else { placed }
   })
 }
 
@@ -184,8 +202,24 @@
       registry: registry,
       scope: scope,
     )
-    for part in expanded.steps {
-      _slide-page(record, part.body, tokens, _PAPERS.at(aspect-ratio))
+    // A slide numbers what its first step numbers, so every later step rewinds
+    // the counters by what the whole slide body advances. The count is read
+    // from the body rather than from the counters themselves: capturing a
+    // counter and putting the value back does not converge across a deck, and
+    // renders wrong numbers rather than failing. See src/core/counters.typ.
+    //
+    // A slide of one step needs none of it, which is every slide of a static
+    // deck and every slide under `handout: true`.
+    let counts = if expanded.steps.len() > 1 { increments(record.body) } else { none }
+    for (index, part) in expanded.steps.enumerate() {
+      _slide-page(
+        record,
+        part.body,
+        tokens,
+        _PAPERS.at(aspect-ratio),
+        prelude: if index == 0 or counts == none { [] } else { rewind(counts) },
+        repeated: index > 0,
+      )
     }
   }
 }

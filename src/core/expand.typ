@@ -17,6 +17,7 @@
 ///! dim would pass every equality assertion in the suite and be obvious only on
 ///! stage.
 
+#import "counters.typ": advance, increments
 #import "marker.typ": MARKER-CONTEXT-SLIDE, MARKER-PAUSE, MARKER-STEP, is-marker
 #import "range.typ": first-step, in-spans, max-mentioned
 #import "split.typ": split-on
@@ -110,8 +111,13 @@
   if state == "visible" { return inner }
   if state == "hidden" { return hide(inner) }
   if state == "dimmed" { return dim(inner) }
-  // removed: not laid out, so it reserves no space.
-  []
+  // removed: not laid out, so it reserves no space. What it would have
+  // numbered is advanced in its place, because a hidden region still numbers
+  // and a removed one does not, so without this a figure after an `only`
+  // region takes a different number on the steps that drop the region. The
+  // count comes from the payload as written rather than from `inner`, so a
+  // removed region nested inside another is counted once, by the outer one.
+  advance(increments(payload.body))
 }
 
 /// Expand a slide body into one body per step.
