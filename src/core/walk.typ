@@ -250,11 +250,39 @@
 // Arguments are validated once by `rebuild`, so the registry arrives resolved
 // and is read through the registry's own accessor rather than the public
 // `lookup`, which would re-check both of them at every element.
-#let _rebuild(node, transform, registry, depth, max-depth) = {
-  if is-marker(node) { return (node: transform(node), found: true) }
+#let _rebuild(node, transform, keep-labels, registry, depth, max-depth) = {
+  if is-marker(node) {
+    // A label on the marker itself names a region, not content, and the
+    // transform replaces the marker without it. Dropping it silently leaves a
+    // reference that fails with a message about a label that does not exist,
+    // naming neither the region nor the step engine.
+    if node.fields().at("label", default: none) != none {
+      fail(
+        "rebuild",
+        "cannot keep the label "
+          + repr(node.fields().label)
+          + " on a "
+          + node.value.kind
+          + " marker",
+        hint: "Put the label on the content the marker carries instead.",
+      )
+    }
+    return (node: transform(node), found: true)
+  }
   // An image is an opaque leaf: its equality is instance identity, so no
-  // reconstruction of one can equal the original.
-  if is-elem(node, image) { return (node: node, found: false) }
+  // reconstruction of one can equal the original. A label on one therefore
+  // cannot be dropped either, and a duplicate label is a compile error the
+  // moment it is referenced, so this is refused rather than emitted.
+  if is-elem(node, image) {
+    if not keep-labels and node.fields().at("label", default: none) != none {
+      fail(
+        "rebuild",
+        "cannot drop the label " + repr(node.fields().label) + " from an image on a slide of several steps",
+        hint: "Move the label onto a figure or a block around the image, which can be rebuilt.",
+      )
+    }
+    return (node: node, found: false)
+  }
 
   if type(node) in (array, dictionary) {
     // Climbs on a nested container for the reason `_has-marker` does.
@@ -264,7 +292,7 @@
     for child in children {
       let reached = _container-depth(child, depth)
       if reached > max-depth { _depth-error(max-depth) }
-      let result = _rebuild(child, transform, registry, reached, max-depth)
+      let result = _rebuild(child, transform, keep-labels, registry, reached, max-depth)
       built.push(result.node)
       found = found or result.found
     }
@@ -283,11 +311,16 @@
   let built = (:)
   let found = false
   for (name, value) in node.fields() {
-    let result = _rebuild(value, transform, registry, depth + 1, max-depth)
+    let result = _rebuild(value, transform, keep-labels, registry, depth + 1, max-depth)
     built.insert(name, result.node)
     found = found or result.found
   }
-  if not found { return (node: node, found: false) }
+  // A label is a reason to rebuild in its own right when labels are being
+  // dropped. Without this the walk hands back any subtree holding no marker,
+  // and a labelled element written in plain slide body is never reached, which
+  // is where most labels sit.
+  let drops-label = not keep-labels and node.fields().at("label", default: none) != none
+  if not (found or drops-label) { return (node: node, found: false) }
 
   let fn = node.func()
   let entry = _get(registry, fn, "rebuild")
@@ -301,7 +334,7 @@
         + repr(fn)
         + " with fields "
         + repr(node.fields().keys())
-        + " containing a step marker",
+        + (if found { " containing a step marker" } else { " on the path to a label a repeated step has to drop" }),
       hint: "Register it with register-container(fn, positional).",
     )
   }
@@ -330,7 +363,7 @@
 
   let rebuilt = fn(..named, ..arguments)
   (
-    node: if element-label == none { rebuilt } else { [#rebuilt#element-label] },
+    node: if element-label == none or not keep-labels { rebuilt } else { [#rebuilt#element-label] },
     found: true,
   )
 }
@@ -357,14 +390,28 @@
 /// Like `has-marker`, `node` need not be content: the walk calls this on every
 /// field value, and anything holding no marker is handed straight back.
 ///
+/// `keep-labels` is `false` when the result is one of several copies of the
+/// same body, as every step of a slide but one is. A label is then dropped
+/// rather than reattached, and carrying one is itself a reason to rebuild, so
+/// a labelled element with no marker near it is reached as well. That widens
+/// what has to be reconstructed, so an unregistered container on the path to a
+/// labelled element becomes a hard error where it was not one before, and the
+/// message says which of the two reasons brought the walk there.
+///
+/// A label on the marker itself is refused rather than dropped, since it names
+/// a region the transform replaces and no step could keep it.
+///
 /// `max-depth` bounds the authored nesting levels the rebuild descends. It is
 /// the stricter of the two walks, since every level costs a detection call as
 /// well as a reconstruction, so it is what sets the default. See `MAX-DEPTH`.
 /// @category core
 /// @returns content, or the value given when it holds no marker
-#let rebuild(node, transform, registry: none, max-depth: MAX-DEPTH) = {
+#let rebuild(node, transform, keep-labels: true, registry: none, max-depth: MAX-DEPTH) = {
   if type(transform) != function {
     fail-type("rebuild", "transform", transform, "a function")
+  }
+  if type(keep-labels) != bool {
+    fail-type("rebuild", "keep-labels", keep-labels, "a boolean")
   }
   if (registry != none and type(registry) != dictionary) {
     fail-type("rebuild", "registry", registry, "a dictionary or none")
@@ -376,5 +423,5 @@
   // than through `lookup`, which would re-run both checks above at every
   // element it reached.
   let resolved = if registry == none { builtin-registry() } else { registry }
-  _rebuild(node, transform, resolved, 0, max-depth).node
+  _rebuild(node, transform, keep-labels, resolved, 0, max-depth).node
 }

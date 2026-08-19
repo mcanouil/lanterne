@@ -179,11 +179,10 @@ A labelled heading is a destination, so #link(<what-a-deck-is>)[this link] jumps
 back to the slide that carries the label.
 ```
 
-Typst refuses `@what-a-deck-is` on a heading that is not numbered, so a reference by name waits for the numbering rules rather than being faked.
+Typst refuses `@what-a-deck-is` on a heading that is not numbered, so write `#set heading(numbering: ...)` to reference a slide by name.
 
-A slide's body is emitted once per step, so a label on a slide of more than one step is emitted once per step too, and Typst refuses the document with a duplicate label error.
-A slide with a single step, such as the one above, is unaffected.
-Suppressing the label on every step but the last arrives with the correctness milestone.
+A slide's body is emitted once per step, so a label on it is dropped on every step but the one that keeps it, which is the first step where the element it marks is shown.
+A reference therefore lands where that element first appears, and a slide with a single step, such as the one above, is unaffected.
 
 ## Revealing content with a pause
 

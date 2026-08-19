@@ -31,7 +31,7 @@
 
 #import "marker.typ": MARKER-SLIDE, MARKER-SLIDE-OPTIONS, is-marker, marker
 #import "record.typ": check-attrs, slide-record
-#import "split.typ": split-at
+#import "split.typ": is-blank, split-at
 #import "../utils/elements.typ": SEQUENCE, SPACE, STYLED, is-elem
 #import "../utils/errors.typ": fail, fail-type
 
@@ -74,17 +74,6 @@
   (node,)
 }
 
-// Whether nothing in `node` puts a mark on the page. Markup writes a space or a
-// paragraph break wherever a line separates two children, so a segment that
-// reads as empty is a sequence of them, and a marker renders as nothing by
-// construction.
-#let _is-blank(node) = {
-  if is-elem(node, STYLED) { return _is-blank(node.child) }
-  if is-elem(node, SEQUENCE) { return node.children.all(_is-blank) }
-  if is-marker(node) { return true }
-  is-elem(node, SPACE) or is-elem(node, parbreak) or is-elem(node, linebreak)
-}
-
 // The segment with its option markers removed, wrappers and labels intact. Only
 // called for a segment known to carry one, so a segment that uses no option is
 // handed back as the identical value rather than a rebuilt copy of it.
@@ -122,7 +111,7 @@
     )
   }
   let index = children.position(child => _kind(child) == MARKER-SLIDE-OPTIONS)
-  let before = child => not (_is-blank(child) or is-elem(child, heading))
+  let before = child => not (is-blank(child) or is-elem(child, heading))
   if children.slice(0, index).any(before) {
     fail(
       scope,
@@ -225,7 +214,7 @@
     // it. Only the segments no boundary opened are dropped when blank, namely
     // the lead-in and whatever follows an explicit slide.
     let opened-by-author = is-elem(boundary, heading) or is-elem(boundary, pagebreak)
-    if not opened-by-author and _is-blank(part.body) { continue }
+    if not opened-by-author and is-blank(part.body) { continue }
     records.push(_record(boundary, part.body, slide-level, scope))
   }
   records

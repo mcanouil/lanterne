@@ -205,15 +205,46 @@ a b] <lbl> y]
 
 // When a boundary cuts through the labelled group, the label can only go on
 // one piece: emitting it on each would make the deck fail with a duplicate
-// label, which is worse than the reference landing at the end of the group.
-// Specification 4.6 already rules that a labelled element behind a pause keeps
-// its label on the final step, so the last piece carries it here too.
+// label. Specification 4.6 rules that a label stays with the first appearance
+// of what carries it, so the first piece carries it here too and a reference
+// lands where the group opens.
 #let labelled-split = [x #[#set text(size: 9pt)
 a #m b] <lbl> y]
 #let split-pieces = split-on(labelled-split, is-marker)
 #assert.eq(split-pieces.len(), 2)
-#assert.eq(label-of(styled-of(split-pieces.first())), none)
-#assert.eq(label-of(styled-of(split-pieces.last())), <lbl>)
+#assert.eq(label-of(styled-of(split-pieces.first())), <lbl>)
+#assert.eq(label-of(styled-of(split-pieces.last())), none)
+
+// A plain group carrying a label, with no rule on it, is a sequence rather
+// than a wrapper and takes the same rule. Without this the sequence branch is
+// never reached and the label is dropped where a group is divided.
+#let plain-split = [x #[a #m b] <plain> y]
+#let plain-pieces = split-on(plain-split, is-marker)
+#assert.eq(plain-pieces.len(), 2)
+#assert.eq(
+  plain-pieces.first().children.find(child => label-of(child) != none) != none,
+  true,
+)
+#assert.eq(
+  plain-pieces.last().children.any(child => label-of(child) != none),
+  false,
+)
+
+// A label goes on the first piece that carries something rather than on the
+// first piece outright, and inside that piece on the first node that does. A
+// piece holding only the space beside a boundary is dropped by `slides`, and a
+// label on a trailing space is lost when the spaces around a boundary merge.
+#let leading-boundary = [#[#m a b] <lead> tail]
+#let leading-pieces = split-on(leading-boundary, is-marker)
+#assert.eq(leading-pieces.len(), 2)
+#assert.eq(
+  leading-pieces.first().children.any(child => label-of(child) != none),
+  false,
+)
+#assert.eq(
+  leading-pieces.last().children.any(child => label-of(child) != none),
+  true,
+)
 
 // The same wrapper with nothing beside it. The first assertion above passes on
 // its own even when the wrapper is handed back whole and unsplit, so this pins

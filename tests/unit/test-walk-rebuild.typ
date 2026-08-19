@@ -150,6 +150,34 @@
 #assert.eq(nested.body.children.first().label, <inner>)
 
 // ---------------------------------------------------------------------------
+// Dropping labels.
+//
+// A slide body is emitted once per step, so every label on it is emitted once
+// per step and a reference to one fails. `keep-labels: false` drops them, and
+// the reach of that has to be wider than a marker's path: a labelled element
+// with no marker anywhere near it still duplicates.
+// ---------------------------------------------------------------------------
+
+#let stripped = rebuild([#block[#m] <lbl>].children.first(), drop, keep-labels: false)
+#assert.eq(stripped.func(), block)
+#assert.eq(stripped.fields().at("label", default: none), none)
+
+// The subtree holds no marker at all, which is the case a rule scoped to a
+// stepped region never reaches.
+#let markerless = rebuild([#block[plain] <alone>].children.first(), drop, keep-labels: false)
+#assert.eq(markerless.fields().at("label", default: none), none)
+#assert.eq(markerless, block[plain])
+
+// A label nested under an unlabelled parent is dropped too, and the parent is
+// rebuilt to carry the change.
+#let deep = rebuild(block[#box[x] <inner>], drop, keep-labels: false)
+#assert.eq(deep.body.children.first().fields().at("label", default: none), none)
+
+// Nothing else about the rebuild changes: a marker still resolves through the
+// transform when labels are being dropped.
+#assert.eq(rebuild([#block[#m] <lbl>].children.first(), sub, keep-labels: false), block[z])
+
+// ---------------------------------------------------------------------------
 // An image is an opaque leaf.
 //
 // Image equality is instance identity rather than field equality, so any
