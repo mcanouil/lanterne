@@ -250,13 +250,15 @@
 // Arguments are validated once by `rebuild`, so the registry arrives resolved
 // and is read through the registry's own accessor rather than the public
 // `lookup`, which would re-check both of them at every element.
-#let _rebuild(node, transform, keep-labels, registry, depth, max-depth) = {
-  if is-marker(node) {
-    // A label on the marker itself names a region, not content, and the
-    // transform replaces the marker without it. Dropping it silently leaves a
-    // reference that fails with a message about a label that does not exist,
-    // naming neither the region nor the step engine.
-    if node.fields().at("label", default: none) != none {
+#let _rebuild(node, transform, match, keep-labels, registry, depth, max-depth) = {
+  // The match is asked of content alone, so a predicate a caller writes need
+  // not be total over lengths, arrays and the other values a field can hold.
+  if type(node) == content and match(node) {
+    // A label on a marker names a region rather than content, and the transform
+    // replaces the marker without it, so no step could carry it. The check is
+    // about markers rather than about whatever matched: a labelled footnote
+    // replaced by a placeholder keeps its label on the step that shows it.
+    if is-marker(node) and node.fields().at("label", default: none) != none {
       fail(
         "rebuild",
         "cannot keep the label "
@@ -292,7 +294,7 @@
     for child in children {
       let reached = _container-depth(child, depth)
       if reached > max-depth { _depth-error(max-depth) }
-      let result = _rebuild(child, transform, keep-labels, registry, reached, max-depth)
+      let result = _rebuild(child, transform, match, keep-labels, registry, reached, max-depth)
       built.push(result.node)
       found = found or result.found
     }
@@ -311,7 +313,7 @@
   let built = (:)
   let found = false
   for (name, value) in node.fields() {
-    let result = _rebuild(value, transform, keep-labels, registry, depth + 1, max-depth)
+    let result = _rebuild(value, transform, match, keep-labels, registry, depth + 1, max-depth)
     built.insert(name, result.node)
     found = found or result.found
   }
@@ -390,6 +392,13 @@
 /// Like `has-marker`, `node` need not be content: the walk calls this on every
 /// field value, and anything holding no marker is handed straight back.
 ///
+/// `match` decides what `transform` replaces, and is a marker by default. The
+/// footnote substitution of specification 4.6 supplies its own, so one
+/// traversal serves both rather than a second copy of it. It is asked of
+/// content alone, and it is asked before the walk descends, so a matched
+/// element's own contents are never visited: a pass with a custom match is for
+/// content that holds no marker, such as a region already resolved.
+///
 /// `keep-labels` is `false` when the result is one of several copies of the
 /// same body, as every step of a slide but one is. A label is then dropped
 /// rather than reattached, and carrying one is itself a reason to rebuild, so
@@ -406,9 +415,19 @@
 /// well as a reconstruction, so it is what sets the default. See `MAX-DEPTH`.
 /// @category core
 /// @returns content, or the value given when it holds no marker
-#let rebuild(node, transform, keep-labels: true, registry: none, max-depth: MAX-DEPTH) = {
+#let rebuild(
+  node,
+  transform,
+  match: is-marker,
+  keep-labels: true,
+  registry: none,
+  max-depth: MAX-DEPTH,
+) = {
   if type(transform) != function {
     fail-type("rebuild", "transform", transform, "a function")
+  }
+  if type(match) != function {
+    fail-type("rebuild", "match", match, "a function")
   }
   if type(keep-labels) != bool {
     fail-type("rebuild", "keep-labels", keep-labels, "a boolean")
@@ -423,5 +442,5 @@
   // than through `lookup`, which would re-run both checks above at every
   // element it reached.
   let resolved = if registry == none { builtin-registry() } else { registry }
-  _rebuild(node, transform, keep-labels, resolved, 0, max-depth).node
+  _rebuild(node, transform, match, keep-labels, resolved, 0, max-depth).node
 }

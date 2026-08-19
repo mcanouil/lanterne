@@ -98,6 +98,29 @@ The rule covers the counter alone today.
 A repeated step page still emits its heading, so an outline still lists a stepped slide once per step and the PDF still carries a bookmark for each.
 `outlined: false` and `bookmarked: false` belong on the same rule and arrive with the outline and bookmark work.
 
+## The footnote placeholder
+
+A footnote inside a region resolved to `hidden` still makes its entry, because `hide` lays its content out.
+The separator rule and the note therefore appear a step before the text that refers to them.
+
+Typst offers no way to hide an entry, so the footnote is replaced on those steps.
+What stands in for it is measured rather than guessed:
+
+| Content | Width |
+| --- | --- |
+| `footnote[x]`, the mark | 3.38pt |
+| `super[1]` | 3.38pt |
+| `hide(super[1])` | 3.38pt |
+| `super[10]` | 6.75pt |
+
+So the mark is a superscript of the numbering, and a hidden superscript of the same number occupies the same space.
+A two digit number is wider, which is why the placeholder carries the number the footnote would have taken rather than a fixed digit.
+That number is read from the live counter at the point the placeholder sits, which is a read of document state rather than a write, so it feeds no convergence loop.
+
+The placeholder then advances the footnote counter by one, exactly as the footnote would have, so the notes after it keep their numbers and the slide's rewind still balances.
+
+`footnote(<label>)` is left alone: it is a second reference to a note that already exists, so it makes no entry and advances nothing.
+
 ## Two cases that need no compensation
 
 **An enum item inside an `only` region keeps its number.**

@@ -254,3 +254,25 @@ A label a `context-slide` callback emits survives only on the step that keeps th
 
 The reconstruction surface widens from the path to a marker to the path to a marker or a label, on every step but the one keeping the labels.
 An unregistered container on such a path is a hard error where it was not one before, and the message says which of the two reasons brought the walk there.
+
+## A hidden footnote is replaced rather than hidden
+
+`hide` lays its content out, so a footnote behind a pause makes a real entry and the separator rule appears a step before the text that refers to it.
+Typst offers no way to hide an entry.
+
+### Decision
+
+On a step where a region resolves to `hidden`, every footnote inside it is replaced by a hidden superscript of the number the footnote would have taken, followed by the advance the footnote would have made.
+
+The replacement runs through `rebuild`, which takes a `match` argument for it, so one traversal serves both the step resolution and this pass rather than a second copy of the walk.
+The pass runs over content that is already resolved, so it meets no marker.
+
+The size is measured rather than assumed: the mark and `super[1]` are both 3.38pt wide, and `super[10]` is 6.75pt, which is why the number matters.
+`notes/counter-findings.md` records the measurements.
+
+### What this does not cover
+
+`footnote(<label>)` is left alone, since it makes no entry and advances nothing.
+
+A label on a footnote survives on the step that shows it, which is the step that keeps the labels of the region around it.
+Where a handout renders only a step on which the region is hidden, that label goes with the replaced footnote.

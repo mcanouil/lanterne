@@ -63,12 +63,15 @@
 
 #context {
   let equations = query(math.equation).map(it => counter(math.equation).at(it.location()).first())
+  // A footnote inside a hidden region makes no entry at all, so the second
+  // note appears once rather than on both steps, and its number is the one it
+  // takes on the step that reveals it.
   let notes = query(footnote).map(it => counter(footnote).at(it.location()).first())
   // Two equations and two footnotes, each numbered the same on both steps.
   // The unnumbered deck at the end of this file contributes equations of its
   // own, which advance nothing, so only this slide's four are read here.
   assert.eq(equations.slice(0, 4), (1, 2, 1, 2))
-  assert.eq(notes, (1, 2, 1, 2))
+  assert.eq(notes, (1, 1, 2))
 }
 
 // A slide of one step is left exactly as it was: nothing is rewound, and the

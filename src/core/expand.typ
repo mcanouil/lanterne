@@ -18,6 +18,7 @@
 ///! stage.
 
 #import "counters.typ": advance, increments
+#import "footnotes.typ": is-entry, placeholder
 #import "marker.typ": MARKER-CONTEXT-SLIDE, MARKER-PAUSE, MARKER-STEP, is-marker
 #import "range.typ": first-step, in-spans, max-mentioned
 #import "split.typ": split-on
@@ -161,7 +162,13 @@
     registry: registry,
   )
   if state == "visible" { return inner }
-  if state == "hidden" { return hide(inner) }
+  if state == "hidden" {
+    // A footnote inside the region would still make its entry, so the
+    // separator appears a step early. Each is replaced by a hidden mark of the
+    // same size carrying the number it would have taken. The pass runs over
+    // content that is already resolved, so it meets no marker.
+    return hide(rebuild(inner, node => placeholder(), match: is-entry, registry: registry))
+  }
   dim(inner)
 }
 
