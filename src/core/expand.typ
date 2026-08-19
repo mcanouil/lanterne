@@ -167,7 +167,14 @@
     // separator appears a step early. Each is replaced by a hidden mark of the
     // same size carrying the number it would have taken. The pass runs over
     // content that is already resolved, so it meets no marker.
-    return hide(rebuild(inner, node => placeholder(), match: is-entry, registry: registry))
+    let keeps-labels = _keeps-labels(index, inside-shown, inside-laid-out)
+    return hide(rebuild(
+      inner,
+      child => placeholder(child, keeps-labels: keeps-labels),
+      match: is-entry,
+      subject: "a footnote to replace on a step that hides it",
+      registry: registry,
+    ))
   }
   dim(inner)
 }

@@ -250,7 +250,7 @@
 // Arguments are validated once by `rebuild`, so the registry arrives resolved
 // and is read through the registry's own accessor rather than the public
 // `lookup`, which would re-check both of them at every element.
-#let _rebuild(node, transform, match, keep-labels, registry, depth, max-depth) = {
+#let _rebuild(node, transform, match, subject, keep-labels, registry, depth, max-depth) = {
   // The match is asked of content alone, so a predicate a caller writes need
   // not be total over lengths, arrays and the other values a field can hold.
   if type(node) == content and match(node) {
@@ -294,7 +294,7 @@
     for child in children {
       let reached = _container-depth(child, depth)
       if reached > max-depth { _depth-error(max-depth) }
-      let result = _rebuild(child, transform, match, keep-labels, registry, reached, max-depth)
+      let result = _rebuild(child, transform, match, subject, keep-labels, registry, reached, max-depth)
       built.push(result.node)
       found = found or result.found
     }
@@ -313,7 +313,7 @@
   let built = (:)
   let found = false
   for (name, value) in node.fields() {
-    let result = _rebuild(value, transform, match, keep-labels, registry, depth + 1, max-depth)
+    let result = _rebuild(value, transform, match, subject, keep-labels, registry, depth + 1, max-depth)
     built.insert(name, result.node)
     found = found or result.found
   }
@@ -336,7 +336,11 @@
         + repr(fn)
         + " with fields "
         + repr(node.fields().keys())
-        + (if found { " containing a step marker" } else { " on the path to a label a repeated step has to drop" }),
+        + (if found {
+          " containing " + subject
+        } else {
+          " on the path to a label a repeated step has to drop"
+        }),
       hint: "Register it with register-container(fn, positional).",
     )
   }
@@ -393,11 +397,20 @@
 /// field value, and anything holding no marker is handed straight back.
 ///
 /// `match` decides what `transform` replaces, and is a marker by default. The
-/// footnote substitution of specification 4.6 supplies its own, so one
-/// traversal serves both rather than a second copy of it. It is asked of
-/// content alone, and it is asked before the walk descends, so a matched
-/// element's own contents are never visited: a pass with a custom match is for
-/// content that holds no marker, such as a region already resolved.
+/// footnote substitution of specification 4.6 supplies its own, so both passes
+/// share one implementation rather than a second copy of the walk. They are
+/// still separate traversals: the footnote pass runs over each hidden region on
+/// each step that hides it.
+///
+/// `match` is asked of content alone, and it is asked before the walk descends,
+/// so a matched element's own contents are never visited: a pass with a custom
+/// match is for content that holds no marker, such as a region already
+/// resolved.
+///
+/// `subject` names what the match looks for, and appears in the message when an
+/// element on the path to one cannot be reconstructed. A message naming a step
+/// marker for a walk that was chasing a footnote sends the author looking for a
+/// boundary they never wrote.
 ///
 /// `keep-labels` is `false` when the result is one of several copies of the
 /// same body, as every step of a slide but one is. A label is then dropped
@@ -419,6 +432,7 @@
   node,
   transform,
   match: is-marker,
+  subject: "a step marker",
   keep-labels: true,
   registry: none,
   max-depth: MAX-DEPTH,
@@ -428,6 +442,9 @@
   }
   if type(match) != function {
     fail-type("rebuild", "match", match, "a function")
+  }
+  if type(subject) != str {
+    fail-type("rebuild", "subject", subject, "a string naming what the match found")
   }
   if type(keep-labels) != bool {
     fail-type("rebuild", "keep-labels", keep-labels, "a boolean")
@@ -442,5 +459,5 @@
   // than through `lookup`, which would re-run both checks above at every
   // element it reached.
   let resolved = if registry == none { builtin-registry() } else { registry }
-  _rebuild(node, transform, match, keep-labels, resolved, 0, max-depth).node
+  _rebuild(node, transform, match, subject, keep-labels, resolved, 0, max-depth).node
 }

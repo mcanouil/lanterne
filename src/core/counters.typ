@@ -38,6 +38,7 @@
 ///! a heading is kept from advancing instead, by a set rule on the pages that
 ///! repeat it.
 
+#import "footnotes.typ": is-entry
 #import "walk.typ": MAX-DEPTH, collect
 #import "../utils/elements.typ": is-elem
 #import "../utils/errors.typ": fail-type
@@ -134,10 +135,9 @@
       // advances and nothing about it has to be read from the style. One
       // written as `footnote(<label>)` is a second reference to a note that
       // already exists, and it advances nothing: counting it would rewind the
-      // counter further than the slide moved it.
-      if type(node.fields().at("body", default: [])) != label {
-        footnotes += 1
-      }
+      // counter further than the slide moved it. The test lives with the
+      // placeholder that has to agree with it.
+      if is-entry(node) { footnotes += 1 }
     } else if source == "off" {
       continue
     } else if is-elem(node, figure) {

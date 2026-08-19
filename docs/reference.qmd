@@ -364,7 +364,7 @@ Content opacity
 
 Counters and chrome that read a step
 
-: A progress bar and a slide number that read the step index arrive with the renderer slots. A figure, a block equation and a footnote already keep their numbers across the steps of a slide, and a footnote inside a hidden region makes no entry until it is revealed.
+: A progress bar and a slide number that read the step index arrive with the renderer slots. A figure, a block equation and a footnote already keep their numbers across the steps of a slide, and a footnote inside a hidden region makes no entry until it is revealed: it is replaced by a mark of the same width, so a footnote inside a container of your own needs that container registered.
 
 Layouts and chrome
 

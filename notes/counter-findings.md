@@ -106,6 +106,9 @@ The separator rule and the note therefore appear a step before the text that ref
 Typst offers no way to hide an entry, so the footnote is replaced on those steps.
 What stands in for it is measured rather than guessed:
 
+Measured in a bare document, so Typst's default font and text size, Libertinus Serif at 11pt.
+The numbers are the conditions rather than the finding: what matters is that the first three agree and the fourth does not.
+
 | Content | Width |
 | --- | --- |
 | `footnote[x]`, the mark | 3.38pt |
@@ -115,7 +118,12 @@ What stands in for it is measured rather than guessed:
 
 So the mark is a superscript of the numbering, and a hidden superscript of the same number occupies the same space.
 A two digit number is wider, which is why the placeholder carries the number the footnote would have taken rather than a fixed digit.
-That number is read from the live counter at the point the placeholder sits, which is a read of document state rather than a write, so it feeds no convergence loop.
+That number is read from the live counter at the point the placeholder sits.
+The reason that is safe is narrower than "a read is not a write", since the placeholder does both: the value read reaches only the placeholder's width, no counter update is derived from it, and the update that follows is a constant.
+The value itself depends on document order rather than on layout, so it settles in one pass, where the rejected freezing mechanism fed a counter read into a state that another slide then read.
+
+The scheme is the footnote's own when it sets one and the style's otherwise.
+A footnote numbered `"*"` or `"(i)"` draws a different mark from one numbered `"1"`, so a placeholder built from the style alone reserves the wrong width for it.
 
 The placeholder then advances the footnote counter by one, exactly as the footnote would have, so the notes after it keep their numbers and the slide's rewind still balances.
 

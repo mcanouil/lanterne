@@ -264,8 +264,12 @@ Typst offers no way to hide an entry.
 
 On a step where a region resolves to `hidden`, every footnote inside it is replaced by a hidden superscript of the number the footnote would have taken, followed by the advance the footnote would have made.
 
-The replacement runs through `rebuild`, which takes a `match` argument for it, so one traversal serves both the step resolution and this pass rather than a second copy of the walk.
+The replacement runs through `rebuild`, which takes a `match` argument for it, so both passes share one implementation rather than a second copy of the walk.
+They remain two traversals: the footnote pass runs over each hidden region on each step that hides it, and its depth budget starts afresh, so it accepts nesting the first pass would have refused.
 The pass runs over content that is already resolved, so it meets no marker.
+
+Reconstruction widens again, as it did for labels: on a hidden step every element on the path to a footnote is rebuilt, so a footnote inside an unregistered container of the author's own is a hard error where the previous release laid it out.
+`rebuild` takes a `subject` string so the message names what the walk was chasing, rather than reporting a step marker to an author who wrote none.
 
 The size is measured rather than assumed: the mark and `super[1]` are both 3.38pt wide, and `super[10]` is 6.75pt, which is why the number matters.
 `notes/counter-findings.md` records the measurements.
@@ -275,4 +279,11 @@ The size is measured rather than assumed: the mark and `super[1]` are both 3.38p
 `footnote(<label>)` is left alone, since it makes no entry and advances nothing.
 
 A label on a footnote survives on the step that shows it, which is the step that keeps the labels of the region around it.
-Where a handout renders only a step on which the region is hidden, that label goes with the replaced footnote.
+Where a render puts only a hidden step on a page, the placeholder cannot carry the label, so that case is refused rather than dropped, which is the policy the label rule already follows.
+
+A footnote written inside a `context` block is invisible to the traversal, so it is neither replaced nor counted, and its entry still appears early.
+
+A footnote hidden on every step a render puts on a page, which `step(..., after: "hidden")` under a handout produces, is replaced on all of them: the counter advances although the note never appears, so the notes around it leave a gap.
+
+The width the placeholder reserves is the default mark's, a superscript of the numbering, read from the footnote's own scheme when it sets one.
+An author who restyles the mark with a `show` or `set` rule can still see a reflow when the note is revealed.
