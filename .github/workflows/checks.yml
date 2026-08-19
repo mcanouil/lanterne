@@ -175,6 +175,40 @@ jobs:
           set -euo pipefail
           lua tools/typstdoc/main.lua --check --strict
 
+  # What a slide looks like, which no structural assertion can see. One golden
+  # per page of every deck under examples/.
+  visual-snapshots:
+    name: Compare visual snapshots
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft != true }}
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Read Typst version from typst.toml
+        id: typst-version
+        uses: ./.github/actions/typst-version
+
+      # The pinned version, not the newest, because a golden is a rendering and
+      # a different compiler renders differently. This is the same pin the
+      # compile job installs.
+      - name: Set up Typst
+        uses: typst-community/setup-typst@v5
+        with:
+          typst-version: ${{ steps.typst-version.outputs.version }}
+
+      - name: Set up Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.4"
+
+      - name: Compare against the goldens
+        uses: ./.github/actions/typst-snapshot
+        with:
+          mode: check
+
   shell-checks:
     name: Lint shell scripts
     runs-on: ubuntu-latest

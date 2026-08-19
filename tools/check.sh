@@ -2,6 +2,15 @@
 # Compiles every Typst example and unit test from the project root.
 # Mirrors the .github/actions/typst-compile composite action so local runs
 # match CI exactly. Exits non-zero on the first failure across all targets.
+#
+# Flags:
+#   --snapshot       Also run the visual snapshot harness in --check mode.
+#   --snapshot=ARGS  Pass ARGS through to tools/snapshot/run.lua, for example
+#                    `--snapshot=--only=hello-deck`.
+#
+# The snapshot suite is opt-in here and always on in CI. It needs Lua and
+# ImageMagick, which the other three suites do not, and a contributor without
+# either should still be able to run the checks that gate the code.
 
 set -euo pipefail
 
@@ -13,10 +22,21 @@ mkdir -p "${OUT_DIR}"
 
 shopt -s nullglob
 
-if [[ $# -gt 0 ]]; then
-  printf 'unknown arg: %s\n' "$1" >&2
-  exit 2
-fi
+snapshot_mode=""
+snapshot_args=""
+for arg in "$@"; do
+  case "${arg}" in
+  --snapshot) snapshot_mode="check" ;;
+  --snapshot=*)
+    snapshot_mode="check"
+    snapshot_args="${arg#--snapshot=}"
+    ;;
+  *)
+    printf 'unknown arg: %s\n' "${arg}" >&2
+    exit 2
+    ;;
+  esac
+done
 
 failures=0
 total=0
@@ -74,6 +94,15 @@ expect_fail_status=0
 expect_warn_status=0
 "${REPO_ROOT}/tools/expect-warn.sh" || expect_warn_status=$?
 
+# The visual goldens. Opt-in locally, always on in CI, and counted as a failure
+# rather than exiting here, so one run reports every suite.
+snapshot_status=0
+if [[ -n "${snapshot_mode}" ]]; then
+  printf '\nsnapshots:\n'
+  # shellcheck disable=SC2086  # snapshot_args is intentionally word-split
+  lua "${REPO_ROOT}/tools/snapshot/run.lua" --check ${snapshot_args} || snapshot_status=$?
+fi
+
 if [[ ${failures} -gt 0 ]]; then
   printf '\n%d failure(s) out of %d compile(s).\n' "${failures}" "${total}" >&2
   exit 1
@@ -85,6 +114,10 @@ fi
 
 if [[ ${expect_warn_status} -ne 0 ]]; then
   exit "${expect_warn_status}"
+fi
+
+if [[ ${snapshot_status} -ne 0 ]]; then
+  exit "${snapshot_status}"
 fi
 
 printf '\n%d compile(s) ok.\n' "${total}"
