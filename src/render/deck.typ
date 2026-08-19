@@ -81,22 +81,25 @@
 //
 // Specification 4.7 gives the other two: a section heading is a bookmark and a
 // content slide is not, and an appendix slide is excluded from the outline.
+// Only what this page has to suppress is written, and a page with nothing to
+// suppress carries no rule at all. Setting the permissive value would be the
+// same statement to Typst and a different one to the author: the rule sits
+// inside the page body, so it wins over the document's own preamble, and
+// `outlined: true` on every page would quietly undo an author's
+// `set heading(outlined: false)`.
 #let _chrome(record, repeated, body) = {
-  let bookmarked = if repeated or record.kind != "section" or record.attrs.appendix {
-    false
+  let overrides = if repeated {
+    (numbering: none, outlined: false, bookmarked: false)
+  } else if record.attrs.appendix {
+    (outlined: false, bookmarked: false)
+  } else if record.kind != "section" {
+    (bookmarked: false)
   } else {
-    auto
+    (:)
   }
-  let outlined = not (repeated or record.attrs.appendix)
-  if repeated {
-    // Numbering is left alone on a page that is not a repeat, so the document's
-    // own `set heading(numbering: ...)` still governs it.
-    [#set heading(numbering: none, outlined: outlined, bookmarked: bookmarked)
-      #body]
-  } else {
-    [#set heading(outlined: outlined, bookmarked: bookmarked)
-      #body]
-  }
+  if overrides.len() == 0 { return body }
+  [#set heading(..overrides)
+    #body]
 }
 
 #let _slide-page(record, body, tokens, paper, prelude: [], repeated: false) = {

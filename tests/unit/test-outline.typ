@@ -5,7 +5,7 @@
 // structural can see the consequence: the records are identical whatever the
 // outline ends up listing, so these assertions read the rendered document.
 
-#import "/src/core/slides.typ": appendix, slide-options, slides
+#import "/src/core/slides.typ": appendix, slide, slide-options, slides
 #import "/src/core/steps.typ": pause
 #import "/src/render/deck.typ": deck
 
@@ -92,4 +92,77 @@
   assert.eq(headings-of([Ordinary]).first().outlined, true)
   assert.eq(headings-of([Extra]).first().outlined, false)
   assert.eq(headings-of([Extra]).first().bookmarked, false)
+}
+
+// An explicit slide written after the marker is an appendix slide as much as
+// one a heading opened, so the switch reaches the record it builds.
+#let with-explicit = slides([
+  #appendix
+
+  #slide(title: [Written out])[body]
+])
+
+#assert.eq(with-explicit.map(record => record.attrs.appendix), (true,))
+
+// A slide marked on its own, with no switch anywhere, is excluded at render
+// time and not merely in its record.
+#deck([
+  == Kept
+  a
+
+  == Dropped
+  #slide-options(appendix: true)
+  b
+])
+
+#context {
+  assert.eq(headings-of([Kept]).first().outlined, true)
+  assert.eq(headings-of([Dropped]).first().outlined, false)
+  assert.eq(headings-of([Dropped]).first().bookmarked, false)
+}
+
+// A section slide inside the appendix is excluded as well, so the appendix
+// contributes no bookmark at all.
+#deck([
+  == Body slide
+  a
+
+  #appendix
+
+  = Extra section
+  == Extra content
+  b
+])
+
+#context {
+  assert.eq(headings-of([Extra section]).first().outlined, false)
+  assert.eq(headings-of([Extra section]).first().bookmarked, false)
+  assert.eq(headings-of([Extra content]).first().outlined, false)
+}
+
+// Every heading on a section slide's page is a bookmark, the title and anything
+// written under it alike, because the rule is per page rather than per level.
+// A divider carrying its own sub-heading is unusual, and this pins what happens
+// rather than claiming it cannot.
+#deck([
+  = Divider
+  === Under the divider
+])
+
+#context {
+  assert.eq(headings-of([Under the divider]).first().bookmarked, auto)
+}
+
+// An author who suppresses outline entries deck-wide keeps that: the page rule
+// writes only what it has to suppress, so it never turns an entry back on.
+#[
+  #set heading(outlined: false)
+  #deck([
+    == Quiet
+    a
+  ])
+]
+
+#context {
+  assert.eq(headings-of([Quiet]).first().outlined, false)
 }

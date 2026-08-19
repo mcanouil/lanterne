@@ -32,7 +32,7 @@
 #import "marker.typ": MARKER-APPENDIX, MARKER-SLIDE, MARKER-SLIDE-OPTIONS, is-marker, marker
 #import "record.typ": check-attrs, slide-record
 #import "split.typ": is-blank, split-at
-#import "walk.typ": collect-markers
+#import "walk.typ": collect
 #import "../utils/elements.typ": SEQUENCE, SPACE, STYLED, is-elem
 #import "../utils/errors.typ": fail, fail-type
 
@@ -128,20 +128,23 @@
   (attrs: found.first().value.payload, body: _without-options(segment))
 }
 
+// The appendix switch, filled into a slide's own options. An option written on
+// the slide wins, since it is the more specific statement, which is what makes
+// `slide-options(appendix: false)` an escape from the switch.
+#let _in-appendix(attrs, in-appendix) = {
+  if in-appendix and "appendix" not in attrs { attrs + (appendix: true) } else { attrs }
+}
+
 // The record for one segment, given the boundary that opened it. The heading
 // stays in the body, where the rules in force over it still reach it, so the
 // title read from it here describes the slide rather than replacing what
 // renders.
-#let _record(boundary, segment, slide-level, scope, appendix) = {
+#let _record(boundary, segment, slide-level, scope, in-appendix) = {
   let taken = _take-options(segment, scope)
   // The switch fills the option, so the machine surface receives an ordinary
   // slide option and a slide can still be marked one at a time. An option
   // written on the slide wins, since it is the more specific statement.
-  let attrs = if appendix and "appendix" not in taken.attrs {
-    taken.attrs + (appendix: true)
-  } else {
-    taken.attrs
-  }
+  let attrs = _in-appendix(taken.attrs, in-appendix)
   if boundary == none or not is-elem(boundary, heading) {
     return slide-record(taken.body, attrs: attrs)
   }
@@ -184,10 +187,10 @@
   // An appendix marker the split cannot reach is refused, exactly as a pause in
   // the same position is: the marker renders as nothing, so a deck written with
   // one inside a block would build with no appendix and no warning.
-  let reachable = collect-markers(body).filter(node => _kind(node) == MARKER-APPENDIX).len()
+  let reachable = collect(body, node => _kind(node) == MARKER-APPENDIX).len()
 
   let records = ()
-  let appendix = false
+  let in-appendix = false
   let opened = 0
   // A heading is kept where it was found, at the head of the segment it opened,
   // so that the wrappers it was written under still govern it. A page break and
@@ -207,7 +210,7 @@
       // Every slide from here on is an appendix slide. The marker itself opens
       // nothing: the segment it holds is whatever sits between it and the next
       // heading, which is dropped when it is blank.
-      appendix = true
+      in-appendix = true
       opened += 1
     }
     if _kind(boundary) == MARKER-SLIDE {
@@ -234,7 +237,9 @@
         } else {
           given.level
         },
-        attrs: given.attrs,
+        // An explicit slide written after the marker is an appendix slide as
+        // much as one a heading opened, so the switch reaches it here too.
+        attrs: _in-appendix(given.attrs, in-appendix),
       ))
     }
     // A boundary the author wrote opens a slide whatever is under it: a
@@ -243,7 +248,7 @@
     // the lead-in and whatever follows an explicit slide.
     let opened-by-author = is-elem(boundary, heading) or is-elem(boundary, pagebreak)
     if not opened-by-author and is-blank(part.body) { continue }
-    records.push(_record(boundary, part.body, slide-level, scope, appendix))
+    records.push(_record(boundary, part.body, slide-level, scope, in-appendix))
   }
 
   if reachable > opened {
@@ -251,6 +256,15 @@
       scope,
       "an appendix marker sits inside an element, where the split cannot reach it",
       hint: "Write #appendix as a top level child of the document body.",
+    )
+  }
+  // A deck has one appendix. A second marker would open a slide and change
+  // nothing, which is the silent no-op this package refuses everywhere else.
+  if opened > 1 {
+    fail(
+      scope,
+      "a deck carries " + str(opened) + " appendix markers",
+      hint: "Write one #appendix, at the point the appendix opens.",
     )
   }
 
@@ -293,7 +307,13 @@
 /// marked on its own.
 ///
 /// It has to be a top level child of the document body. One written inside a
-/// block is refused rather than rendering as nothing and flagging no slide.
+/// block is refused rather than rendering as nothing and flagging no slide, and
+/// one written inside a `context` block cannot be refused, since nothing there
+/// is reachable: the deck builds with no appendix, exactly as `#pause` in that
+/// position is lost.
+///
+/// A second marker is an error. A deck has one appendix, and a marker that
+/// changed nothing would be the silent no-op this package refuses elsewhere.
 /// @category deck
 #let appendix = marker(MARKER-APPENDIX)
 

@@ -168,7 +168,14 @@ Read from `src/core/slides.typ`.
 ```
 
 A switch rather than an option written on each slide: every slide after it is an appendix slide, excluded from the outline and from the PDF bookmarks.
+An explicit `#slide(...)` written after it is an appendix slide too.
+Content written between the marker and the next heading becomes an untitled appendix slide, as content before the first heading becomes an untitled lead-in slide.
+
 It has to be a top level child of the document body, and one written inside a block is refused rather than rendering as nothing.
+One written inside a `context` block cannot be refused, because nothing inside one is reachable, and the deck then builds with no appendix: this is the limitation `#pause` carries in the same position.
+A second marker is an error rather than a no-op, since a deck has one appendix, and there is no marker that closes one.
+
+An appendix slide still carries a slide number: the logical numbering the appendix is excluded from arrives with the chrome that displays it.
 
 The splitter consumes the marker and sets the `appendix` slide option on each later record, so the machine surface receives an ordinary option and `slide-options(appendix: false)` on one of those slides wins over the switch.
 
