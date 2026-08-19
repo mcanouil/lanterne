@@ -59,6 +59,7 @@ Typst cannot catch a panic, so a validation guard cannot be exercised from insid
 A compile that writes anything to stderr is a failure, even when it exits zero.
 A warning is how Typst reports content that did not converge, and such a document renders wrong numbers rather than failing to render, which is the one outcome this package refuses.
 Helper scripts live under [`tools/`](tools), in particular [`tools/check.sh`](tools/check.sh) for local checks, which runs all three suites.
+The visual goldens under [`tests/visual/`](tests/visual) are a fourth suite, run on its own with [`tools/snapshot/run.lua`](tools/snapshot/run.lua) because it needs Lua and ImageMagick that the others do not; see that directory's README.
 Short identifiers used across the source tree are catalogued in [`GLOSSARY.md`](GLOSSARY.md).
 Consult that glossary before you introduce new short identifiers.
 

@@ -4,3 +4,7 @@
 # Quarto render artefacts beside the committed fixture.
 tests/fixtures/.quarto/
 tests/fixtures/*.pdf
+
+# Visual snapshot build artefacts. The goldens themselves are tracked, under
+# tests/visual/golden/.
+/build/
