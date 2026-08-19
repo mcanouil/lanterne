@@ -18,6 +18,7 @@
 ///! stage.
 
 #import "counters.typ": advance, increments
+#import "footnotes.typ": is-entry, placeholder
 #import "marker.typ": MARKER-CONTEXT-SLIDE, MARKER-PAUSE, MARKER-STEP, is-marker
 #import "range.typ": first-step, in-spans, max-mentioned
 #import "split.typ": split-on
@@ -154,14 +155,30 @@
   // body has to know which step keeps its labels.
   let inside-shown = shown.filter(step => _state-at(payload, step) in ("visible", "dimmed"))
   let inside-laid-out = laid-out.filter(step => _state-at(payload, step) != "removed")
+  let keeps-labels = _keeps-labels(index, inside-shown, inside-laid-out)
   let inner = rebuild(
     payload.body,
     child => _resolve(child, index, total, dim, registry, scope, inside-shown, inside-laid-out),
-    keep-labels: _keeps-labels(index, inside-shown, inside-laid-out),
+    keep-labels: keeps-labels,
     registry: registry,
   )
   if state == "visible" { return inner }
-  if state == "hidden" { return hide(inner) }
+  if state == "hidden" {
+    // A footnote inside the region would still make its entry, so the
+    // separator appears a step early. Each is replaced by a hidden mark of the
+    // same size carrying the number it would have taken. The pass runs over
+    // content that is already resolved, so it meets no marker.
+    // The placeholder reserves the space and reads the number; the advance
+    // covers everything the footnote would have numbered, its own counter and
+    // whatever its body numbers, since the slide's rewind subtracts all of it.
+    return hide(rebuild(
+      inner,
+      child => placeholder(child, keeps-labels: keeps-labels) + advance(increments(child)),
+      match: is-entry,
+      subject: "a footnote to replace on a step that hides it",
+      registry: registry,
+    ))
+  }
   dim(inner)
 }
 

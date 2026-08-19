@@ -98,6 +98,39 @@ The rule covers the counter alone today.
 A repeated step page still emits its heading, so an outline still lists a stepped slide once per step and the PDF still carries a bookmark for each.
 `outlined: false` and `bookmarked: false` belong on the same rule and arrive with the outline and bookmark work.
 
+## The footnote placeholder
+
+A footnote inside a region resolved to `hidden` still makes its entry, because `hide` lays its content out.
+The separator rule and the note therefore appear a step before the text that refers to them.
+
+Typst offers no way to hide an entry, so the footnote is replaced on those steps.
+What stands in for it is measured rather than guessed:
+
+Measured in a bare document, so Typst's default font and text size, Libertinus Serif at 11pt.
+The numbers are the conditions rather than the finding: what matters is that the first three agree and the fourth does not.
+
+| Content | Width |
+| --- | --- |
+| `footnote[x]`, the mark | 3.38pt |
+| `super[1]` | 3.38pt |
+| `hide(super[1])` | 3.38pt |
+| `super[10]` | 6.75pt |
+
+So the mark is a superscript of the numbering, and a hidden superscript of the same number occupies the same space.
+A two digit number is wider, which is why the placeholder carries the number the footnote would have taken rather than a fixed digit.
+That number is read from the live counter at the point the placeholder sits.
+The reason that is safe is narrower than "a read is not a write", since the placeholder does both: the value read reaches only the placeholder's width, no counter update is derived from it, and the update that follows is a constant.
+The value itself depends on document order rather than on layout, so it settles in one pass, where the rejected freezing mechanism fed a counter read into a state that another slide then read.
+
+The scheme is the footnote's own when it sets one and the style's otherwise.
+A footnote numbered `"*"` or `"(i)"` draws a different mark from one numbered `"1"`, so a placeholder built from the style alone reserves the wrong width for it.
+
+The placeholder itself advances nothing.
+What replaces the footnote is paired with the compensation for the whole footnote, its own counter and whatever its body numbers, because a note body can hold a figure or a numbered equation and the slide's rewind subtracts every increment the body makes.
+Advancing the footnote counter alone is not a drift but a hard failure: the rewind then takes the figure counter below zero, and Typst refuses with `number must be at least zero`.
+
+`footnote(<label>)` is left alone: it is a second reference to a note that already exists, so it makes no entry and advances nothing.
+
 ## Two cases that need no compensation
 
 **An enum item inside an `only` region keeps its number.**
