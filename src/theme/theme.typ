@@ -70,6 +70,7 @@
 /// `extra` merges key by key rather than replacing wholesale, so setting one
 /// token of your own leaves the rest of the base theme's in place.
 /// @category theme
+/// @stability experimental
 /// @returns dictionary
 #let theme-merge(base, overrides) = _merge(base, overrides, "theme-merge")
 
@@ -78,6 +79,7 @@
 /// Named arguments only. A positional argument carries no token name to
 /// validate against, so it is rejected rather than ignored.
 /// @category theme
+/// @stability experimental
 /// @returns dictionary
 #let theme-tokens(..overrides) = {
   let scope = "theme-tokens"

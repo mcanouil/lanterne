@@ -17,6 +17,7 @@
 /// `range` is required and takes the string forms `"2"`, `"2-"`, `"-3"` and
 /// `"2-4"`, or an integer. `before` and `after` name the states, as strings.
 /// @category emit
+/// @stability experimental
 /// @returns content
 #let emit-step(range: none, before: "hidden", after: "visible", body: []) = {
   let scope = "emit-step"

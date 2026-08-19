@@ -54,6 +54,7 @@
 /// `scope` names the caller in any message this raises, since `emit-step` and
 /// the four aliases all reach the same validation.
 /// @category step
+/// @stability stable
 /// @returns content
 #let step(range, body, before: "hidden", after: "visible", scope: "step") = {
   if type(body) != content {
@@ -92,6 +93,7 @@
 /// content to disappear again, or `step(..., after: "hidden")` if you want it
 /// to hide.
 /// @category step
+/// @stability stable
 /// @returns content
 #let uncover(range, body, scope: "uncover") = step(
   range,
@@ -103,6 +105,7 @@
 
 /// Laid out on the steps in its range and on no others.
 /// @category step
+/// @stability stable
 /// @returns content
 #let only(range, body, scope: "only") = step(
   range,
@@ -127,6 +130,7 @@
 /// `step(..., after: "dimmed")` for the same effect with `focus`'s other side
 /// left alone.
 /// @category step
+/// @stability stable
 /// @returns content
 #let dim(range, body, scope: "dim") = step(
   range,
@@ -139,6 +143,7 @@
 /// Dimmed outside its range, so one region is emphasised at a time and the rest
 /// stay legible. The dimming carries the same limitation as `dim`.
 /// @category step
+/// @stability stable
 /// @returns content
 #let focus(range, body, scope: "focus") = step(
   range,
@@ -158,6 +163,7 @@
 /// container is refused by the expansion rather than silently rendering as
 /// nothing.
 /// @category step
+/// @stability stable
 #let pause = marker(MARKER-PAUSE)
 
 /// A slide body that is handed the resolved step index and total.
@@ -173,6 +179,7 @@
 /// Raise the count with the slide's `steps` option when the callback needs more
 /// steps than the rest of the body advertises.
 /// @category step
+/// @stability experimental
 /// @returns content
 #let context-slide(fn, scope: "context-slide") = {
   if type(fn) != function {
