@@ -1,0 +1,99 @@
+---
+title: "Errors and limitations"
+subtitle: "How a message reads, what a slide record carries, and what is specified but not implemented."
+description: "The error grammar every Lanterne message follows, the slide record the renderer reads, and the limitations of the current development state."
+---
+
+## How an error reads
+
+Every validation in the package routes through `src/utils/errors.typ`, so every message has the same grammar:
+
+```text
+<scope>: <problem>; got <repr(value)>. <hint>
+```
+
+`<scope>` is the function the author called, not the helper that raised the error: a token rejected on behalf of `theme-tokens` names `theme-tokens`.
+Typst cannot catch a panic, so every one of these is a compile error rather than something a deck can recover from.
+
+Three shapes cover the failures:
+
+Enumerated values
+
+: `deck: aspect-ratio must be one of "16-9", "4-3"; got "21-9".`
+
+Types and shapes
+
+: `theme-tokens: bg must be a colour; got 1.`
+
+Everything else
+
+: `slide-options must come before the slide's content. Move the slide-options call to just after the heading.`
+
+`tests/expect-fail/` is the authoritative list of what each guard rejects: one file per case, each carrying the exact message it must produce.
+A guard cannot be exercised from inside a unit test, because Typst cannot catch a panic, so those cases compile files that are asserted to fail.
+
+## The slide record
+
+Read from `src/core/record.typ`.
+A record is the one dictionary a slide is described by, and is what the renderer reads.
+It is not exported, and is documented here because it is the contract the machine surface will be built on.
+
+| Key | Type | Description |
+| --- | --- | --- |
+| `kind` | `"content"` or `"section"` | A section slide is a divider, and must have a title. |
+| `title` | content or `none` | The heading's body, describing the slide. |
+| `level` | positive integer or `none` | The level that heading stands at. |
+| `label` | label or `none` | The heading's label, carried because content equality ignores labels. |
+| `attrs` | dictionary | Every slide option, each unnamed one at its default. |
+| `body` | content | What renders, the opening heading included. |
+
+: The slide record. {.striped .hover tbl-colwidths="[12,25,63]"}
+
+`title` and `level` stand or fall together: a title with no level describes a heading at no level, and a level with no title describes a heading that is not there.
+
+There is no `layout` key.
+Layouts arrive with the code that resolves them, and a key nothing reads is a key whose meaning no reader can check.
+
+## What is not implemented
+
+What is specified but not implemented, as of the current development state:
+
+Content opacity
+
+: Typst 0.15 has no content opacity, so `dim` and `focus` set the text fill of a dimmed region rather than fading it. An image, an explicit fill and a stroke inside a dimmed region do not dim.
+
+Counters and chrome that read a step
+
+: A progress bar and a slide number that read the step index arrive with the renderer slots. A figure, a block equation and a footnote already keep their numbers across the steps of a slide, and a footnote inside a hidden region makes no entry until it is revealed: it is replaced by a mark of the same width, so a footnote inside a container of your own needs that container registered.
+
+Layouts and chrome
+
+: A slide is its title and its body. There is no header, footer, progress indicator, slide number or logo, and no layout system to place them.
+
+The element catalogue
+
+: Callouts, columns and the rest of the structural elements are not implemented.
+
+Reconstruction of unknown elements
+
+: The traversal refuses, loudly, to rebuild an element it has no registry entry for, rather than guessing. A deck that silently lost a step boundary is worse than one that failed to build. `notes/roundtrip-findings.md` records which elements were characterised and how.
+
+Markers inside `context`
+
+: A marker inside a `context` block is invisible to the traversal, because a context block reports no fields until layout resolves it. Anything the traversal must see has to be written outside `context`.
+
+Cross references by name
+
+: A labelled heading is a link destination, so `#link(<label>)` works. Typst refuses `@label` on a heading that is not numbered, so write `#set heading(numbering: ...)` to reference a slide by name.
+
+Labels on a stepped slide
+
+: A slide's body is emitted once per step, so a label on it is dropped on every step but the one that keeps it, which is the first step where the element it marks is shown. A reference therefore lands where that element first appears. Three labels cannot be moved and are refused rather than dropped without a word: one on an image, which cannot be rebuilt, one on a stepped region itself, since the marker is replaced by what it resolves to, and one inside a container of your own that is not registered, which cannot be rebuilt either.
+
+Headings and bookmarks on a stepped slide
+
+: A slide's title is the heading the author wrote, and a stepped slide's body, heading included, is emitted once per step, so `query(heading)` returns it once per step. The outline and the bookmarks are not affected: a step page that repeats a slide carries `set heading(numbering: none, outlined: false, bookmarked: false)`, so the slide is listed once and bookmarked once however many steps it has. A section slide is a bookmark, a content slide is not, and an appendix slide is neither.
+
+A `set heading(offset: ...)` rule
+
+: A heading's level is read from the heading itself, under whichever of `level`, `depth` and `offset` the author reached for. An offset set by a rule lives in the style wrapper, and Typst exposes no way to read a wrapper's rules, so such a heading splits at the level it was written at rather than the level it renders at. Write the level you mean, or set `slide-level` to match the offset. An `offset` passed to `heading` itself is a field, so it is read and counted.

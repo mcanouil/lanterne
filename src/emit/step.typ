@@ -14,11 +14,24 @@
 
 /// A stepped region, from a dictionary of strings and content.
 ///
-/// `range` is required and takes the string forms `"2"`, `"2-"`, `"-3"` and
-/// `"2-4"`, or an integer. `before` and `after` name the states, as strings.
+/// The machine facing counterpart to `step`: plain dictionaries, strings and
+/// content only, no closure arguments and no positional variadics, so a filter
+/// emitting it has nothing to learn beyond four key names.
+///
+/// It delegates to `step` rather than reimplementing it, passing its own scope,
+/// so a malformed range emitted by a filter reports under `emit-step` while one
+/// written by hand reports under `step`.
 /// @category emit
 /// @stability experimental
+/// @param range The steps the region is visible on. An integer or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`. Required.
+/// @param before The state below the range, as a string.
+/// @param after The state above the range, as a string.
+/// @param body The region.
 /// @returns content
+/// @examples-static
+/// ```typst
+/// #emit-step(range: "2-", body: [Appears from step two.])
+/// ```
 #let emit-step(range: none, before: "hidden", after: "visible", body: []) = {
   let scope = "emit-step"
   if range == none {

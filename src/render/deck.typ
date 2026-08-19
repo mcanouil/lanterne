@@ -141,23 +141,55 @@
 
 /// Render a document body as slides.
 ///
-/// Written as the document's show rule:
+/// It is written as the document's show rule.
 ///
-/// ```typst
-/// #show: deck.with(theme: theme-tokens(), slide-level: 2)
-/// ```
+/// One pass over the body's top level children, splitting at anything that
+/// opens a slide:
 ///
-/// `theme` is a token dictionary from `theme-tokens` or `theme-merge`, and
-/// defaults to the canonical one. `aspect-ratio` selects the page shape.
-/// `slide-level` is the heading level that opens a slide, per `slides`.
-/// `handout` is `false` for every step, `true` to collapse each slide to its
-/// final step, or a range collapsing it to the steps the range selects.
-/// `registry` is a container registry from `register-container`, for a step
-/// written inside a container of your own. `info` sets the document metadata
-/// and takes `title`, `author` and `date`.
+/// | Boundary | Opens |
+/// | --- | --- |
+/// | A heading at `slide-level` | A content slide, titled by that heading. |
+/// | A heading below `slide-level` | A section slide, whose content is centred on the page. |
+/// | A heading above `slide-level` | Nothing: it is ordinary content on the slide it sits in. |
+/// | `#pagebreak()` | An untitled slide, even when nothing follows it. |
+/// | `slide(...)` | A slide complete in itself; what follows opens another. |
+///
+/// Content before the first boundary is an implicit untitled slide, and is
+/// dropped when nothing in it puts a mark on the page.
+///
+/// Only top level children are examined, so a heading nested inside a block, a
+/// grid cell or a list item never splits the deck. The same limit applies to
+/// `slide-options`, which has to be a top level child of the slide it
+/// configures.
+///
+/// A heading that opens a slide stays where it was written, at the head of that
+/// slide's body, rather than being lifted out and re-emitted. That is what
+/// keeps `set heading(numbering: ...)`, a `show heading` rule and a reference to
+/// a labelled heading all working on it.
+///
+/// A slide renders one page per step rather than one page. The step count comes
+/// from the region and pause markers a slide's body carries, from any
+/// `context-slide` callback's own `steps` option, and is at least one.
 /// @category deck
 /// @stability experimental
+/// @param body The document, passed by the show rule.
+/// @param theme A token dictionary from `theme-tokens` or `theme-merge`. `none` takes the canonical defaults.
+/// @param aspect-ratio The page shape, `"16-9"` or `"4-3"`. These are Typst's own presentation papers: 841.89pt by 473.56pt, and 793.7pt by 595.28pt.
+/// @param slide-level The heading level that opens a slide, per `slides`. `0` disables heading splitting and leaves only the explicit breaks.
+/// @param handout `false` renders every step. `true` collapses each slide to its final step, which is what a handout wants. A range collapses it to the steps the range selects, still one page per selected step.
+/// @param registry A container registry from `register-container`, for a step written inside a container of your own. `none` reads the built in registry.
+/// @param info Document metadata, passed to `set document`. It takes `title`, `author` and `date`, and rejects an unknown key rather than passing it through: the vocabulary carries only what something reads.
 /// @returns content
+/// @examples-static
+/// ```typst
+/// #show: deck.with(theme: theme-tokens(), aspect-ratio: "16-9", slide-level: 2)
+///
+/// = A section
+///
+/// == A slide
+///
+/// Its body.
+/// ```
 #let deck(
   body,
   theme: none,
