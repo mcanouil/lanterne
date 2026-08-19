@@ -6,6 +6,7 @@
 // document, since the entry is what a reader sees and no structural assertion
 // over the slide body can tell whether one was made.
 
+#import "/src/core/footnotes.typ": is-entry, placeholder, scheme-of
 #import "/src/core/steps.typ": focus, only, pause, uncover
 #import "/src/render/deck.typ": deck
 
@@ -165,3 +166,68 @@
 #context {
   assert.eq(notes-of([Handout notes], 1).len(), 1)
 }
+
+// A note body numbers things of its own. The slide's rewind subtracts every
+// increment the body makes, so a placeholder that advanced the footnote counter
+// alone would leave the figure counter short, and the rewind would take it below
+// zero, which Typst refuses with `number must be at least zero`.
+#let inner-figure(name) = figure(
+  rect(width: 4mm, height: 2mm),
+  caption: name,
+  kind: "inner",
+  supplement: [Inner],
+)
+
+#deck([
+  == Note with a figure
+  #uncover("2-", [x#footnote[see #inner-figure([inside])]])
+  #inner-figure([after])
+  #pause
+  tail
+])
+
+#context {
+  let numbers = query(figure)
+    .filter(it => it.caption.body.text in ("inside", "after"))
+    .map(it => (it.caption.body.text, it.counter.at(it.location()).first()))
+  // The figure after the note keeps its number on both steps, and the one
+  // inside the note takes the number the compensation reserved for it.
+  assert.eq(numbers, (("after", 2), ("inside", 1), ("after", 2)))
+}
+
+// A footnote hidden on every step a render puts on a page is replaced on all of
+// them, so its number is reserved and never used. This pins the gap rather than
+// claiming it does not exist: specification 4.4 carries the row.
+#deck(
+  [
+    == Never shown
+    #only("1", [early#footnote[unreachable]])
+    #pause
+    after#footnote[the only note]
+  ],
+  handout: true,
+)
+
+#context {
+  let notes = notes-of([Never shown], 1)
+  assert.eq(notes.len(), 1)
+  // The note that is rendered is numbered past the one that never appears.
+  let shown = counter(footnote).at(notes.first().location()).first()
+  assert.eq(shown, counter(footnote).at(notes.first().location()).first())
+  assert(shown >= 2)
+}
+
+// Which scheme the mark is drawn in decides the width the placeholder reserves,
+// so the choice between the footnote's own numbering and the rule in force is
+// asserted directly rather than through a measurement that would have to
+// reproduce the counter the placeholder reads.
+#assert.eq(scheme-of(footnote(numbering: "*")[symbol], "1"), "*")
+#assert.eq(scheme-of(footnote[digit], "1"), "1")
+#assert.eq(scheme-of(footnote[digit], "*"), "*")
+
+// A reference footnote is not an entry, which is what keeps it from being given
+// a placeholder and a number it never uses.
+#assert.eq(is-entry(footnote[a note]), true)
+#assert.eq(is-entry([#footnote[a note] <ref-target>].children.first()), true)
+#assert(not is-entry(footnote(<ref-target>)))
+#assert(not is-entry(super[1]))

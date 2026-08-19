@@ -262,7 +262,10 @@ Typst offers no way to hide an entry.
 
 ### Decision
 
-On a step where a region resolves to `hidden`, every footnote inside it is replaced by a hidden superscript of the number the footnote would have taken, followed by the advance the footnote would have made.
+On a step where a region resolves to `hidden`, every footnote inside it is replaced by a hidden superscript of the number the footnote would have taken, followed by the advance the whole footnote would have made.
+
+That advance is not the footnote counter alone.
+A note body can number a figure or an equation of its own, and the slide's rewind subtracts every increment the body makes, so compensating one counter and not the others takes another below zero, which Typst refuses outright.
 
 The replacement runs through `rebuild`, which takes a `match` argument for it, so both passes share one implementation rather than a second copy of the walk.
 They remain two traversals: the footnote pass runs over each hidden region on each step that hides it, and its depth budget starts afresh, so it accepts nesting the first pass would have refused.

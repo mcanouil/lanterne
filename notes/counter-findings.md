@@ -125,7 +125,9 @@ The value itself depends on document order rather than on layout, so it settles 
 The scheme is the footnote's own when it sets one and the style's otherwise.
 A footnote numbered `"*"` or `"(i)"` draws a different mark from one numbered `"1"`, so a placeholder built from the style alone reserves the wrong width for it.
 
-The placeholder then advances the footnote counter by one, exactly as the footnote would have, so the notes after it keep their numbers and the slide's rewind still balances.
+The placeholder itself advances nothing.
+What replaces the footnote is paired with the compensation for the whole footnote, its own counter and whatever its body numbers, because a note body can hold a figure or a numbered equation and the slide's rewind subtracts every increment the body makes.
+Advancing the footnote counter alone is not a drift but a hard failure: the rewind then takes the figure counter below zero, and Typst refuses with `number must be at least zero`.
 
 `footnote(<label>)` is left alone: it is a second reference to a note that already exists, so it makes no entry and advances nothing.
 
