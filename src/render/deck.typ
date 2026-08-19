@@ -67,17 +67,40 @@
   base * calc.pow(tokens.scale-ratio, calc.max(0, 3 - level))
 }
 
+// What a page's headings contribute beyond the page itself, as one `set` rule.
+//
+// Three rules meet here, all of them about a heading that is emitted more than
+// once or that belongs to a slide the reader should not navigate to.
+//
 // A step page that repeats a slide already emitted carries its headings a
-// second time, and a numbered heading would advance the heading counter once
-// per step. That counter is hierarchical, so it cannot be put back by
+// second time. A numbered heading would advance the heading counter once per
+// step, and that counter is hierarchical, so it cannot be put back by
 // subtraction the way a figure's is; the heading is stopped from advancing it
-// instead. Nothing a reader sees changes, because a heading advances the
-// counter only when it is numbered, and this renderer draws the title from
-// `it.body`.
-#let _unnumbered(body) = [
-  #set heading(numbering: none)
-  #body
-]
+// instead. The repeat would also list the slide again in the outline and add a
+// second bookmark for it.
+//
+// Specification 4.7 gives the other two: a section heading is a bookmark and a
+// content slide is not, and an appendix slide is excluded from the outline.
+// Only what this page has to suppress is written, and a page with nothing to
+// suppress carries no rule at all. Setting the permissive value would be the
+// same statement to Typst and a different one to the author: the rule sits
+// inside the page body, so it wins over the document's own preamble, and
+// `outlined: true` on every page would quietly undo an author's
+// `set heading(outlined: false)`.
+#let _chrome(record, repeated, body) = {
+  let overrides = if repeated {
+    (numbering: none, outlined: false, bookmarked: false)
+  } else if record.attrs.appendix {
+    (outlined: false, bookmarked: false)
+  } else if record.kind != "section" {
+    (bookmarked: false)
+  } else {
+    (:)
+  }
+  if overrides.len() == 0 { return body }
+  [#set heading(..overrides)
+    #body]
+}
 
 #let _slide-page(record, body, tokens, paper, prelude: [], repeated: false) = {
   // `smaller` is per slide rather than per deck, so it is read here rather than
@@ -112,7 +135,7 @@
     } else {
       body
     }
-    if repeated { _unnumbered(placed) } else { placed }
+    _chrome(record, repeated, placed)
   })
 }
 

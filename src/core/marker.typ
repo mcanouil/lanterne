@@ -24,6 +24,15 @@
 /// @category core
 #let MARKER-SLIDE = "slide"
 
+/// Kind tag for the point a deck's appendix opens at.
+///
+/// It carries no payload: the splitter consumes it as a boundary, and every
+/// slide after it is an appendix slide. A switch rather than a per-slide option,
+/// because an appendix is a tail of a deck rather than a property one slide at
+/// a time.
+/// @category core
+#let MARKER-APPENDIX = "appendix"
+
 /// Kind tag for a stepped region.
 ///
 /// Its payload carries the spans the region is visible on, the state it takes
@@ -42,6 +51,7 @@
 #let MARKER-CONTEXT-SLIDE = "context-slide"
 
 #let _KINDS = (
+  MARKER-APPENDIX,
   MARKER-PAUSE,
   MARKER-SLIDE-OPTIONS,
   MARKER-SLIDE,

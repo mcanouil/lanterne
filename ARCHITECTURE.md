@@ -290,3 +290,38 @@ A footnote hidden on every step a render puts on a page, which `step(..., after:
 
 The width the placeholder reserves is the default mark's, a superscript of the numbering, read from the footnote's own scheme when it sets one.
 An author who restyles the mark with a `show` or `set` rule can still see a reflow when the note is revealed.
+
+## An appendix is a switch, and the outline rules ride on the page
+
+Specification 4.7 asks for three things a heading decides: a section slide is a PDF bookmark and a content slide is not, an appendix slide is excluded from the outline, and a slide is listed once however many steps it renders.
+
+### Decision
+
+All three are one computed `set heading(...)` rule per page, in `src/render/deck.typ`.
+A step page that repeats a slide carries `numbering: none, outlined: false, bookmarked: false`, a content slide carries `bookmarked: false`, and an appendix slide carries both `outlined: false` and `bookmarked: false`.
+
+Only what a page has to suppress is written, and a page with nothing to suppress carries no rule at all.
+The rule sits inside the page body, so it wins over the document's own preamble: writing the permissive value would be the same statement to Typst and a different one to the author, quietly undoing a deck-wide `set heading(outlined: false)`.
+
+Nothing is rebuilt and nothing is walked: the rule applies to whatever headings the page carries.
+That is per page rather than per level, so every heading on a section slide is a bookmark, the title and anything written under it alike.
+A divider carrying its own sub-heading is unusual, and the test pins the behaviour rather than claiming it cannot happen.
+
+`#appendix` is a marker the splitter treats as a boundary and consumes, and every record after it carries `appendix: true`.
+The switch fills the ordinary slide option, so the machine surface receives a dictionary rather than a second mechanism, and `slide-options(appendix: false)` on one of those slides wins over the switch.
+
+### Why a switch rather than an option on each slide
+
+An appendix is the tail of a deck rather than a property of one slide at a time, and Beamer and touying both read as a switch.
+Writing the option on ten slides is ten chances to miss one, and a missed one is a slide in the outline that should not be there.
+
+### What this does not cover
+
+The logical slide number, the progress indicator and the `slide-number` token are M6's, with the chrome that reads them, so an appendix slide is excluded from the outline and from the bookmarks here and from the numbering there.
+
+An appendix marker inside a block is refused, as a pause in that position is: the split examines top level children, and a marker it cannot reach would flag no slide at all.
+One inside a `context` block is not refused and cannot be, since nothing there is reachable through `fields()`; the deck then builds with no appendix, exactly as a pause in that position is lost.
+
+A second marker is refused rather than treated as a no-op: a deck has one appendix, and a marker that changed nothing is the silent no-op this package refuses everywhere else.
+
+There is no marker that closes an appendix, and none is planned: an appendix runs to the end of the deck, and a slide that has to leave it says so with `slide-options(appendix: false)`.

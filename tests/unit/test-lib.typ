@@ -16,6 +16,7 @@
 #assert.eq(lib.theme-tokens, theme.theme-tokens)
 #assert.eq(lib.theme-merge, theme.theme-merge)
 #assert.eq(lib.deck, deck.deck)
+#assert.eq(lib.appendix, slides.appendix)
 #assert.eq(lib.slide, slides.slide)
 #assert.eq(lib.slide-options, slides.slide-options)
 #assert.eq(lib.register-container, registry.register-container)
@@ -38,9 +39,9 @@
 #assert.eq(
   dictionary(lib).keys().sorted(),
   (
-    "context-slide", "deck", "dim", "emit-step", "focus", "only", "pause",
-    "register-container", "slide", "slide-options", "step", "theme-merge",
-    "theme-tokens", "uncover",
+    "appendix", "context-slide", "deck", "dim", "emit-step", "focus", "only",
+    "pause", "register-container", "slide", "slide-options", "step",
+    "theme-merge", "theme-tokens", "uncover",
   ),
 )
 
