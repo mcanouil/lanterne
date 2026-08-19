@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- feat: `#appendix` opens a deck's appendix, and every slide after it is excluded from the outline and from the PDF bookmarks. A single slide can be marked with `slide-options(appendix: true)`, which is the same option the switch sets.
+- fix: a stepped slide is listed once in the outline and bookmarked once, rather than once per step. A section slide is a PDF bookmark and a content slide is not, following the specification's numbering rules.
 - fix: a footnote behind a pause no longer puts its note and the separator rule at the foot of the page a step early. A hidden footnote is replaced by a mark of the same width, so nothing moves when the note is revealed, and a footnote inside a container of your own now needs that container registered. (#55)
 - fix: a label on a slide of several steps is kept once rather than emitted on every step, so a reference to a figure or a slide title behind a pause resolves instead of failing with a duplicate label. The label stays with the first step that shows what it marks. Three cases are refused rather than dropped silently: a label on an image, which cannot be rebuilt, a label on a stepped region itself, and a labelled element inside a container of your own that is not registered.
 - fix: a figure, a block equation and a footnote keep their numbers across the steps of a slide, and the slide after them continues correctly. A region dropped by `only` advances the counters in its place, so content written after one keeps its number as well, and a slide of one step is left exactly as it was.

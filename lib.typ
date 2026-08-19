@@ -12,7 +12,7 @@
 // registry it builds has somewhere to be spent.
 
 #import "src/core/registry.typ": register-container
-#import "src/core/slides.typ": slide, slide-options
+#import "src/core/slides.typ": appendix, slide, slide-options
 #import "src/core/steps.typ": context-slide, dim, focus, only, pause, step, uncover
 #import "src/emit/step.typ": emit-step
 #import "src/render/deck.typ": deck

@@ -1,10 +1,10 @@
 ---
 title: "Reference"
 subtitle: "Every name Lanterne exports, and what it accepts."
-description: "The fourteen exports of lib.typ, the theme token vocabulary, the slide options, and what each call rejects."
+description: "The fifteen exports of lib.typ, the theme token vocabulary, the slide options, and what each call rejects."
 ---
 
-`lib.typ` is a pure re-export facade: it exports fourteen names and defines none.
+`lib.typ` is a pure re-export facade: it exports fifteen names and defines none.
 Everything below was read out of the source, and each section names the file it came from, so it can be checked against the code rather than trusted.
 
 | Export | Source | Purpose |
@@ -12,6 +12,7 @@ Everything below was read out of the source, and each section names the file it 
 | `deck` | `src/render/deck.typ` | The document's show rule: a body becomes pages. |
 | `slide` | `src/core/slides.typ` | A slide written out in full rather than opened by a heading. |
 | `slide-options` | `src/core/slides.typ` | Options for the slide a heading opened. |
+| `appendix` | `src/core/slides.typ` | The point a deck's appendix opens at. |
 | `theme-tokens` | `src/theme/theme.typ` | A theme: the defaults with named overrides applied. |
 | `theme-merge` | `src/theme/theme.typ` | Overrides merged into a complete theme. |
 | `step` | `src/core/steps.typ` | A region visible on some steps and not on others. |
@@ -145,13 +146,31 @@ Two markers on one slide are an error rather than one of them silently winning.
 
 | Option | Type | Default | Description |
 | --- | --- | --- | --- |
+| `appendix` | boolean | `false` | Excludes the slide from the outline and from the PDF bookmarks. Set by `#appendix` for every slide after it, and settable here for one slide alone. |
 | `smaller` | boolean | `false` | Sets the slide's text one step down the theme's `scale-ratio`, title and body together. |
 | `steps` | positive integer or `none` | `none` | Raises the slide's step count to at least this many. Needed when a `context-slide` callback wants more steps than the rest of the body advertises, since a range written inside a callback cannot be counted. |
 
 : Slide options, from `src/core/record.typ`. {.striped .hover tbl-colwidths="[15,13,12,60]"}
 
-Two options today.
-`appendix` and `layout` arrive alongside the code that reads them, so the vocabulary grows rather than shipping names that mean nothing yet.
+Three options today.
+`layout` arrives alongside the code that reads it, so the vocabulary grows rather than shipping names that mean nothing yet.
+
+## `appendix`
+
+Read from `src/core/slides.typ`.
+
+```typst
+== Last slide
+
+#appendix
+
+== Extra detail
+```
+
+A switch rather than an option written on each slide: every slide after it is an appendix slide, excluded from the outline and from the PDF bookmarks.
+It has to be a top level child of the document body, and one written inside a block is refused rather than rendering as nothing.
+
+The splitter consumes the marker and sets the `appendix` slide option on each later record, so the machine surface receives an ordinary option and `slide-options(appendix: false)` on one of those slides wins over the switch.
 
 ## `step`, `uncover`, `only`, `dim`, `focus`, `pause` and `context-slide`
 
@@ -392,4 +411,4 @@ Labels on a stepped slide
 
 Headings and bookmarks on a stepped slide
 
-: A slide's title is the heading the author wrote, and a stepped slide's body, heading included, is emitted once per step, so `query(heading)` returns it once per step, `#outline()` lists the slide once per step, and the PDF carries a duplicate bookmark for each. A slide with a single step is unaffected. The heading counter is not affected, because a repeated step page carries `set heading(numbering: none)`. The outline and bookmark rules arrive with the rest of specification 4.7.
+: A slide's title is the heading the author wrote, and a stepped slide's body, heading included, is emitted once per step, so `query(heading)` returns it once per step. The outline and the bookmarks are not affected: a step page that repeats a slide carries `set heading(numbering: none, outlined: false, bookmarked: false)`, so the slide is listed once and bookmarked once however many steps it has. A section slide is a bookmark, a content slide is not, and an appendix slide is neither.

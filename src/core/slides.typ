@@ -29,9 +29,10 @@
 ///! `slide-level` to match the offset. An offset passed to `heading` itself is
 ///! read and counted, since that one is a field.
 
-#import "marker.typ": MARKER-SLIDE, MARKER-SLIDE-OPTIONS, is-marker, marker
+#import "marker.typ": MARKER-APPENDIX, MARKER-SLIDE, MARKER-SLIDE-OPTIONS, is-marker, marker
 #import "record.typ": check-attrs, slide-record
 #import "split.typ": is-blank, split-at
+#import "walk.typ": collect-markers
 #import "../utils/elements.typ": SEQUENCE, SPACE, STYLED, is-elem
 #import "../utils/errors.typ": fail, fail-type
 
@@ -59,6 +60,11 @@
 // its own.
 #let _is-boundary(node, slide-level) = {
   if _kind(node) == MARKER-SLIDE { return true }
+  // The appendix marker opens a slide it does not fill: what follows it is
+  // either a heading, which opens a slide of its own, or nothing. Treating it
+  // as a boundary is what lets the splitter consume it, since a marker left in
+  // a segment would render as nothing and flag no slide at all.
+  if _kind(node) == MARKER-APPENDIX { return true }
   if is-elem(node, pagebreak) { return true }
   if not is-elem(node, heading) { return false }
   _heading-level(node) <= slide-level
@@ -126,10 +132,18 @@
 // stays in the body, where the rules in force over it still reach it, so the
 // title read from it here describes the slide rather than replacing what
 // renders.
-#let _record(boundary, segment, slide-level, scope) = {
+#let _record(boundary, segment, slide-level, scope, appendix) = {
   let taken = _take-options(segment, scope)
+  // The switch fills the option, so the machine surface receives an ordinary
+  // slide option and a slide can still be marked one at a time. An option
+  // written on the slide wins, since it is the more specific statement.
+  let attrs = if appendix and "appendix" not in taken.attrs {
+    taken.attrs + (appendix: true)
+  } else {
+    taken.attrs
+  }
   if boundary == none or not is-elem(boundary, heading) {
-    return slide-record(taken.body, attrs: taken.attrs)
+    return slide-record(taken.body, attrs: attrs)
   }
   let level = _heading-level(boundary)
   slide-record(
@@ -138,7 +152,7 @@
     title: boundary.body,
     level: level,
     label: boundary.fields().at("label", default: none),
-    attrs: taken.attrs,
+    attrs: attrs,
   )
 }
 
@@ -167,7 +181,14 @@
     fail-type(scope, "slide-level", slide-level, "a non-negative integer")
   }
 
+  // An appendix marker the split cannot reach is refused, exactly as a pause in
+  // the same position is: the marker renders as nothing, so a deck written with
+  // one inside a block would build with no appendix and no warning.
+  let reachable = collect-markers(body).filter(node => _kind(node) == MARKER-APPENDIX).len()
+
   let records = ()
+  let appendix = false
+  let opened = 0
   // A heading is kept where it was found, at the head of the segment it opened,
   // so that the wrappers it was written under still govern it. A page break and
   // a slide marker are consumed instead: the first would open a page inside the
@@ -182,6 +203,13 @@
     // An explicit slide is complete in itself, so it is emitted before the
     // segment it opened, which is the content written after it and belongs to a
     // slide of its own.
+    if _kind(boundary) == MARKER-APPENDIX {
+      // Every slide from here on is an appendix slide. The marker itself opens
+      // nothing: the segment it holds is whatever sits between it and the next
+      // heading, which is dropped when it is blank.
+      appendix = true
+      opened += 1
+    }
     if _kind(boundary) == MARKER-SLIDE {
       let given = boundary.value.payload
       // Its options are its arguments. A marker inside its body has no heading
@@ -215,8 +243,17 @@
     // the lead-in and whatever follows an explicit slide.
     let opened-by-author = is-elem(boundary, heading) or is-elem(boundary, pagebreak)
     if not opened-by-author and is-blank(part.body) { continue }
-    records.push(_record(boundary, part.body, slide-level, scope))
+    records.push(_record(boundary, part.body, slide-level, scope, appendix))
   }
+
+  if reachable > opened {
+    fail(
+      scope,
+      "an appendix marker sits inside an element, where the split cannot reach it",
+      hint: "Write #appendix as a top level child of the document body.",
+    )
+  }
+
   records
 }
 
@@ -246,6 +283,19 @@
     payload: (body: body, title: title, level: level, attrs: attrs.named()),
   )
 }
+
+/// The point a deck's appendix opens at, written `#appendix`.
+///
+/// Every slide after it is an appendix slide, so it is written once rather than
+/// marked on each: an appendix is the tail of a deck. The splitter consumes the
+/// marker and sets the `appendix` slide option on each later record, so the
+/// machine surface receives an ordinary option and a single slide can still be
+/// marked on its own.
+///
+/// It has to be a top level child of the document body. One written inside a
+/// block is refused rather than rendering as nothing and flagging no slide.
+/// @category deck
+#let appendix = marker(MARKER-APPENDIX)
 
 /// Options for the slide a heading opened, written immediately after it.
 ///

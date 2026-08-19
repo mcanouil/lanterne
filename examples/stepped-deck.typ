@@ -73,3 +73,22 @@ A `context-slide` callback cannot be counted, because what it returns does not
 exist when the step count is computed, so this slide raises its own count with
 `slide-options(steps: 4)` rather than leaving it at the one step the rest of
 the body would otherwise advertise.
+
+== A numbered figure behind a pause
+
+#figure(rect(width: 3cm, height: 1.5cm), caption: [Revealed on the second step])
+
+#pause
+
+The figure keeps its number on every step of this slide, and the slide after it
+continues from that number rather than from an inflated one. A footnote behind a
+pause behaves the same way: it puts no note at the foot of the page until the
+step that reveals it.#footnote[This note appears with the step that reveals it.]
+
+#appendix
+
+== Extra detail, after the appendix opens
+
+Every slide from the appendix marker on is excluded from the outline and from
+the PDF bookmarks, so a reader navigating the deck sees the talk rather than the
+material held in reserve for questions.

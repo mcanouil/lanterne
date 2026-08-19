@@ -23,12 +23,14 @@
 // spec, so a default cannot drift away from the rule that governs it.
 // `expected` completes "<name> must be ...".
 //
-// Two entries today: `smaller` is the option page emission reads, and is the
-// one the specification's own machine-surface example carries. `steps` is the
-// per-slide floor the step engine reads. `appendix` arrives with the
-// correctness rules and `layout` with the layout system, each alongside the
-// code that reads it.
+// `smaller` is the option page emission reads, and is the one the
+// specification's own machine-surface example carries. `steps` is the per-slide
+// floor the step engine reads. `appendix` is set by the splitter for every
+// slide after the appendix marker, and read where the outline and the bookmarks
+// are decided. `layout` arrives with the layout system, alongside the code that
+// reads it.
 #let _ATTRS = (
+  appendix: (default: false, expected: "a boolean", ok: v => type(v) == bool),
   smaller: (default: false, expected: "a boolean", ok: v => type(v) == bool),
   steps: (
     default: none,

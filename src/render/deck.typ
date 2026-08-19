@@ -67,17 +67,37 @@
   base * calc.pow(tokens.scale-ratio, calc.max(0, 3 - level))
 }
 
+// What a page's headings contribute beyond the page itself, as one `set` rule.
+//
+// Three rules meet here, all of them about a heading that is emitted more than
+// once or that belongs to a slide the reader should not navigate to.
+//
 // A step page that repeats a slide already emitted carries its headings a
-// second time, and a numbered heading would advance the heading counter once
-// per step. That counter is hierarchical, so it cannot be put back by
+// second time. A numbered heading would advance the heading counter once per
+// step, and that counter is hierarchical, so it cannot be put back by
 // subtraction the way a figure's is; the heading is stopped from advancing it
-// instead. Nothing a reader sees changes, because a heading advances the
-// counter only when it is numbered, and this renderer draws the title from
-// `it.body`.
-#let _unnumbered(body) = [
-  #set heading(numbering: none)
-  #body
-]
+// instead. The repeat would also list the slide again in the outline and add a
+// second bookmark for it.
+//
+// Specification 4.7 gives the other two: a section heading is a bookmark and a
+// content slide is not, and an appendix slide is excluded from the outline.
+#let _chrome(record, repeated, body) = {
+  let bookmarked = if repeated or record.kind != "section" or record.attrs.appendix {
+    false
+  } else {
+    auto
+  }
+  let outlined = not (repeated or record.attrs.appendix)
+  if repeated {
+    // Numbering is left alone on a page that is not a repeat, so the document's
+    // own `set heading(numbering: ...)` still governs it.
+    [#set heading(numbering: none, outlined: outlined, bookmarked: bookmarked)
+      #body]
+  } else {
+    [#set heading(outlined: outlined, bookmarked: bookmarked)
+      #body]
+  }
+}
 
 #let _slide-page(record, body, tokens, paper, prelude: [], repeated: false) = {
   // `smaller` is per slide rather than per deck, so it is read here rather than
@@ -112,7 +132,7 @@
     } else {
       body
     }
-    if repeated { _unnumbered(placed) } else { placed }
+    _chrome(record, repeated, placed)
   })
 }
 
