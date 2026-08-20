@@ -70,6 +70,10 @@ Layouts
 
 : A theme composes the regions of a slide, and the regions themselves are fixed: a header above the body, a progress region and a footer below it. There is no layout system yet, so a slide cannot describe columns, a grid, or a named cell to place content in.
 
+Only a title-placing slot is given the title
+
+: `state.title` carries the slide's title for a header slot and for the section slot, and is `none` for a footer or a progress region. A footer showing the slide's own title therefore cannot be written yet: the slot cannot tell a slide with no title from a slide whose title is still in its body. Handing every slot the title is a change to what taking it out of the body means, and waits for the milestone that settles where chrome reads from.
+
 Chrome a theme must place
 
 : Supplying a `render-header` slot moves the slide's title out of the body, so a header that ignores `state.title` deletes the title from the slide, from the outline and from the bookmarks. Where the slide carried a label, a reference to it then fails to compile. A theme places the title or supplies no header slot.

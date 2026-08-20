@@ -194,6 +194,15 @@
 // A region with no slot behind it takes no row at all, so a theme supplying
 // none composes exactly the page it composed before there were slots.
 #let _regions(tokens, body: [], header: none, progress: none, footer: none) = {
+  // Blank content is absence, here as everywhere else in this file. A
+  // conditional written in markup yields the blank where the same conditional
+  // written in code yields `none`, and two spellings of one intent must not
+  // give two layouts: a blank band holding a region's height is exactly the
+  // stray space the rest of this composition avoids.
+  let taken = region => if region == none or is-blank(region) { none } else { region }
+  let header = taken(header)
+  let progress = taken(progress)
+  let footer = taken(footer)
   let rows = ()
   let cells = ()
   if header != none {
@@ -295,51 +304,42 @@
   } else {
     tokens.size-base
   }
-  let slots = tokens.slots
-  let section-slot = if record.kind == "section" {
-    slots.at("render-section-slide", default: none)
+  // What this page shows.
+  //
+  // Where no slot composes the page, the title is not placed by this module. It
+  // is the heading the author wrote, still at the head of the body and still
+  // inside the wrappers it was written under, which is what keeps the
+  // document's own numbering, `show` rules and reference destinations working
+  // on it.
+  //
+  // Where a slot does compose the page, the title is still inside those
+  // wrappers: `split-head` takes it out with them, which is the whole reason
+  // that function exists.
+  //
+  // A title slide is composed by its own slot and arrives here already built. A
+  // theme that supplies a header and a footer draws them on its slides;
+  // drawing them over its own title page as well would put deck chrome on the
+  // one page that is not a deck slide. None of the lookups below apply to it,
+  // so none of them are made.
+  let composed = if title-slide {
+    body
   } else {
-    none
-  }
-  let header-slot = if record.kind == "section" {
-    none
-  } else {
-    slots.at("render-header", default: none)
-  }
-  let cut = _title(record, body, header-slot != none or section-slot != none)
-  let state = _state(record, cut, step, mode)
-  page(paper: paper, fill: tokens.bg, margin: tokens.margin, {
-    set text(font: tokens.font-base, size: size, fill: tokens.fg)
-    set par(leading: tokens.leading)
-    show heading: it => block(text(
-      font: tokens.font-heading,
-      weight: tokens.weight-heading,
-      size: _heading-size(it.level, size, tokens),
-      it.body,
-    ))
-    // The counter shifts for this step, before anything is laid out and
-    // outside the composition below, so that a step numbers what the slide's
-    // first step numbered. They render as nothing and reserve no space.
-    prelude
-    // Where no slot composes the page, the title is not placed here. It is the
-    // heading the author wrote, still at the head of the body and still inside
-    // the wrappers it was written under, which is what keeps the document's own
-    // numbering, `show` rules and reference destinations working on it.
-    //
-    // Where a slot does compose the page, the title is still inside those
-    // wrappers: `split-head` takes it out with them, which is the whole reason
-    // that function exists.
-    //
+    let slots = tokens.slots
+    let section-slot = if record.kind == "section" {
+      slots.at("render-section-slide", default: none)
+    } else {
+      none
+    }
+    let header-slot = if record.kind == "section" {
+      none
+    } else {
+      slots.at("render-header", default: none)
+    }
+    let cut = _title(record, body, header-slot != none or section-slot != none)
+    let state = _state(record, cut, step, mode)
     // A section slide is a divider, so what it carries sits in the middle of
     // the page rather than at the top of it, unless a theme says otherwise.
-    let composed-or-none = if title-slide {
-      // A title slide is a page of its own, not a slide of the deck dressed
-      // like the rest. A theme that supplies a header and a footer draws them
-      // on its slides; drawing them over its own title page as well would put
-      // deck chrome on the one page that is not a deck slide, and the regions
-      // would receive a `state` describing no slide at all.
-      body
-    } else if section-slot != none {
+    let built = if section-slot != none {
       _placed(
         _slot(slots, "render-section-slide", info, tokens, state, scope),
         "render-section-slide",
@@ -364,10 +364,23 @@
         footer: _slot(slots, "render-footer", info, tokens, state, scope),
       )
     }
-    // A section slot that returns `none` is refused above, and a title slot that
-    // does emits no page at all, so this only stands in for a slot that
-    // composed nothing on a slide with no title to lose.
-    let composed = if composed-or-none == none { [] } else { composed-or-none }
+    // A section slot that returns `none` is refused above, so this only stands
+    // in for a slot that composed nothing on a slide with no title to lose.
+    if built == none { [] } else { built }
+  }
+  page(paper: paper, fill: tokens.bg, margin: tokens.margin, {
+    set text(font: tokens.font-base, size: size, fill: tokens.fg)
+    set par(leading: tokens.leading)
+    show heading: it => block(text(
+      font: tokens.font-heading,
+      weight: tokens.weight-heading,
+      size: _heading-size(it.level, size, tokens),
+      it.body,
+    ))
+    // The counter shifts for this step, before anything is laid out and
+    // outside the composition below, so that a step numbers what the slide's
+    // first step numbered. They render as nothing and reserve no space.
+    prelude
     // The whole composed page, not the body region alone. A title moved into a
     // header region beside this rule would escape all three suppressions: the
     // heading counter would advance once per step, the outline would list the

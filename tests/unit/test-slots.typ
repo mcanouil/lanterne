@@ -429,6 +429,13 @@ body], theme: markup-conditional)
 #assert.eq(full.row-gutter, (5mm,))
 #assert.eq(full.children.map(cell => cell.body), ([h], [b], [p], [f]))
 
+// A region whose slot returned blank content takes no row either. Two spellings
+// of one intent must give one layout: a conditional written in markup yields
+// the blank where the same conditional written in code yields `none`, and every
+// other path in the renderer already reads the two as one statement.
+#let markup-blank = _regions(geometry, body: [b], footer: [#if false [foot]])
+#assert.eq(markup-blank, [b])
+
 // A region a theme did not supply takes no row at all, so the body keeps the
 // space rather than a blank band holding it.
 #let footer-only = _regions(geometry, body: [b], footer: [f])
