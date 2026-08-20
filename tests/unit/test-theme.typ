@@ -38,6 +38,28 @@
 #assert.eq(merged.extra.badge-width, 5)
 #assert.eq(merged.extra.badge-radius, 2pt)
 
+// `slots` is the second reserved key, and it merges the way `extra` does. A
+// theme author overriding one colour of a preset must not silently lose the
+// renderers that preset supplied, which is what wholesale replacement would do.
+#let header = (info: none, tokens: none, state: none) => [h]
+#let footer = (info: none, tokens: none, state: none) => [f]
+#let themed = theme-tokens(slots: (render-header: header))
+#assert.eq(themed.slots.keys(), ("render-header",))
+#assert.eq(themed.slots.render-header, header)
+
+#let both = theme-merge(themed, (slots: (render-footer: footer), bg: black))
+#assert.eq(both.slots.render-header, header)
+#assert.eq(both.slots.render-footer, footer)
+#assert.eq(both.bg, black)
+
+// The last writer wins for a slot, as it does for a token.
+#let replaced = theme-merge(themed, (slots: (render-header: footer)))
+#assert.eq(replaced.slots.render-header, footer)
+
+// A theme with no slots carries the key and an empty dictionary, so a renderer
+// reads `tokens.slots` without asking whether it exists.
+#assert.eq(theme-tokens().slots, (:))
+
 // A canonical token still validates when it arrives through a merge rather
 // than through the constructor.
 #assert.eq(theme-merge(theme-tokens(), (margin: 1cm)).margin, 1cm)

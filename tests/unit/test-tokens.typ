@@ -10,7 +10,7 @@
 // Typst cannot catch a panic, so the accepting paths are asserted here and the
 // rejecting paths are compiled as their own files under tests/expect-fail/.
 
-#import "../../src/theme/tokens.typ": check-token, default-tokens
+#import "../../src/theme/tokens.typ": SLOT-NAMES, check-slots, check-token, default-tokens
 
 #let defaults = default-tokens()
 
@@ -18,16 +18,25 @@
 #assert.eq(
   defaults.keys().sorted(),
   (
+    "accent",
+    "accent-fg",
     "bg",
+    "border",
     "dim-opacity",
     "extra",
     "fg",
     "font-base",
     "font-heading",
+    "footer-height",
+    "gutter",
+    "header-height",
     "leading",
     "margin",
+    "muted",
     "scale-ratio",
     "size-base",
+    "slots",
+    "stroke-width",
     "weight-heading",
   ),
 )
@@ -44,12 +53,21 @@
 #assert.eq(defaults.leading, 0.75em)
 #assert.eq(defaults.margin, 2cm)
 #assert.eq(defaults.extra, (:))
+#assert.eq(defaults.accent, rgb("#1f5fa9"))
+#assert.eq(defaults.accent-fg, white)
+#assert.eq(defaults.muted, rgb("#6b6b76"))
+#assert.eq(defaults.border, rgb("#d8d8e0"))
+#assert.eq(defaults.gutter, 0.6cm)
+#assert.eq(defaults.header-height, 2cm)
+#assert.eq(defaults.footer-height, 1cm)
+#assert.eq(defaults.stroke-width, 1pt)
+#assert.eq(defaults.slots, (:))
 
 // Every default satisfies its own rule. A table of literals and a table of
 // rules otherwise drift apart silently, and the default is the value most
 // decks will actually carry.
 #for (name, value) in defaults {
-  if name != "extra" { check-token(name, value, "test") }
+  if name not in ("extra", "slots") { check-token(name, value, "test") }
 }
 
 // `extra` is not a token: its contents are deliberately unvalidated, so it is
@@ -90,6 +108,47 @@
 #check-token("margin", 2em, "test")
 #check-token("margin", 10pt, "test")
 #check-token("size-base", 1cm, "test")
+
+// The geometry a region is built from cannot be negative: a band of negative
+// height and a rule of negative thickness describe nothing. Zero is accepted,
+// since a theme suppresses a region by giving it no height.
+#check-token("gutter", 0pt, "test")
+#check-token("header-height", 0cm, "test")
+#check-token("footer-height", 1em, "test")
+#check-token("stroke-width", 0pt, "test")
+#check-token("stroke-width", 0.5em, "test")
+
+// A length carrying both an absolute and a relative part cannot be compared
+// with `0pt` at all: Typst raises `cannot compare 3pt + -0.5em with 0pt`. The
+// rule reads the two components separately, so a mixed length is judged here
+// rather than crashing inside a comparison.
+#check-token("header-height", 2cm + 1em, "test")
+
+// The four colour tokens the chrome reads take what the other colours take.
+#check-token("accent", rgb(10, 20, 30), "test")
+#check-token("accent-fg", white, "test")
+#check-token("muted", luma(50%), "test")
+#check-token("border", black, "test")
+
+// `slots` is validated where `extra` is not: the set of five is a frozen
+// contract, so a name outside it is a slot nobody would ever call.
+#assert.eq(
+  SLOT-NAMES,
+  (
+    "render-title-slide",
+    "render-section-slide",
+    "render-header",
+    "render-footer",
+    "render-progress",
+  ),
+)
+#check-slots((:), "test")
+#check-slots((render-header: (info: none, tokens: none, state: none) => []), "test")
+#for name in SLOT-NAMES { check-slots(((name): () => []), "test") }
+
+// `slots` is not a token either, so check-token rejects it by name. Asserting
+// that positively is impossible, so tests/expect-fail/token-slots-as-name.typ
+// pins it beside token-extra-as-name.typ.
 
 // The rejecting paths live in tests/expect-fail/token-*.typ, where each is
 // compiled and its message matched. They were comments here until the suite

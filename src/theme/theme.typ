@@ -10,7 +10,7 @@
 ///! document-order dependent, so the same slide could resolve a different
 ///! theme depending on where it sits in the deck.
 
-#import "tokens.typ": check-token, default-tokens
+#import "tokens.typ": check-slots, check-token, default-tokens
 #import "../utils/errors.typ": fail, fail-type, repr-each
 
 // The merge itself, taking the scope it reports under. Both public functions
@@ -35,14 +35,19 @@
     )
   }
   // `base` is validated rather than trusted. It is usually the output of this
-  // same function, in which case this costs one pass over eleven keys; when it
+  // same function, in which case this costs one pass over twenty keys; when it
   // is not, this is the only place the mistake can still be reported by name.
+  //
+  // Both reserved keys are exempt, because neither is a token and
+  // `check-token` reports either as an unknown name. Leaving `slots` in this
+  // loop would fail every theme the package builds, including the defaults.
   for (name, value) in base {
-    if name != "extra" { check-token(name, value, scope) }
+    if name not in ("extra", "slots") { check-token(name, value, scope) }
   }
   if type(base.extra) != dictionary {
     fail-type(scope, "base.extra", base.extra, "a dictionary")
   }
+  check-slots(base.slots, scope, name: "base.slots")
 
   let merged = base
   for (name, value) in overrides {
@@ -53,6 +58,14 @@
       let combined = merged.extra
       for (key, own) in value { combined.insert(key, own) }
       merged.insert("extra", combined)
+    } else if name == "slots" {
+      // Key by key, as `extra` merges. Replacing wholesale would mean that
+      // overriding one colour of a preset silently dropped every renderer that
+      // preset supplied, which is the failure a theme author notices last.
+      check-slots(value, scope)
+      let combined = merged.slots
+      for (key, own) in value { combined.insert(key, own) }
+      merged.insert("slots", combined)
     } else {
       check-token(name, value, scope)
       merged.insert(name, value)

@@ -1,7 +1,7 @@
 ---
 title: "Theme tokens"
 subtitle: "The vocabulary a theme is written in, and what each name accepts."
-description: "The theme token vocabulary Lanterne validates against, its defaults, and the reserved extra namespace."
+description: "The theme token vocabulary Lanterne validates against, its defaults, and the two reserved namespaces."
 ---
 
 A theme is a flat dictionary of tokens.
@@ -22,6 +22,10 @@ The colour, typography and geometry groupings are documentation rather than stru
 | --- | --- | --- | --- |
 | `bg` | colour | `white` | The page fill. |
 | `fg` | colour | `rgb("#111111")` | The text colour. |
+| `accent` | colour | `rgb("#1f5fa9")` | The theme's accent, such as a title band's fill. |
+| `accent-fg` | colour | `white` | The text colour on an accent fill. |
+| `muted` | colour | `rgb("#6b6b76")` | Secondary text, such as a footer. |
+| `border` | colour | `rgb("#d8d8e0")` | Rules and separators. |
 | `dim-opacity` | ratio from 0% to 100% | `30%` | The text fill opacity a dimmed region renders at, read by `dim` and `focus`. |
 | `font-base` | family name, coverage-scoped entry, or a non-empty array of them | `"Libertinus Serif"` | The body font. |
 | `font-heading` | as `font-base` | `"Libertinus Serif"` | The heading font. |
@@ -30,14 +34,22 @@ The colour, typography and geometry groupings are documentation rather than stru
 | `weight-heading` | integer from 100 to 900, or a weight name | `"semibold"` | The heading weight. |
 | `leading` | length | `0.75em` | The paragraph leading. |
 | `margin` | length | `2cm` | The page margin. |
+| `gutter` | non-negative length | `0.6cm` | The space between the regions of a slide. |
+| `header-height` | non-negative length | `2cm` | The height of a header region. |
+| `footer-height` | non-negative length | `1cm` | The height of a footer region. |
+| `stroke-width` | non-negative length | `1pt` | The thickness of a rule or a border. |
 | `extra` | dictionary | `(:)` | Tokens of your own. The one key whose contents are not validated. |
+| `slots` | dictionary | `(:)` | A theme's renderers, validated against the five slot names. |
 
 : The token vocabulary. {.striped .hover tbl-colwidths="[15,25,15,45]"}
 
 The named weights are `thin`, `extralight`, `light`, `regular`, `medium`, `semibold`, `bold`, `extrabold` and `black`.
 
+A non-negative length may carry an absolute part, a relative part, or both.
+Both parts are read separately, because Typst refuses to compare a mixed length with zero at all.
+
 The vocabulary grows with the code that reads a token.
-The specification names twenty-eight; the ten above are those something reads today, and the rest arrive with the theming and layout milestones.
+The specification names twenty-eight; the eighteen above are those something reads today, and the rest arrive with the remaining theming, layout and element milestones.
 
 ## Heading sizes
 
@@ -52,3 +64,23 @@ The strictness everywhere else is the point: a mistyped token name that is quiet
 
 `extra` merges key by key rather than replacing wholesale, so setting one token of your own leaves the rest of the base theme's in place.
 It is not itself a token name, so `theme-tokens(extra: ...)` is accepted as a key while an unknown name inside the vocabulary is refused.
+
+## The `slots` namespace
+
+`slots` holds a theme's renderers.
+It is the second reserved key, and like `extra` it is not a token name and merges key by key, so overriding one colour of a theme does not drop the renderers it supplied.
+
+Unlike `extra`, its contents are validated.
+A key must be one of `render-title-slide`, `render-section-slide`, `render-header`, `render-footer` or `render-progress`, and its value must be a function.
+The set of five is fixed, and expanding it is a deliberate versioned decision.
+A name outside it is refused rather than stored, because the renderer calls the five it knows and a sixth would be a function nothing ever runs.
+
+```typst
+#let banded = theme-tokens(
+  accent: rgb("#1f5fa9"),
+  slots: (render-header: (info: none, tokens: none, state: none) => []),
+)
+```
+
+The renderers themselves arrive with the milestone that calls them.
+A theme may carry them today, and every slide still renders as it does without them.
