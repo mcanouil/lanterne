@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- feat: a theme carries eight more tokens. `accent`, `accent-fg`, `muted` and `border` are the colours chrome is set in, and `gutter`, `header-height`, `footer-height` and `stroke-width` are the geometry a region is built from. The four lengths refuse a negative value and accept zero, since a theme suppresses a region or a rule by giving it none. Each part of a length is judged on its own, so `2cm - 1em` is refused although it resolves positive: Typst cannot compare a mixed length with zero, and comparing the whole would report its error rather than this package's.
 - docs: the reference is generated from the source rather than written beside it, so a page cannot describe a call the code no longer has. Every export states whether it is `stable` or `experimental`, which says where the 0.x licence to break things actually applies. The theme token vocabulary and the current limitations move to pages of their own.
 - feat: `#appendix` opens a deck's appendix, and every slide after it is excluded from the outline and from the PDF bookmarks. A single slide can be marked with `slide-options(appendix: true)`, which is the same option the switch sets.
 - fix: a stepped slide is listed once in the outline and bookmarked once, rather than once per step. A section slide is a PDF bookmark and a content slide is not, following the specification's numbering rules.

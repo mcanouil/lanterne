@@ -11,12 +11,42 @@
 ///! reads yet would validate and store values no code consults, and leave the
 ///! reader unable to tell which of them mean anything.
 ///!
+///! The rule governs a milestone rather than a single commit. A name may arrive
+///! one branch ahead of its reader when both land in the same stack, since the
+///! alternative is one branch nobody can review; it may never arrive ahead of
+///! the milestone that reads it. `accent`, `accent-fg`, `muted`, `border`,
+///! `gutter`, `header-height`, `footer-height` and `stroke-width` are read by
+///! the renderer slots, and are the eight names currently in that position.
+///!
+///! Two keys are reserved rather than canonical, and neither is a token.
+///!
 ///! `extra` is the one key whose contents are not validated. Without it,
 ///! strict validation would leave a user defined element nowhere to keep its
 ///! own tokens, and the strictness everywhere else is the point: a mistyped
 ///! token name that is quietly ignored is how a theme rots.
+///!
+///! `slots` holds a theme's renderers, and its contents are validated against
+///! the five names specification 5.2 fixes. It is validated where `extra` is
+///! not because that set is a frozen contract: a name outside it is a renderer
+///! nothing will ever call, so accepting one would store a slot that silently
+///! does nothing.
 
 #import "../utils/errors.typ": fail-enum, fail-type
+
+/// The renderer slots a theme may supply, in the order specification 5.2 names
+/// them.
+///
+/// The set is fixed at five, and expanding it is a deliberate versioned
+/// decision, so that a theme stays cheap to maintain across releases. Two of
+/// them compose a whole page and three fill a region of one.
+/// @category theme
+#let SLOT-NAMES = (
+  "render-title-slide",
+  "render-section-slide",
+  "render-header",
+  "render-footer",
+  "render-progress",
+)
 
 #let _WEIGHTS = (
   "thin",
@@ -51,6 +81,8 @@
   value.len() > 0 and value.all(_is-family)
 }
 
+#let _is-colour(value) = type(value) == color
+
 #let _is-weight(value) = {
   if type(value) == str { return _WEIGHTS.contains(value) }
   type(value) == int and value >= 100 and value <= 900
@@ -66,11 +98,29 @@
 // comparison against `0pt` is only reached once that holds.
 #let _is-base-size(value) = type(value) == length and value.em == 0.0 and value > 0pt
 
+// A region's height, the space between regions and a rule's thickness are all
+// geometry that cannot run backwards, so a negative value describes nothing.
+// Zero is accepted, since a theme suppresses a region or a rule by giving it
+// none of either.
+//
+// The two components are read separately rather than compared as a whole,
+// because Typst refuses to compare a length carrying both an absolute and a
+// relative part: `2cm - 1em >= 0pt` raises `cannot compare 2cm + -1em with
+// 0pt`. Comparing the whole would therefore replace this message with Typst's
+// own on exactly the values this rule exists to reject.
+#let _is-non-negative-length(value) = {
+  type(value) == length and value.em >= 0.0 and value.abs >= 0pt
+}
+
 // Name, default and rule together, so a default cannot drift away from the
 // rule that governs it. `expected` completes "<name> must be ...".
 #let _SPEC = (
-  bg: (default: white, expected: "a colour", ok: v => type(v) == color),
-  fg: (default: rgb("#111111"), expected: "a colour", ok: v => type(v) == color),
+  bg: (default: white, expected: "a colour", ok: _is-colour),
+  fg: (default: rgb("#111111"), expected: "a colour", ok: _is-colour),
+  accent: (default: rgb("#1f5fa9"), expected: "a colour", ok: _is-colour),
+  accent-fg: (default: white, expected: "a colour", ok: _is-colour),
+  muted: (default: rgb("#6b6b76"), expected: "a colour", ok: _is-colour),
+  border: (default: rgb("#d8d8e0"), expected: "a colour", ok: _is-colour),
   dim-opacity: (
     default: 30%,
     expected: "a ratio between 0% and 100%",
@@ -103,6 +153,26 @@
   ),
   leading: (default: 0.75em, expected: "a length", ok: v => type(v) == length),
   margin: (default: 2cm, expected: "a length", ok: v => type(v) == length),
+  gutter: (
+    default: 0.6cm,
+    expected: "a non-negative length in both its absolute and relative parts",
+    ok: _is-non-negative-length,
+  ),
+  header-height: (
+    default: 2cm,
+    expected: "a non-negative length in both its absolute and relative parts",
+    ok: _is-non-negative-length,
+  ),
+  footer-height: (
+    default: 1cm,
+    expected: "a non-negative length in both its absolute and relative parts",
+    ok: _is-non-negative-length,
+  ),
+  stroke-width: (
+    default: 1pt,
+    expected: "a non-negative length in both its absolute and relative parts",
+    ok: _is-non-negative-length,
+  ),
 )
 
 /// The canonical token dictionary, every key at its default.
@@ -120,13 +190,63 @@
   let tokens = (:)
   for (name, spec) in _SPEC { tokens.insert(name, spec.default) }
   tokens.insert("extra", (:))
+  // Seeded empty rather than left out, so a renderer reads `tokens.slots`
+  // without first asking whether the theme has any.
+  tokens.insert("slots", (:))
   tokens
+}
+
+/// Panic unless `slots` is a dictionary of canonical slot names holding
+/// functions.
+///
+/// `name` completes every message this raises, so the base of a merge is
+/// reported as `base.slots` and an override as `slots`, naming the half of the
+/// call the bad key came from. That distinction is the point of re-validating a
+/// base: a base built by hand is the one case where the author cannot assume
+/// the fault is in the overrides they just wrote.
+///
+/// An unknown name is refused rather than stored. The renderer calls the five
+/// it knows, so a sixth would be a function a theme author wrote, a theme
+/// carried, and nothing ever ran.
+///
+/// `clears` says whether `none` is a legal value, and it is false in the base
+/// position. `none` clears a slot, which is something an override says; a base
+/// carrying it says nothing, and storing it would leave the key present and
+/// holding `none`, so a renderer asking whether a slot is there would call one
+/// that is not.
+///
+/// A slot's arity and its return value are not checked here, and the arity
+/// cannot be: Typst exposes nothing of a closure's parameters. A slot is called
+/// with the named arguments `info`, `tokens` and `state` and returns content,
+/// and both are enforced at the call site that composes a page.
+/// @category theme
+#let check-slots(slots, scope, name: "slots", clears: true) = {
+  if type(slots) != dictionary {
+    fail-type(scope, name, slots, "a dictionary")
+  }
+  for (slot, value) in slots {
+    if slot not in SLOT-NAMES {
+      fail-enum(scope, name + " key", slot, SLOT-NAMES, hint: "The set of five is fixed")
+    }
+    if value == none and not clears {
+      fail-type(
+        scope,
+        name + "." + slot,
+        value,
+        "a function",
+        hint: "A theme carries a slot or it does not; none clears one in an override",
+      )
+    }
+    if value == none or type(value) == function { continue }
+    fail-type(scope, name + "." + slot, value, if clears { "a function or none" } else { "a function" })
+  }
 }
 
 /// Panic unless `name` is a canonical token holding a value of the right shape.
 ///
-/// `extra` is not a token and is reported here as an unknown name: its
-/// contents are deliberately unvalidated, so whoever merges a theme handles it
+/// Neither reserved key is a token, so `extra` and `slots` are both reported
+/// here as unknown names. `extra` is unvalidated by design, and `slots` is
+/// validated by `check-slots` instead, so whoever merges a theme handles both
 /// before reaching this.
 ///
 /// `scope` names the caller in the message, because a token is only ever
