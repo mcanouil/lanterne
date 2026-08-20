@@ -108,17 +108,50 @@ A renderer that later wants the title in a header region has to take it out of t
 `split-head` in `src/core/split.typ` takes the first child a predicate matches out of a body and hands back both halves inside the wrappers they were found under.
 It repeats the shape of `_pieces` rather than reusing it, which is a duplication the three-duplications rule would otherwise refuse.
 
-Two things make reuse wrong rather than merely awkward.
-`_pieces` cuts at every match, so rebuilding a body from pieces 1 to n means summing separately wrapped pieces, and the module's own header records what that costs: applying `#set page` twice within one segment opens two page groups, so a body that rendered on one page comes back rendering on two.
-`_relabel` places one label among n pieces, on the first that carries something; this places one label among exactly two, under a different rule, because the two halves are not peers.
+The reason is the label rule below, not the wrapper rebuild.
+`_relabel` places one label among n pieces that render in sequence; this places one among exactly two that render on the same page, and the two rules disagree.
+Reuse would mean threading a second placement rule through a function whose whole job is the first one.
 
-The label rule is that one: a label on a wrapper marks the slide's content, so it stays with the rest rather than travelling with the title being moved away from it.
+The wrapper argument is worth stating precisely, because it cuts both ways.
+`_pieces` cuts at every match, so rebuilding a body from pieces 1 to n means summing separately wrapped pieces, and applying `#set page` twice within one segment opens two page groups: a body that rendered on one page comes back rendering on two.
+`split-head` produces two separately wrapped halves and so can do the same thing.
+**A caller must place the halves in different regions and must never rejoin them.**
+`cut.head + cut.rest` is not the body that went in, and the failure is a spurious page rather than an error.
+A caller with no region to put the head in must not call this at all; it must leave the body whole, which is what a theme supplying no header slot does.
+
+### Where a divided group's label goes
+
+A label on a wrapper or a sequence marks the slide's content, so it stays with the rest rather than travelling with the title being moved away from it.
 It falls to the head only when the rest carries nothing, which is the title-only slide specification 4.1 allows.
-Within the rest it goes on the first node that carries something, which is the rule `_relabel` already follows and for the same reason: markup attaches a label to the last element of what it follows, and the last element of a divided group is usually the space beside a boundary, which a later stage merges away.
 A label on the heading itself is one of its fields and travels with it either way, which is what makes a reference to a labelled slide resolve.
+
+**This departs from the first-appearance rule of specification 4.6**, which `_relabel` follows and which sends a divided group's label to the first piece that carries something.
+The departure is deliberate and is confined to this function.
+4.6 governs pieces that render on different pages, where first appearance decides which page a reference lands on.
+Both halves of a `split-head` cut render on the same page, one in a region and one in the body, so a reference resolves to the same page either way and the rule is free to say something else.
+It says the label marks content, because that is what an author labelling a group meant.
+
+Within the rest the label goes on the first node that carries something.
+That much *is* `_relabel`'s rule, for `_relabel`'s reason: markup attaches a label to the last element of what it follows, and the last element of a divided group is usually the space beside a boundary, which a later stage merges away.
+Where this call divided nothing, a label on a blank half is degraded rather than refused, matching `_relabel`'s own undivided-group branch.
+
+### What the caller has to supply
+
+The function is deliberately weaker than the splitter that produces a slide, so the contract is stated here rather than discovered.
+
+- The predicate identifies the slide's own title, not the first heading in the body.
+  `slides` guarantees the title is the *first child*; `split-head` matches the first child that *satisfies the predicate*, which is a weaker property, so a body carrying an `#include`d sequence can present a heading the caller did not mean.
+  The caller narrows this by matching a heading at the record's own level, and by calling only when the record has a title at all.
+- `record.title` describes the slide and `cut.head` renders it.
+  Both exist once a caller lands, and they are not interchangeable: `record.title` is the heading's `body` field with no wrappers, so no rule reaches it.
+- The counters are unaffected.
+  `increments` counts the record's body as written, before any split, so taking the title out of a step body afterwards changes no number.
+- `rest` is blank rather than `[]` when a slide is nothing but its title, since the wrappers come back around nothing.
+  Emptiness is read with `is-blank`, as `slides` already reads it for a lead-in segment.
 
 Nothing calls `split-head` yet.
 It ships a milestone ahead of its caller because a pure function with its own tests is reviewable on its own, and the branch that wires it has enough in it already.
+The obligations above are what that early landing costs: they are the shape the caller is designed against, so a caller that cannot meet them is a finding against this ruling rather than a rewrite of it.
 
 ## The slide record carries no `layout` key
 

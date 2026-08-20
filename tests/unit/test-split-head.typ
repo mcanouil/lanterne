@@ -66,7 +66,50 @@
 ]
 #let by-level = split-head(two, node => is-elem(node, heading) and node.depth == 2)
 #assert(by-level.found)
-#assert(has-element(by-level.rest, heading))
+// Which one moved, not merely that one did: an implementation that took the
+// level 3 heading would satisfy a bare `found` and a bare `has-element`.
+#assert.eq(by-level.head.depth, 2)
+#assert.eq(collect(by-level.rest, node => is-elem(node, heading)).len(), 1)
+#assert.eq(collect(by-level.rest, node => is-elem(node, heading)).first().depth, 3)
+
+// Wrappers nest, and a rebuild that flattens them loses the inner rule. Two
+// rules written side by side are merged into one wrapper by Typst itself, so a
+// genuinely nested case needs a group of its own inside the outer rule.
+#let nested = [
+  #set heading(outlined: false)
+  #[
+    #set heading(supplement: [Slide])
+    == Nested <split-head-nested>
+
+    body
+  ]
+]
+#let cut-nested = split-head(nested, node => is-elem(node, heading))
+#assert(cut-nested.found)
+#assert(is-elem(cut-nested.head, STYLED))
+#assert(has-element(cut-nested.rest, STYLED))
+
+// What matters is that both rules reach the head once it is placed, rather
+// than the shape they arrive in.
+#cut-nested.head
+#context {
+  let it = query(<split-head-nested>).first()
+  assert.eq(it.outlined, false)
+  assert.eq(it.supplement, [Slide])
+}
+
+// The rest keeps the order of what was written around the title, since the head
+// is taken out from between the two.
+#let around = [
+  before
+
+  == Middle
+
+  after
+]
+#let cut-around = split-head(around, node => is-elem(node, heading))
+#assert(cut-around.found)
+#assert.eq(cut-around.rest.children.filter(child => not is-blank(child)), ([before], [after]))
 
 // With no match the body comes back as it went in, rather than rebuilt, and
 // nothing is claimed to have been found.
