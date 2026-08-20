@@ -142,6 +142,7 @@
 /// `spread` marks a variadic container whose single positional field holds an
 /// array that must be spread into separate arguments.
 /// @category core
+/// @stability stable
 /// @returns dictionary
 #let register-container(fn, positional, spread: false, registry: none) = {
   let scope = "register-container"

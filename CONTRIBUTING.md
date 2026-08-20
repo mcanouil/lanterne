@@ -65,6 +65,26 @@ Consult that glossary before you introduce new short identifiers.
 Lanterne has no runtime dependencies, and it must keep none.
 No `@preview` import may appear anywhere under [`src/`](src/).
 
+## Documentation comments
+
+Every definition carries a `///` block above it, and every block carries a `@category` tag.
+The categories are `core`, `deck`, `step`, `emit`, `theme` and `utils`.
+
+A name re-exported from [`lib.typ`](lib.typ) is public, and a public name carries a `@stability` tag as well.
+Anything a module exports that `lib.typ` does not is internal on purpose, and takes no such tag.
+
+The tag says which parts of the surface the 0.x contract actually threatens.
+That contract permits a breaking change on a minor release, and without the tag a reader has to guess which names it applies to.
+
+| Value | What it promises |
+| --- | --- |
+| `stable` | The signature and the meaning are settled. A change to either is a breaking change, recorded as one. |
+| `experimental` | A milestone still to come will reshape this name. Expect the signature or the meaning to change on a minor release. |
+| `deprecated` | Scheduled for removal, with the replacement named in the block. Unused today, since this package replaces rather than deprecates. |
+
+Write the value out even when it is `stable`.
+The reference generator treats an absent tag as `stable`, so silence and a promise would otherwise be the same thing.
+
 ## Commit conventions
 
 Commits follow [Conventional Commits](https://www.conventionalcommits.org).

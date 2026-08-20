@@ -156,6 +156,7 @@
 /// written inside a container of your own. `info` sets the document metadata
 /// and takes `title`, `author` and `date`.
 /// @category deck
+/// @stability experimental
 /// @returns content
 #let deck(
   body,

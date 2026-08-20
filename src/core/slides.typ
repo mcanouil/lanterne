@@ -281,6 +281,7 @@
 /// split. Options are validated here, where they are written, because a
 /// mistyped one would otherwise render as nothing at all.
 /// @category deck
+/// @stability experimental
 /// @returns content
 #let slide(body, title: none, level: none, ..attrs) = {
   let scope = "slide"
@@ -315,6 +316,7 @@
 /// A second marker is an error. A deck has one appendix, and a marker that
 /// changed nothing would be the silent no-op this package refuses elsewhere.
 /// @category deck
+/// @stability experimental
 #let appendix = marker(MARKER-APPENDIX)
 
 /// Options for the slide a heading opened, written immediately after it.
@@ -322,6 +324,7 @@
 /// The marker is consumed by the splitter and never rendered. It has to be a
 /// top level child of its slide, so one written inside a block is not found.
 /// @category deck
+/// @stability experimental
 /// @returns content
 #let slide-options(..attrs) = {
   let scope = "slide-options"
