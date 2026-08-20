@@ -118,11 +118,19 @@
 ///
 /// A mode named against a single token set is not an error. The option says
 /// which half to take, and a theme with no halves has one answer.
+///
+/// `none` is the canonical defaults. They are returned rather than validated,
+/// because validation reports what an author wrote and nobody wrote these.
 /// @category theme
 /// @returns dictionary
 #let resolve-mode(theme, mode, scope) = {
+  // Before the `none` shortcut, so that a deck naming no theme still hears
+  // about a mistyped mode.
   if mode not in _PAIR {
     fail-enum(scope, "theme-mode", mode, _PAIR)
+  }
+  if theme == none {
+    return default-tokens()
   }
   if type(theme) != dictionary {
     fail-type(scope, "theme", theme, "a token dictionary or a light and dark pair")

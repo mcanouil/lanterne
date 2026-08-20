@@ -31,7 +31,7 @@
 #import "../core/expand.typ": expand
 #import "../core/range.typ": parse-range
 #import "../core/slides.typ": slides
-#import "../theme/theme.typ": resolve-mode, theme-tokens
+#import "../theme/theme.typ": resolve-mode
 #import "../utils/errors.typ": fail-enum, fail-type
 
 // Typst's own presentation papers, measured rather than assumed: 16-9 is
@@ -235,11 +235,9 @@
   }
   // The theme is validated by the one function that validates a theme, so a
   // token rejected here reads the same as one rejected where it was written.
-  //
-  // The defaults go through the same call rather than around it, so that
-  // `theme-mode` is validated for every deck. A deck that names no theme can
-  // still name a mode, and one that mistypes it should hear so.
-  let tokens = resolve-mode(if theme == none { theme-tokens() } else { theme }, theme-mode, scope)
+  // That one function also reads the mode and takes the defaults, so a deck
+  // naming no theme still hears about a mistyped mode.
+  let tokens = resolve-mode(theme, theme-mode, scope)
   // The split validates `body` and `slide-level` under this scope, so the
   // message names the function the author called and there is one copy of it.
   let records = slides(body, slide-level: slide-level, scope: scope)
