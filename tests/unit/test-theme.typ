@@ -6,7 +6,7 @@
 // Typst cannot catch a panic, so the rejecting paths are compiled as their own
 // files under tests/expect-fail/.
 
-#import "../../src/theme/theme.typ": theme-merge, theme-tokens
+#import "../../src/theme/theme.typ": resolve-mode, theme-merge, theme-tokens
 #import "../../src/theme/tokens.typ": default-tokens
 
 // With no overrides, a theme is the defaults.
@@ -74,6 +74,46 @@
 // A theme with no slots carries the key and an empty dictionary, so a renderer
 // reads `tokens.slots` without asking whether it exists.
 #assert.eq(theme-tokens().slots, (:))
+
+// Pair detection rests on an invariant nothing else states: no token may ever
+// be named `light` or `dark`. Were one added, a plain token dictionary setting
+// it would be re-read as an unfinished pair and refused, and the failure would
+// land on the author of a deck rather than on the commit that added the token.
+#assert(
+  "light" not in default-tokens() and "dark" not in default-tokens(),
+  message: "a token named light or dark would be read as half of a pair",
+)
+
+// A theme may be one token dictionary or a pair of them, and `resolve-mode`
+// hands back one dictionary of tokens either way, so nothing downstream knows a
+// pair existed. A pair is a value the author writes literally; there is no
+// constructor for one.
+#let pair = (light: theme-tokens(bg: white), dark: theme-tokens(bg: black))
+#assert.eq(resolve-mode(pair, "light", "test").tokens.bg, white)
+#assert.eq(resolve-mode(pair, "dark", "test").tokens.bg, black)
+#assert.eq(resolve-mode(pair, "dark", "test").tokens, theme-tokens(bg: black))
+#assert.eq(resolve-mode(pair, "dark", "test").mode, "dark")
+
+// A mode named against a single token set is not an error, and it resolves to
+// light rather than to what was asked. The mode a render is in is not the mode
+// it was asked for: a slot told "dark" here would draw dark chrome over light
+// tokens, and a theme with no halves has one answer.
+#assert.eq(resolve-mode(theme-tokens(bg: red), "dark", "test").tokens.bg, red)
+#assert.eq(resolve-mode(theme-tokens(bg: red), "dark", "test").mode, "light")
+
+// `none` is the canonical defaults, which is the same value the constructor
+// yields. That agreement is asserted rather than assumed, since the two are
+// reached by different paths: one validates, the other does not.
+#assert.eq(resolve-mode(none, "light", "test").tokens, theme-tokens())
+#assert.eq(resolve-mode(none, "light", "test").tokens, default-tokens())
+#assert.eq(resolve-mode(none, "dark", "test").mode, "light")
+
+// A half is validated on the way through, as any base is, so a pair built by
+// hand from a partial dictionary fails here rather than where a token is read.
+#assert.eq(
+  resolve-mode(pair, "light", "test").tokens.keys().sorted(),
+  default-tokens().keys().sorted(),
+)
 
 // A canonical token still validates when it arrives through a merge rather
 // than through the constructor.

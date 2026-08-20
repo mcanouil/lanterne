@@ -27,6 +27,8 @@ Covers every guard in `src/`: token name and value validation, theme constructio
 The heading refusal a stepped region delegates to and a `context-slide` callback that returns something other than content are covered alongside them, and so is the shape of each `keep` entry.
 The counting the freezing arithmetic rests on is covered as well: `increments`'s `body`, and `collect`'s predicate and depth bound.
 So are `rebuild`'s `match` and `keep-labels` arguments, along with the three labels suppression refuses rather than drops: one on an image, which cannot be rebuilt, one on a marker, and one under a container that is not registered.
+The theme's two reserved keys carry their own guards: an unknown slot name and a non-function slot, on the override side and on the base side alike, and a `none` in a base, which clears a slot only where an override writes it.
+The light and dark pair is covered through `deck`, which is what an author writes: a pair missing a half, a pair carrying a token beside its halves, a half that is not a dictionary, a bad token in the half this render does not select, an unknown `theme-mode`, and a whole pair handed to `theme-merge`, which merges one half at a time.
 
 Add a case with the guard, in the same commit.
 A guard with no case here is a guard that can be deleted without the build noticing.

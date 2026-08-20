@@ -63,6 +63,42 @@ A heading's size is `size-base` multiplied by `scale-ratio` raised to `max(0, 3 
 
 On a slide set `smaller`, the base of that calculation is the slide's own reduced size, so the title shrinks with the body rather than staying as large on the slide that asked for room.
 
+## Light and dark
+
+A theme is one token dictionary, or a pair of them:
+
+```typst
+#let paper = (
+  light: theme-tokens(bg: white, fg: rgb("#1c1c22")),
+  dark: theme-tokens(bg: rgb("#1c1c22"), fg: white),
+)
+
+#show: deck.with(theme: paper, theme-mode: "dark")
+```
+
+`theme-mode` takes `"light"` or `"dark"`, and defaults to `"light"`.
+A pair is written out; there is no constructor for one.
+It carries those two keys and nothing else, so a token written beside them is refused rather than belonging to neither half.
+
+Both halves are validated whichever one renders.
+A deck rendered light would otherwise carry a dark half nobody had checked, and the mistake would surface for whoever first rendered it the other way.
+
+What a slide receives is one token dictionary, so nothing downstream knows a pair existed.
+
+Naming a mode against a single token set is not an error: the option says which half to take, and a theme with no halves has one answer.
+That answer is the light one, whatever the mode says, so chrome that reads the mode does not draw a dark treatment over light tokens.
+If a deck renders light although it names `theme-mode: "dark"`, its theme is a single token dictionary rather than a pair.
+That is the one mistake this rule makes quiet, and Typst gives a package no way to warn about it.
+
+A pair is merged one half at a time, because a token belongs to a half rather than to the pair:
+
+```typst
+#let louder = (
+  light: theme-merge(paper.light, (accent: red)),
+  dark: paper.dark,
+)
+```
+
 ## The `extra` namespace
 
 `extra` exists so that a token of your own has somewhere to live.

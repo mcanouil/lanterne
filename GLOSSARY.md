@@ -22,6 +22,8 @@ Consult this file before introducing a new abbreviation, and add an entry when y
 | chrome | Header, footer, progress indicator, slide number and logo. |
 | token | One named theme value, such as `bg` or `font-heading`. |
 | slot | A theme supplied renderer for a composite chrome piece. |
+| mode | Which half of a light and dark theme renders, selected by `theme-mode`. |
+| pair | A theme written as `(light: ..., dark: ...)`, one token dictionary per half. |
 | layout | A validated dictionary describing regions and grid geometry. |
 | region | A named area of a slide, such as header, body or footer. |
 | cell | A named position within a layout grid. |
