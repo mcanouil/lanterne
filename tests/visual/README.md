@@ -39,9 +39,22 @@ Four things fail a run:
 Build artefacts land under `build/snapshot/`, which is ignored by Git.
 A failed comparison writes a difference image beside them.
 
-## Refreshing
+## Minting and refreshing
 
 Goldens are minted by CI and nowhere else, and `--update` refuses to run locally.
 
 A Typst release older or newer than the pinned `compiler` renders the same source differently, so a golden written on a contributor's machine passes there and fails everywhere else.
-Dispatch the `Refresh visual snapshots` workflow on the branch instead.
+Dispatch the `Refresh visual snapshots` workflow on the branch instead:
+
+```sh
+gh workflow run snapshot-refresh.yml --ref <branch> -f direct=true
+```
+
+`direct` commits the goldens straight to the dispatched branch.
+Without it the workflow opens a pull request against that branch and sets auto-merge.
+
+That is also how a deck first gets its goldens.
+Add the deck, open the pull request as a draft so the checks stay idle, dispatch the workflow, and mark the pull request ready once the goldens are on the branch.
+
+GitHub resolves `workflow_dispatch` against the default branch, so this workflow can only be dispatched once it is on `main`.
+That is why it lives here, with the harness, rather than with the goldens it mints: putting it in the same pull request as the gate would leave that pull request unable to produce what it needs to pass.
