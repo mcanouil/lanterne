@@ -161,6 +161,7 @@
     taken.body,
     kind: if level < slide-level { "section" } else { "content" },
     title: boundary.body,
+    title-source: "heading",
     level: level,
     label: boundary.fields().at("label", default: none),
     attrs: attrs,
@@ -237,6 +238,7 @@
       records.push(slide-record(
         given.body,
         title: given.title,
+        title-source: if given.title == none { none } else { "value" },
         // A slide of the author's own sits where the deck's slides sit, so a
         // title with no level takes the deck's. A deck that splits on no heading
         // at all still has to give it a level a heading could be written at.

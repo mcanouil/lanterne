@@ -165,8 +165,9 @@ A title placed in Typst's own header would lose its font, its size, its show rul
 That is the half of the rule which is easy to get wrong: a title moved into a header region beside the suppression would escape it, so the heading counter would advance once per step, the outline would list the slide once per step, and the PDF would gain a bookmark per step.
 Those are exactly the three failures the correctness milestone removed.
 
-A title slide has no record and takes an explicit case rather than a synthetic one.
-A record of kind `content` yields `bookmarked: false` alone, so a heading a theme writes into its title slide would be outlined and would advance the hierarchical heading counter, and nothing downstream can put that back.
+A title slide is emitted through the same page function as every slide, with a synthetic record and a flag.
+The flag is what is load-bearing: no record kind can express what a title slide needs, since a record of kind `content` yields `bookmarked: false` alone, and a heading a theme writes into its title slide would then be outlined and would advance the hierarchical heading counter with nothing able to put it back.
+The same flag keeps the deck's own regions off that page, because a title slide is not a slide of the deck and its chrome does not belong there.
 
 ## The title moves only when something will place it
 
@@ -183,8 +184,15 @@ The split runs after step expansion, per page, rather than once per slide.
 The predicate matches a heading at the record's own level.
 `split-head` takes the first child that *satisfies the predicate*, which is weaker than the first child that `slides` guarantees, so a level-blind predicate would lift a heading out of an included sequence, out of a `context-slide` callback's result, or out of a slide that a `slide-level` of 0 left untitled.
 
-An explicit `slide(title: ...)` has a title and no heading, so nothing is found and the record's own copy is placed.
-That copy has no wrappers, so no `show heading` rule reaches it, and `state.title-source` reports `value` rather than `heading` so a theme can tell the two apart rather than discovering the difference.
+Whether a title may be taken out of the body at all is a property of the record rather than of the search.
+The record carries `title-source`, set where the record is built: `heading` when a heading opened the slide, `value` when a title was passed to `slide(...)`.
+Only the first is taken out.
+
+Reading it from the search instead was wrong, and quietly so.
+An explicit slide's body is never split, so it may legitimately carry a heading at the record's own level; a renderer that looked for one would find it, place it as the title, discard the argument the author wrote and delete the heading from the body in the same move.
+A record knows which it has, and a renderer looking at the body afterwards cannot.
+
+A title that came from a value has no wrappers, so no `show heading` rule reaches it, and `state.title-source` passes that on so a theme can tell the two apart rather than discovering the difference.
 
 ## The slide record carries no `layout` key
 

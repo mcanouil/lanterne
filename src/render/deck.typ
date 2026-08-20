@@ -126,12 +126,19 @@
 // so a theme that writes positional parameters fails here with Typst's own
 // message. What can be checked is checked: a slot returning something else
 // would place a value on the page and the deck would build.
+//
+// `none` is not something else. It says this page has no such region, which is
+// what an absent slot already says, and it is what Typst returns from a
+// conditional that did not fire. The `state` a slot receives carries `kind`,
+// `appendix` and `step` so that a theme can vary its chrome per page, so a
+// theme that hides a footer on an appendix slide is writing the case the state
+// invites rather than making a type error.
 #let _slot(slots, name, info, tokens, state, scope) = {
   let fn = slots.at(name, default: none)
   if fn == none { return none }
   let built = fn(info: info, tokens: tokens, state: state)
-  if type(built) != content {
-    fail-type(scope, name + " result", built, "content")
+  if built != none and type(built) != content {
+    fail-type(scope, name + " result", built, "content or none")
   }
   built
 }
@@ -148,7 +155,7 @@
 //
 // A region with no slot behind it takes no row at all, so a theme supplying
 // none composes exactly the page it composed before there were slots.
-#let _regions(header, body, footer, progress, tokens) = {
+#let _regions(tokens, body: [], header: none, progress: none, footer: none) = {
   let rows = ()
   let cells = ()
   if header != none {
@@ -188,13 +195,24 @@
 // rather than a heading, so no `show heading` rule reaches it, which is what
 // `title-source` tells a theme.
 #let _title(record, body, places-title) = {
-  if not places-title or record.title == none or record.level == none {
+  if not places-title or record.title == none {
     return (title: none, source: none, body: body)
+  }
+  // Only a title that came from a heading may be taken out of the body. A title
+  // passed to `slide(...)` is an argument, and that slide's body is never split,
+  // so it may legitimately carry a heading at the record's own level: taking
+  // that heading would discard the argument the author wrote and delete the
+  // heading from the body in the same move.
+  if record.title-source != "heading" {
+    return (title: record.title, source: record.title-source, body: body)
   }
   let cut = split-head(
     body,
     node => is-elem(node, heading) and heading-level(node) == record.level,
   )
+  // The heading is at the head of the body by construction, since that is what
+  // opened the slide. Not finding it means something upstream rebuilt the body
+  // without it, so the record's own copy is placed rather than nothing.
   if cut.found {
     return (title: cut.head, source: "heading", body: cut.rest)
   }
@@ -263,19 +281,29 @@
     //
     // A section slide is a divider, so what it carries sits in the middle of
     // the page rather than at the top of it, unless a theme says otherwise.
-    let composed = if section-slot != none {
+    let composed-or-none = if title-slide {
+      // A title slide is a page of its own, not a slide of the deck dressed
+      // like the rest. A theme that supplies a header and a footer draws them
+      // on its slides; drawing them over its own title page as well would put
+      // deck chrome on the one page that is not a deck slide, and the regions
+      // would receive a `state` describing no slide at all.
+      body
+    } else if section-slot != none {
       _slot(slots, "render-section-slide", info, tokens, state, scope)
     } else if record.kind == "section" {
       align(center + horizon, cut.body)
     } else {
       _regions(
-        _slot(slots, "render-header", info, tokens, state, scope),
-        cut.body,
-        _slot(slots, "render-footer", info, tokens, state, scope),
-        _slot(slots, "render-progress", info, tokens, state, scope),
         tokens,
+        body: cut.body,
+        header: _slot(slots, "render-header", info, tokens, state, scope),
+        progress: _slot(slots, "render-progress", info, tokens, state, scope),
+        footer: _slot(slots, "render-footer", info, tokens, state, scope),
       )
     }
+    // A composing slot that returns `none` composes an empty page, since it
+    // was asked what this page is and answered nothing.
+    let composed = if composed-or-none == none { [] } else { composed-or-none }
     // The whole composed page, not the body region alone. A title moved into a
     // header region beside this rule would escape all three suppressions: the
     // heading counter would advance once per step, the outline would list the

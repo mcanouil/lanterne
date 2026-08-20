@@ -193,6 +193,33 @@
 )
 #context assert.eq(sourced.final(), ("heading", "value"))
 
+// An explicit slide's body may legitimately carry a heading at the deck's own
+// level, since nothing splits that body. The title is the argument the author
+// wrote, not the first heading inside it: taking the heading would discard the
+// argument and delete the heading from the body at the same time.
+#let taken = state("slot-explicit", ())
+#let capturing = theme-tokens(
+  slots: (
+    render-header: (info: none, tokens: none, state: none) => {
+      taken.update(it => it + ((state.title, state.title-source),))
+      state.title
+    },
+  ),
+)
+#deck(
+  [#slide(title: [Argument])[
+    == Inside <slot-inside>
+
+    body
+  ]],
+  theme: capturing,
+)
+#context {
+  assert.eq(taken.final(), (([Argument], "value"),))
+  // The heading stays in the body, where the author put it.
+  assert.eq(query(<slot-inside>).len(), 1)
+}
+
 // A theme that places no title leaves the body whole. Taking a title out with
 // nowhere to put it would delete it from the slide.
 #let footed = theme-tokens(
@@ -237,5 +264,57 @@
   assert.eq(counter(heading).at(titles([First]).first().location()).first(), 0)
   assert.eq(query(<slot-first>).len(), 1)
 }
+
+// A theme that supplies a title slide and deck chrome draws the chrome on its
+// slides and not over its own title page. The title page is not a slide of the
+// deck, and a region there would receive a `state` describing no slide at all.
+#let marks = state("slot-title-page", 0)
+#let dressed = theme-tokens(
+  slots: (
+    render-title-slide: (info: none, tokens: none, state: none) => [a title page],
+    render-header: (info: none, tokens: none, state: none) => {
+      marks.update(it => it + 1)
+      state.title
+    },
+  ),
+)
+#deck(
+  [== One
+
+  body
+
+  == Two
+
+  body],
+  theme: dressed,
+  info: (title: [A deck]),
+)
+// Two slides, so two headers. Three would mean the title page took one.
+#context assert.eq(marks.final(), 2)
+
+// A slot may return `none` to say that its region takes no space on this page,
+// which is what an absent slot already means. A theme varies its chrome by
+// reading `kind`, `appendix` or `step`, so the state it is given invites the
+// case.
+#let varying = theme-tokens(
+  slots: (
+    render-footer: (info: none, tokens: none, state: none) => {
+      if state.appendix { none } else { [foot] }
+    },
+  ),
+)
+#deck(
+  [== Body <slot-varying>
+
+  body
+
+  #appendix
+
+  == After
+
+  body],
+  theme: varying,
+)
+#context assert.eq(query(<slot-varying>).len(), 1)
 
 slot tests passed.
