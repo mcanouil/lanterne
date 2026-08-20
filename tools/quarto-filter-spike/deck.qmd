@@ -1,0 +1,34 @@
+---
+title: Emit surface spike
+---
+
+## A pause
+
+Shown from the first step.
+
+. . .
+
+Shown from the second step.
+
+## An incremental list
+
+::: {.incremental}
+
+- One.
+- Two.
+- Three.
+
+:::
+
+## A pause and a list together
+
+Content before.
+
+. . .
+
+::: {.incremental}
+
+- Four.
+- Five.
+
+:::
