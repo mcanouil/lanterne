@@ -38,9 +38,9 @@
   }
 
   // A pair reaching a merge is the obvious next thing an author tries, and
-  // without this it fails as a token dictionary missing all eighteen names,
-  // which describes neither the mistake nor the fix. A merge is per half
-  // because a token belongs to a half rather than to the pair.
+  // without this it fails as a token dictionary missing every name, which
+  // describes neither the mistake nor the fix. A merge is per half because a
+  // token belongs to a half rather than to the pair.
   let halves = _PAIR.filter(half => half in base)
   if halves.len() > 0 {
     fail(
@@ -79,8 +79,8 @@
   check-slots(base.slots, scope, name: name + ".slots", clears: false)
 
   let merged = base
-  for (name, value) in overrides {
-    if name == "extra" {
+  for (key, value) in overrides {
+    if key == "extra" {
       // Key by key rather than wholesale, so setting one token of your own
       // leaves the rest of the base theme's in place. Validated first, so a bad
       // override reports the package's own message rather than Typst's on
@@ -92,7 +92,7 @@
         fail-type(scope, "extra", value, "a dictionary")
       }
       merged.insert("extra", merged.extra + value)
-    } else if name == "slots" {
+    } else if key == "slots" {
       // Key by key for the same reason, so overriding one colour of a preset
       // keeps the renderers that preset supplied.
       //
@@ -112,8 +112,8 @@
       }
       merged.insert("slots", combined)
     } else {
-      check-token(name, value, scope)
-      merged.insert(name, value)
+      check-token(key, value, scope)
+      merged.insert(key, value)
     }
   }
   merged
@@ -187,11 +187,9 @@
   }
   let resolved = (:)
   for half in _PAIR {
-    let value = theme.at(half)
-    if type(value) != dictionary {
-      fail-type(scope, "theme." + half, value, "a token dictionary")
-    }
-    resolved.insert(half, _merge(value, (:), scope, name: "theme." + half))
+    // No type guard here: `_merge`'s own first check raises the identical
+    // message for the identical input, and the expect-fail case proves it.
+    resolved.insert(half, _merge(theme.at(half), (:), scope, name: "theme." + half))
   }
   (tokens: resolved.at(mode), mode: mode)
 }

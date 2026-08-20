@@ -237,10 +237,9 @@
   // here would be a second statement of it, and the two would drift.
   //
   // It reports the mode it resolved as well as the tokens, since a theme with
-  // no halves renders light whatever mode was asked for. The chrome that reads
-  // the mode arrives with the renderer slots.
-  let resolved = resolve-mode(theme, theme-mode, scope)
-  let tokens = resolved.tokens
+  // no halves renders light whatever mode was asked for. Nothing reads that
+  // mode until the renderer slots land, so nothing takes it here yet.
+  let tokens = resolve-mode(theme, theme-mode, scope).tokens
   // The split validates `body` and `slide-level` under this scope, so the
   // message names the function the author called and there is one copy of it.
   let records = slides(body, slide-level: slide-level, scope: scope)

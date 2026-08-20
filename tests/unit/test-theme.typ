@@ -75,6 +75,15 @@
 // reads `tokens.slots` without asking whether it exists.
 #assert.eq(theme-tokens().slots, (:))
 
+// Pair detection rests on an invariant nothing else states: no token may ever
+// be named `light` or `dark`. Were one added, a plain token dictionary setting
+// it would be re-read as an unfinished pair and refused, and the failure would
+// land on the author of a deck rather than on the commit that added the token.
+#assert(
+  "light" not in default-tokens() and "dark" not in default-tokens(),
+  message: "a token named light or dark would be read as half of a pair",
+)
+
 // A theme may be one token dictionary or a pair of them, and `resolve-mode`
 // hands back one dictionary of tokens either way, so nothing downstream knows a
 // pair existed. A pair is a value the author writes literally; there is no
