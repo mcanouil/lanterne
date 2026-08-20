@@ -209,12 +209,18 @@
 /// it knows, so a sixth would be a function a theme author wrote, a theme
 /// carried, and nothing ever ran.
 ///
+/// `clears` says whether `none` is a legal value, and it is false in the base
+/// position. `none` clears a slot, which is something an override says; a base
+/// carrying it says nothing, and storing it would leave the key present and
+/// holding `none`, so a renderer asking whether a slot is there would call one
+/// that is not.
+///
 /// A slot's arity and its return value are not checked here, and the arity
 /// cannot be: Typst exposes nothing of a closure's parameters. A slot is called
 /// with the named arguments `info`, `tokens` and `state` and returns content,
 /// and both are enforced at the call site that composes a page.
 /// @category theme
-#let check-slots(slots, scope, name: "slots") = {
+#let check-slots(slots, scope, name: "slots", clears: true) = {
   if type(slots) != dictionary {
     fail-type(scope, name, slots, "a dictionary")
   }
@@ -222,11 +228,17 @@
     if slot not in SLOT-NAMES {
       fail-enum(scope, name + " key", slot, SLOT-NAMES, hint: "The set of five is fixed")
     }
-    // `none` is how an override clears a slot a theme merged in, so it is
-    // accepted here and removed by the merge rather than stored.
-    if value != none and type(value) != function {
-      fail-type(scope, name + "." + slot, value, "a function or none")
+    if value == none and not clears {
+      fail-type(
+        scope,
+        name + "." + slot,
+        value,
+        "a function",
+        hint: "A theme carries a slot or it does not; none clears one in an override",
+      )
     }
+    if value == none or type(value) == function { continue }
+    fail-type(scope, name + "." + slot, value, if clears { "a function or none" } else { "a function" })
   }
 }
 

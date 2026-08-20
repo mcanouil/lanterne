@@ -47,7 +47,10 @@
   if type(base.extra) != dictionary {
     fail-type(scope, "base.extra", base.extra, "a dictionary")
   }
-  check-slots(base.slots, scope, name: "base.slots")
+  // `clears: false`, because a base is a theme rather than a change to one. A
+  // merge never produces a `none` here, since an override that clears removes
+  // the key, so one in this position came from a base built by hand.
+  check-slots(base.slots, scope, name: "base.slots", clears: false)
 
   let merged = base
   for (name, value) in overrides {

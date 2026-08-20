@@ -66,6 +66,11 @@
 // about the result as clearing one it did.
 #assert.eq(theme-merge(theme-tokens(), (slots: (render-footer: none))).slots, (:))
 
+// The result of a clearing merge is itself a valid base, which is what makes
+// `none` safe to accept in an override and refuse in a base: the merge never
+// leaves one behind for the next merge to read.
+#assert.eq(theme-merge(theme-merge(both, (slots: (render-footer: none))), (:)).slots.keys(), ("render-header",))
+
 // A theme with no slots carries the key and an empty dictionary, so a renderer
 // reads `tokens.slots` without asking whether it exists.
 #assert.eq(theme-tokens().slots, (:))
