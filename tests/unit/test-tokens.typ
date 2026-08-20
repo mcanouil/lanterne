@@ -144,7 +144,18 @@
 )
 #check-slots((:), "test")
 #check-slots((render-header: (info: none, tokens: none, state: none) => []), "test")
+
+// Arity is unvalidated, and cannot be: Typst exposes nothing of a closure's
+// parameters. A slot is called with the named arguments `info`, `tokens` and
+// `state`, and one that does not accept all three fails when a page is
+// composed rather than here. The zero-argument closure below is accepted for
+// that reason, not because it is a shape a theme should write.
 #for name in SLOT-NAMES { check-slots(((name): () => []), "test") }
+
+// `none` clears a slot, which is how a theme takes a preset's chrome without
+// one of its parts. Without it a slot merged in by a preset could not be
+// removed at all, since every other value has to be a function.
+#check-slots((render-header: none), "test")
 
 // `slots` is not a token either, so check-token rejects it by name. Asserting
 // that positively is impossible, so tests/expect-fail/token-slots-as-name.typ

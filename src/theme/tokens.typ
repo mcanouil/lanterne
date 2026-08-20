@@ -11,6 +11,13 @@
 ///! reads yet would validate and store values no code consults, and leave the
 ///! reader unable to tell which of them mean anything.
 ///!
+///! The rule governs a milestone rather than a single commit. A name may arrive
+///! one branch ahead of its reader when both land in the same stack, since the
+///! alternative is one branch nobody can review; it may never arrive ahead of
+///! the milestone that reads it. `accent`, `accent-fg`, `muted`, `border`,
+///! `gutter`, `header-height`, `footer-height` and `stroke-width` are read by
+///! the renderer slots, and are the eight names currently in that position.
+///!
 ///! Two keys are reserved rather than canonical, and neither is a token.
 ///!
 ///! `extra` is the one key whose contents are not validated. Without it,
@@ -148,22 +155,22 @@
   margin: (default: 2cm, expected: "a length", ok: v => type(v) == length),
   gutter: (
     default: 0.6cm,
-    expected: "a non-negative length",
+    expected: "a non-negative length in both its absolute and relative parts",
     ok: _is-non-negative-length,
   ),
   header-height: (
     default: 2cm,
-    expected: "a non-negative length",
+    expected: "a non-negative length in both its absolute and relative parts",
     ok: _is-non-negative-length,
   ),
   footer-height: (
     default: 1cm,
-    expected: "a non-negative length",
+    expected: "a non-negative length in both its absolute and relative parts",
     ok: _is-non-negative-length,
   ),
   stroke-width: (
     default: 1pt,
-    expected: "a non-negative length",
+    expected: "a non-negative length in both its absolute and relative parts",
     ok: _is-non-negative-length,
   ),
 )
@@ -192,12 +199,20 @@
 /// Panic unless `slots` is a dictionary of canonical slot names holding
 /// functions.
 ///
-/// `name` completes the message, so the base of a merge is reported as
-/// `base.slots` and an override as `slots`, naming the one the author wrote.
+/// `name` completes every message this raises, so the base of a merge is
+/// reported as `base.slots` and an override as `slots`, naming the half of the
+/// call the bad key came from. That distinction is the point of re-validating a
+/// base: a base built by hand is the one case where the author cannot assume
+/// the fault is in the overrides they just wrote.
 ///
 /// An unknown name is refused rather than stored. The renderer calls the five
 /// it knows, so a sixth would be a function a theme author wrote, a theme
 /// carried, and nothing ever ran.
+///
+/// A slot's arity and its return value are not checked here, and the arity
+/// cannot be: Typst exposes nothing of a closure's parameters. A slot is called
+/// with the named arguments `info`, `tokens` and `state` and returns content,
+/// and both are enforced at the call site that composes a page.
 /// @category theme
 #let check-slots(slots, scope, name: "slots") = {
   if type(slots) != dictionary {
@@ -205,10 +220,12 @@
   }
   for (slot, value) in slots {
     if slot not in SLOT-NAMES {
-      fail-enum(scope, "slot name", slot, SLOT-NAMES, hint: "The set of five is fixed")
+      fail-enum(scope, name + " key", slot, SLOT-NAMES, hint: "The set of five is fixed")
     }
-    if type(value) != function {
-      fail-type(scope, name + "." + slot, value, "a function")
+    // `none` is how an override clears a slot a theme merged in, so it is
+    // accepted here and removed by the merge rather than stored.
+    if value != none and type(value) != function {
+      fail-type(scope, name + "." + slot, value, "a function or none")
     }
   }
 }

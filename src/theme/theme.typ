@@ -51,23 +51,37 @@
 
   let merged = base
   for (name, value) in overrides {
-    if name in ("extra", "slots") {
-      // Both reserved keys merge key by key rather than being replaced.
-      // Replacing wholesale would mean that setting one token of your own, or
-      // overriding one colour of a preset, silently dropped every other token
-      // or renderer that theme carried, which is the failure a theme author
-      // notices last.
+    if name == "extra" {
+      // Key by key rather than wholesale, so setting one token of your own
+      // leaves the rest of the base theme's in place. Validated first, so a bad
+      // override reports the package's own message rather than Typst's on
+      // `dictionary + 1`.
       //
-      // Validated before the merge, so a bad override reports the package's
-      // own message rather than Typst's on `dictionary + 1`.
-      if name == "extra" {
-        if type(value) != dictionary {
-          fail-type(scope, "extra", value, "a dictionary")
-        }
-      } else {
-        check-slots(value, scope)
+      // A token of your own may legitimately be `none`, so nothing here reads a
+      // value; `extra` stores exactly what it is given.
+      if type(value) != dictionary {
+        fail-type(scope, "extra", value, "a dictionary")
       }
-      merged.insert(name, merged.at(name) + value)
+      merged.insert("extra", merged.extra + value)
+    } else if name == "slots" {
+      // Key by key for the same reason, so overriding one colour of a preset
+      // keeps the renderers that preset supplied.
+      //
+      // `none` clears a slot instead of storing one. A theme that wants a
+      // preset's chrome without one of its parts has no other way to say so,
+      // since every value that is not `none` has to be a function. Removing the
+      // key rather than storing `none` is what lets a renderer decide what to
+      // compose by asking whether a slot is there.
+      check-slots(value, scope)
+      let combined = merged.slots
+      for (slot, own) in value {
+        if own == none {
+          let _ = combined.remove(slot, default: none)
+        } else {
+          combined.insert(slot, own)
+        }
+      }
+      merged.insert("slots", combined)
     } else {
       check-token(name, value, scope)
       merged.insert(name, value)

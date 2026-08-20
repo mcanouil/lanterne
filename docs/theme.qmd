@@ -39,17 +39,23 @@ The colour, typography and geometry groupings are documentation rather than stru
 | `footer-height` | non-negative length | `1cm` | The height of a footer region. |
 | `stroke-width` | non-negative length | `1pt` | The thickness of a rule or a border. |
 | `extra` | dictionary | `(:)` | Tokens of your own. The one key whose contents are not validated. |
-| `slots` | dictionary | `(:)` | A theme's renderers, validated against the five slot names. |
+| `slots` | dictionary | `(:)` | A theme's renderers, validated against the five slot names. Nothing calls them yet. |
 
 : The token vocabulary. {.striped .hover tbl-colwidths="[15,25,15,45]"}
 
 The named weights are `thin`, `extralight`, `light`, `regular`, `medium`, `semibold`, `bold`, `extrabold` and `black`.
 
-A non-negative length may carry an absolute part, a relative part, or both.
-Both parts are read separately, because Typst refuses to compare a mixed length with zero at all.
+A non-negative length may carry an absolute part, a relative part, or both, and each part must be non-negative on its own.
+That is stricter than it sounds: `2cm - 1em` is refused, although it resolves to a positive length at every plausible font size.
+The two parts are read separately because Typst refuses to compare a mixed length with zero at all, and comparing the whole would replace this message with Typst's own.
 
 The vocabulary grows with the code that reads a token.
-The specification names twenty-eight; the eighteen above are those something reads today, and the rest arrive with the remaining theming, layout and element milestones.
+The specification names twenty-eight, and the eighteen above are those the package validates today.
+Ten of them are read now: `bg`, `fg`, `dim-opacity`, `font-base`, `font-heading`, `size-base`, `scale-ratio`, `weight-heading`, `leading` and `margin`.
+The other eight are read by the renderer slots, which arrive in a later release, and the remaining names of the specification arrive with the layout and element milestones.
+
+The six colour tokens are a matched set, tuned for the light default.
+Each is overridden on its own, so a theme that sets `bg` to a dark fill should set `muted` and `border` as well, or the secondary text and the rules fall below a readable contrast.
 
 ## Heading sizes
 
@@ -67,13 +73,26 @@ It is not itself a token name, so `theme-tokens(extra: ...)` is accepted as a ke
 
 ## The `slots` namespace
 
+::: {.callout-important}
+
+## Not active yet
+
+A theme carries slots today and nothing calls them.
+The renderers arrive with the release that composes a page from regions.
+Until then a slot is validated when you write it, and every slide renders exactly as it does without one.
+:::
+
 `slots` holds a theme's renderers.
 It is the second reserved key, and like `extra` it is not a token name and merges key by key, so overriding one colour of a theme does not drop the renderers it supplied.
 
 Unlike `extra`, its contents are validated.
-A key must be one of `render-title-slide`, `render-section-slide`, `render-header`, `render-footer` or `render-progress`, and its value must be a function.
+A key must be one of `render-title-slide`, `render-section-slide`, `render-header`, `render-footer` or `render-progress`.
 The set of five is fixed, and expanding it is a deliberate versioned decision.
 A name outside it is refused rather than stored, because the renderer calls the five it knows and a sixth would be a function nothing ever runs.
+
+Each slot is called with the named arguments `info`, `tokens` and `state`, and returns content.
+Write all three, even where the slot ignores one.
+Typst exposes nothing of a closure's parameters, so a slot's arity cannot be validated when you write it: one that does not accept all three fails when a page is composed, with Typst's own message rather than this package's.
 
 ```typst
 #let banded = theme-tokens(
@@ -82,5 +101,9 @@ A name outside it is refused rather than stored, because the renderer calls the 
 )
 ```
 
-The renderers themselves arrive with the milestone that calls them.
-A theme may carry them today, and every slide still renders as it does without them.
+A value of `none` clears a slot rather than storing one.
+That is how a theme takes another's chrome without one of its parts, since every other value has to be a function.
+
+```typst
+#let quiet = theme-merge(banded, (slots: (render-header: none)))
+```

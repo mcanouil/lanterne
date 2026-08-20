@@ -56,6 +56,16 @@
 #let replaced = theme-merge(themed, (slots: (render-header: footer)))
 #assert.eq(replaced.slots.render-header, footer)
 
+// `none` removes a slot rather than storing it, which is what lets a theme take
+// a preset's chrome without one of its parts. The key goes, so a renderer that
+// asks whether a slot exists gets the right answer.
+#assert.eq(theme-merge(both, (slots: (render-footer: none))).slots.keys(), ("render-header",))
+#assert.eq(theme-merge(themed, (slots: (render-header: none))).slots, (:))
+
+// Clearing a slot the theme never had is not an error. It says the same thing
+// about the result as clearing one it did.
+#assert.eq(theme-merge(theme-tokens(), (slots: (render-footer: none))).slots, (:))
+
 // A theme with no slots carries the key and an empty dictionary, so a renderer
 // reads `tokens.slots` without asking whether it exists.
 #assert.eq(theme-tokens().slots, (:))
