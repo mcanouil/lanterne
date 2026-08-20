@@ -51,21 +51,23 @@
 
   let merged = base
   for (name, value) in overrides {
-    if name == "extra" {
-      if type(value) != dictionary {
-        fail-type(scope, "extra", value, "a dictionary")
+    if name in ("extra", "slots") {
+      // Both reserved keys merge key by key rather than being replaced.
+      // Replacing wholesale would mean that setting one token of your own, or
+      // overriding one colour of a preset, silently dropped every other token
+      // or renderer that theme carried, which is the failure a theme author
+      // notices last.
+      //
+      // Validated before the merge, so a bad override reports the package's
+      // own message rather than Typst's on `dictionary + 1`.
+      if name == "extra" {
+        if type(value) != dictionary {
+          fail-type(scope, "extra", value, "a dictionary")
+        }
+      } else {
+        check-slots(value, scope)
       }
-      let combined = merged.extra
-      for (key, own) in value { combined.insert(key, own) }
-      merged.insert("extra", combined)
-    } else if name == "slots" {
-      // Key by key, as `extra` merges. Replacing wholesale would mean that
-      // overriding one colour of a preset silently dropped every renderer that
-      // preset supplied, which is the failure a theme author notices last.
-      check-slots(value, scope)
-      let combined = merged.slots
-      for (key, own) in value { combined.insert(key, own) }
-      merged.insert("slots", combined)
+      merged.insert(name, merged.at(name) + value)
     } else {
       check-token(name, value, scope)
       merged.insert(name, value)

@@ -74,6 +74,8 @@
   value.len() > 0 and value.all(_is-family)
 }
 
+#let _is-colour(value) = type(value) == color
+
 #let _is-weight(value) = {
   if type(value) == str { return _WEIGHTS.contains(value) }
   type(value) == int and value >= 100 and value <= 900
@@ -106,12 +108,12 @@
 // Name, default and rule together, so a default cannot drift away from the
 // rule that governs it. `expected` completes "<name> must be ...".
 #let _SPEC = (
-  bg: (default: white, expected: "a colour", ok: v => type(v) == color),
-  fg: (default: rgb("#111111"), expected: "a colour", ok: v => type(v) == color),
-  accent: (default: rgb("#1f5fa9"), expected: "a colour", ok: v => type(v) == color),
-  accent-fg: (default: white, expected: "a colour", ok: v => type(v) == color),
-  muted: (default: rgb("#6b6b76"), expected: "a colour", ok: v => type(v) == color),
-  border: (default: rgb("#d8d8e0"), expected: "a colour", ok: v => type(v) == color),
+  bg: (default: white, expected: "a colour", ok: _is-colour),
+  fg: (default: rgb("#111111"), expected: "a colour", ok: _is-colour),
+  accent: (default: rgb("#1f5fa9"), expected: "a colour", ok: _is-colour),
+  accent-fg: (default: white, expected: "a colour", ok: _is-colour),
+  muted: (default: rgb("#6b6b76"), expected: "a colour", ok: _is-colour),
+  border: (default: rgb("#d8d8e0"), expected: "a colour", ok: _is-colour),
   dim-opacity: (
     default: 30%,
     expected: "a ratio between 0% and 100%",
