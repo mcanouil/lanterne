@@ -95,8 +95,15 @@
 
 /// Merge `overrides` into `base`, validating every key of both.
 ///
-/// `extra` merges key by key rather than replacing wholesale, so setting one
-/// token of your own leaves the rest of the base theme's in place.
+/// Both reserved keys merge key by key rather than replacing wholesale. Setting
+/// one token of your own leaves the rest of the base theme's `extra` in place,
+/// and overriding one colour of a theme keeps the renderers it supplied in
+/// `slots`.
+///
+/// A slot set to `none` is cleared rather than stored, and the key is removed,
+/// which is how a theme takes another's chrome without one of its parts. A
+/// `none` in `base.slots` is refused instead: a base is a theme rather than a
+/// change to one.
 /// @category theme
 /// @stability experimental
 /// @param base A complete token dictionary rather than any subset. A partial one would flow downstream and fail where it is read, naming a missing key, rather than here, naming the theme that lacks it.
@@ -114,8 +121,13 @@
 /// validate against, so it is rejected rather than ignored.
 ///
 /// An unrecognised token name is an error rather than a silent no-op, because
-/// a theme that ignores a typo rots quietly. The one exception is `extra`,
-/// which exists so that a token of your own has somewhere to live.
+/// a theme that ignores a typo rots quietly.
+///
+/// Two names are accepted that are not tokens, and they are validated
+/// differently. `extra` exists so that a token of your own has somewhere to
+/// live, and its contents are not validated at all. `slots` holds a theme's
+/// renderers, and its keys are validated against the five names of
+/// `SLOT-NAMES`, each holding a function.
 /// @category theme
 /// @stability experimental
 /// @param ..overrides The tokens to set, named only.
