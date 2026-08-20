@@ -244,15 +244,25 @@
       seen = inner.found
     }
     let took = not found and seen
-    let rest = parts.sum(default: [])
     if element-label != none {
-      if is-blank(rest) and took {
+      // Within the rest the label goes on the first node that carries
+      // something, exactly as `_relabel` places one. Markup attaches a label to
+      // the last element of what it follows, and the last element of a divided
+      // group is usually the space that separated it from what came next; such
+      // a label is dropped once the spaces around a boundary are merged, and
+      // the deck then fails on a reference to a label that no longer exists.
+      //
+      // Summing first and labelling the sum would attach it to that trailing
+      // space, which is why the parts are labelled before they are joined.
+      let carrying = parts.position(part => not is-blank(part))
+      if carrying == none and took {
         head = [#head#element-label]
       } else {
-        rest = [#rest#element-label]
+        let target = if carrying == none { parts.len() - 1 } else { carrying }
+        parts.at(target) = [#(parts.at(target))#element-label]
       }
     }
-    return (head: head, rest: rest, found: seen)
+    return (head: head, rest: parts.sum(default: []), found: seen)
   }
   // The predicate sees the child with its wrappers already peeled, because the
   // two branches above descend before this is reached. A blank child never

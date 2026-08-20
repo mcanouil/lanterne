@@ -13,8 +13,10 @@
 // files under tests/expect-fail/.
 
 #import "../../src/core/split.typ": is-blank, split-head
-#import "../../src/core/walk.typ": has-element
+#import "../../src/core/walk.typ": collect, has-element
 #import "../../src/utils/elements.typ": STYLED, is-elem
+
+#let label-of(node) = node.fields().at("label", default: none)
 
 // The shape of a body a deck actually receives: a rule written after
 // `#show: deck.with(...)` wraps everything that follows it.
@@ -106,11 +108,37 @@ body] <split-head-group>]
 #cut-alone.head
 #context assert.eq(query(<split-head-alone>).len(), 1)
 
+// A group carrying no rule at all is a sequence rather than a wrapper, and it
+// takes the other branch of the walk. Without a case here that branch has no
+// coverage, which is the reason tests/unit/test-split.typ carries the same pair
+// for `split-on`.
+//
+// Within the rest the label goes on the first node that carries something, not
+// on the last. Markup attaches a label to the last element of what it follows,
+// and the last element of a divided group is usually the space that separated
+// it from what came next: such a label is dropped once the spaces around a
+// boundary are merged, and the deck then fails on a reference to a label that
+// no longer exists.
+#let plain-group = [x #[== T
+
+body] <split-head-plain> y]
+#let cut-plain = split-head(plain-group, node => is-elem(node, heading))
+#assert(cut-plain.found)
+#let marked = collect(
+  cut-plain.rest,
+  node => type(node) == content and label-of(node) == <split-head-plain>,
+)
+#assert.eq(marked.len(), 1)
+#assert(not is-blank(marked.first()))
+
 // The rules the wrappers carry reach the head after it has been moved. The
 // heading below is rendered out of the position it was written in, and the
 // `set heading(outlined: false)` written above it still governs it.
 #cut.head
-#context assert.eq(query(heading).first().outlined, false)
+// Asserted on the element itself rather than on the first heading in the
+// document: several halves are rendered above, so `query(heading).first()`
+// would pin whichever came first rather than this one.
+#context assert.eq(query(<split-head-title>).first().outlined, false)
 
 // The label written on the heading travels with it, so a reference to a slide
 // resolves to wherever its title was placed.

@@ -114,6 +114,7 @@ Two things make reuse wrong rather than merely awkward.
 
 The label rule is that one: a label on a wrapper marks the slide's content, so it stays with the rest rather than travelling with the title being moved away from it.
 It falls to the head only when the rest carries nothing, which is the title-only slide specification 4.1 allows.
+Within the rest it goes on the first node that carries something, which is the rule `_relabel` already follows and for the same reason: markup attaches a label to the last element of what it follows, and the last element of a divided group is usually the space beside a boundary, which a later stage merges away.
 A label on the heading itself is one of its fields and travels with it either way, which is what makes a reference to a labelled slide resolve.
 
 Nothing calls `split-head` yet.
