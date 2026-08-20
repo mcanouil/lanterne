@@ -39,7 +39,7 @@ The colour, typography and geometry groupings are documentation rather than stru
 | `footer-height` | non-negative length | `1cm` | The height of a footer region. |
 | `stroke-width` | non-negative length | `1pt` | The thickness of a rule or a border. |
 | `extra` | dictionary | `(:)` | Tokens of your own. The one key whose contents are not validated. |
-| `slots` | dictionary | `(:)` | A theme's renderers, validated against the five slot names. Nothing calls them yet. |
+| `slots` | dictionary | `(:)` | A theme's renderers, validated against the five slot names. |
 
 : The token vocabulary. {.striped .hover tbl-colwidths="[15,25,15,45]"}
 
@@ -50,9 +50,8 @@ That is stricter than it sounds: `2cm - 1em` is refused, although it resolves to
 The two parts are read separately because Typst refuses to compare a mixed length with zero at all, and comparing the whole would replace this message with Typst's own.
 
 The vocabulary grows with the code that reads a token.
-The specification names twenty-eight, and the eighteen above are those the package validates today.
-Ten of them are read now: `bg`, `fg`, `dim-opacity`, `font-base`, `font-heading`, `size-base`, `scale-ratio`, `weight-heading`, `leading` and `margin`.
-The other eight are read by the renderer slots, which arrive in a later release, and the remaining names of the specification arrive with the layout and element milestones.
+The specification names twenty-eight, and the eighteen above are those the package validates and reads today.
+The remaining names arrive with the layout and element milestones.
 
 The six colour tokens are a matched set, tuned for the light default.
 Each is overridden on its own, so a theme that sets `bg` to a dark fill should set `muted` and `border` as well, or the secondary text and the rules fall below a readable contrast.
@@ -161,8 +160,8 @@ A slot may also return `none` to say that its region takes no space on this page
 A slot that was handed the slide's title may not decline, since declining would leave the title nowhere: that is refused with a message naming the slot and the slide.
 Blank content is refused for the same reason and by the same message, because it loses the title just as completely.
 
-`render-title-slide` reads `none` differently: it means the deck has no title page, and none is emitted.
-That is how a theme writes a title page conditional on the metadata it is given.
+`render-title-slide` reads both differently: `none`, or content with nothing on it, means the deck has no title page, and none is emitted.
+That is how a theme writes a title page conditional on the metadata it is given, whether the conditional is written in code or in markup.
 
 A section slide uses its own slot and carries no header, footer or progress region.
 A title slide is a page of its own and carries none either: it is not a slide of the deck, so the deck's chrome does not belong on it.
@@ -194,7 +193,7 @@ That is what keeps a title placed in one numbered, restyled by your own rules, l
 
 | Key | Value |
 | --- | --- |
-| `kind` | `"section"` or `"content"`. |
+| `kind` | `"section"`, `"content"`, or `"title"` on the deck's title page. |
 | `title` | The slide's title as content you can place, or `none`. |
 | `title-source` | `"heading"`, `"value"`, or `none`. |
 | `level` | The heading level the title stands at, or `none`. |
@@ -206,6 +205,7 @@ That is what keeps a title placed in one numbered, restyled by your own rules, l
 : What `state` carries. {.striped .hover tbl-colwidths="[25,75]"}
 
 `title` is content only when this page has somewhere to put it: a header slot on a content slide, or the section slot on a section slide.
+A slot that is handed one has to place it, whichever source it came from.
 A theme that places no title leaves it in the body where it was written, because taking it out with nowhere to put it would delete it from the slide.
 
 `title-source` says what kind of thing `title` is.

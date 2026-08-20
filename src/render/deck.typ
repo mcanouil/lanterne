@@ -146,6 +146,11 @@
 // A slot that was handed the title has to place it, and a slot may decline a
 // page. Both are true, and they meet here.
 //
+// Either source of a title is lost by declining. A heading was taken out of the
+// body, so it is gone from the page. A title passed to `slide(...)` was never in
+// the body, so it renders only where a slot puts it: nothing was taken out, and
+// nothing is left behind either.
+//
 // Declining is decided by what a slot returns, and taking the title out of the
 // body is decided by whether the slot exists, because the slot needs the title
 // in order to compose anything at all. A slot that takes the title and then
@@ -157,7 +162,7 @@
 // Rejoining the halves is not the answer: `split-head` forbids it, since both
 // carry the wrappers and a `#set page` among them would apply twice.
 #let _placed(built, name, cut, record, scope) = {
-  if cut.title == none or cut.source != "heading" {
+  if cut.title == none {
     return built
   }
   // Blank content is not a lesser version of declining, it is the same thing
@@ -212,8 +217,8 @@
 // What every slot is told about the page it is composing. One builder, because
 // a title slide builds one too: a key added to one of two copies is a key a
 // theme reads on some pages and not on others.
-#let _state(record, cut, step, mode) = (
-  kind: record.kind,
+#let _state(record, cut, step, mode, kind: none) = (
+  kind: if kind == none { record.kind } else { kind },
   title: cut.title,
   title-source: cut.source,
   level: record.level,
@@ -257,13 +262,17 @@
     body,
     node => is-elem(node, heading) and heading-level(node) == record.level,
   )
-  // The heading is at the head of the body by construction, since that is what
-  // opened the slide. Not finding it means something upstream rebuilt the body
-  // without it, so the record's own copy is placed rather than nothing.
   if cut.found {
     return (title: cut.head, source: "heading", body: cut.rest)
   }
-  (title: record.title, source: "value", body: body)
+  // The heading is at the head of the body by construction, since that is what
+  // opened the slide, so not finding it means something upstream rebuilt the
+  // body without it. The body is handed back whole and no title is offered.
+  // Offering the record's copy would place the title in a region while the body
+  // still carried the heading, rendering it twice, and calling that copy a
+  // `value` would tell the theme something untrue and quietly excuse a slot
+  // from placing it.
+  (title: none, source: none, body: body)
 }
 
 #let _slide-page(
@@ -292,7 +301,11 @@
   } else {
     none
   }
-  let header-slot = if record.kind == "section" { none } else { slots.at("render-header", default: none) }
+  let header-slot = if record.kind == "section" {
+    none
+  } else {
+    slots.at("render-header", default: none)
+  }
   let cut = _title(record, body, header-slot != none or section-slot != none)
   let state = _state(record, cut, step, mode)
   page(paper: paper, fill: tokens.bg, margin: tokens.margin, {
@@ -487,9 +500,11 @@
   // decides what an empty `info` means rather than the renderer deciding for
   // it.
   // Finding the slot is not the same as being given a page. A slot that returns
-  // `none` says this deck has no title page, which is how a theme writes one
-  // conditional on its metadata; emitting a blank page instead would put a
-  // stray opening page in the deck with nothing on it to say why.
+  // `none`, or content with nothing on it, says this deck has no title page,
+  // which is how a theme writes one conditional on its metadata. A conditional
+  // written in markup yields the blank rather than the `none`, and emitting a
+  // page for it would put a stray opening page in the deck with nothing on it
+  // to say why.
   let _blank-record = slide-record([])
   let opening = {
     _slot(
@@ -497,16 +512,20 @@
       "render-title-slide",
       info,
       tokens,
+      // Not `content`: a title page is not a slide of the deck, and a theme
+      // branching on `kind` inside its own title renderer would otherwise be
+      // told it was composing an ordinary slide.
       _state(
         _blank-record,
         (title: none, source: none, body: []),
         (index: 1, total: 1),
         resolved.mode,
+        kind: "title",
       ),
       scope,
     )
   }
-  if opening != none {
+  if opening != none and not is-blank(opening) {
     _slide-page(
       _blank-record,
       opening,

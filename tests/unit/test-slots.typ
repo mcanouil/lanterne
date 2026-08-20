@@ -370,6 +370,24 @@ body], theme: conditional)
   assert.eq(slide, anchor + 1)
 }
 
+// A title slot written in markup yields blank content rather than `none`, and
+// blank content is the same statement: this deck has no title page. Every other
+// slot already reads the two as one thing.
+#let markup-conditional = theme-tokens(
+  slots: (
+    render-title-slide: (info: none, tokens: none, state: none) => [#if false [never]],
+  ),
+)
+markup anchor #label("slot-markup-anchor")
+#deck([== Only markup <slot-markup>
+
+body], theme: markup-conditional)
+#context {
+  let anchor = query(<slot-markup-anchor>).first().location().page()
+  let slide = query(<slot-markup>).first().location().page()
+  assert.eq(slide, anchor + 1)
+}
+
 // A title slot may decline, and composes an empty page when it does. Nothing is
 // lost by that: a title page carries no title of the deck's, so there is
 // nothing it could fail to place. A section slot that declines is refused
@@ -416,5 +434,33 @@ body], theme: conditional)
 #let footer-only = _regions(geometry, body: [b], footer: [f])
 #assert.eq(footer-only.rows, (1fr, 1cm))
 #assert.eq(footer-only.children.map(cell => cell.body), ([b], [f]))
+
+// A theme branching on `kind` inside its own title renderer is told it is
+// composing a title page, not a content slide.
+#let kinds = state("slot-kinds", ())
+#let branching = theme-tokens(
+  slots: (
+    render-title-slide: (info: none, tokens: none, state: none) => {
+      kinds.update(it => it + (state.kind,))
+      [a title page]
+    },
+    render-header: (info: none, tokens: none, state: none) => {
+      kinds.update(it => it + (state.kind,))
+      state.title
+    },
+  ),
+)
+#deck(
+  [= A section
+
+  == A slide
+
+  body],
+  theme: branching,
+  slide-level: 2,
+  info: (title: [Kinds]),
+)
+// The title page, then the content slide. The section slide has no header.
+#context assert.eq(kinds.final(), ("title", "content"))
 
 slot tests passed.
