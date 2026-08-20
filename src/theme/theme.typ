@@ -1,8 +1,14 @@
 ///! Building and merging validated token dictionaries.
 ///!
-///! These two functions are the only way a token dictionary is built, so every
-///! theme the package handles has been through the same per-key validation and
-///! nothing downstream re-checks what it reads.
+///! `theme-tokens` and `theme-merge` are the only ways a token dictionary is
+///! built, so every theme the package handles has been through the same per-key
+///! validation and nothing downstream re-checks what it reads.
+///!
+///! `resolve-mode` is the third function here and builds nothing. It decides
+///! which token dictionary a render reads, given a theme that may be a light
+///! and dark pair, and routes what it selects through the same validation. Its
+///! one exemption is the defaults, which the package built rather than an
+///! author, and which the unit suite already holds to every rule.
 ///!
 ///! A theme is a value rather than document state, for the reason ARCHITECTURE
 ///! records for the container registry: `state` is context dependent, so a
@@ -12,6 +18,9 @@
 
 #import "tokens.typ": check-slots, check-token, default-tokens
 #import "../utils/errors.typ": fail, fail-enum, fail-type, repr-each
+
+// The two halves of a pair, in the order a message lists them.
+#let _PAIR = ("light", "dark")
 
 // The merge itself, taking the scope it reports under. Both public functions
 // route through this, so a value rejected on behalf of `theme-tokens` names
@@ -26,6 +35,19 @@
   }
   if type(overrides) != dictionary {
     fail-type(scope, "overrides", overrides, "a dictionary of token values")
+  }
+
+  // A pair reaching a merge is the obvious next thing an author tries, and
+  // without this it fails as a token dictionary missing all eighteen names,
+  // which describes neither the mistake nor the fix. A merge is per half
+  // because a token belongs to a half rather than to the pair.
+  let halves = _PAIR.filter(half => half in base)
+  if halves.len() > 0 {
+    fail(
+      scope,
+      name + " is a light and dark pair, carrying " + repr-each(halves),
+      hint: "Merge into each half, as theme-merge(pair.light, ...)",
+    )
   }
 
   let missing = default-tokens().keys().filter(key => key not in base)
@@ -97,15 +119,19 @@
   merged
 }
 
-// The two halves of a pair, in the order a message lists them.
-#let _PAIR = ("light", "dark")
-
-/// The one token dictionary a render reads, from a theme that may be a pair.
+/// What a render reads from a theme that may be a pair: `(tokens, mode)`.
 ///
 /// A theme is either a token dictionary or a dictionary of exactly `light` and
-/// `dark`, each of them one. `mode` selects the half, and what comes back is a
+/// `dark`, each of them one. `mode` selects the half, and `tokens` comes back a
 /// plain token dictionary either way, so nothing downstream knows a pair
 /// existed and no renderer or slot ever receives one.
+///
+/// The mode comes back too, because the mode a render is *in* is not the mode it
+/// was *asked for*. A theme with no halves has one answer, so it resolves to
+/// `light` however it was asked, and a slot told otherwise would draw dark
+/// chrome over light tokens. One function decides which half renders, so it
+/// reports both halves of that decision rather than leaving the second to be
+/// derived again by whoever needs it.
 ///
 /// A pair is written literally rather than built by a constructor. There is
 /// nothing to validate in the shape itself that this function does not validate
@@ -130,17 +156,19 @@
     fail-enum(scope, "theme-mode", mode, _PAIR)
   }
   if theme == none {
-    return default-tokens()
+    return (tokens: default-tokens(), mode: "light")
   }
   if type(theme) != dictionary {
-    fail-type(scope, "theme", theme, "a token dictionary or a light and dark pair")
+    fail-type(scope, "theme", theme, "a token dictionary, a light and dark pair, or none")
   }
   // A dictionary carrying either half is a pair, finished or not. Reading an
   // unfinished one as tokens would report `light` as an unknown token name,
   // which names neither the mistake nor the fix.
   let halves = _PAIR.filter(half => half in theme)
   if halves.len() == 0 {
-    return _merge(theme, (:), scope, name: "theme")
+    // A theme with no halves has one answer, and that answer is light whatever
+    // was asked for. See the note above on why the mode comes back at all.
+    return (tokens: _merge(theme, (:), scope, name: "theme"), mode: "light")
   }
   if halves.len() < _PAIR.len() {
     fail(
@@ -161,11 +189,11 @@
   for half in _PAIR {
     let value = theme.at(half)
     if type(value) != dictionary {
-      fail-type(scope, half, value, "a token dictionary")
+      fail-type(scope, "theme." + half, value, "a token dictionary")
     }
-    resolved.insert(half, _merge(value, (:), scope, name: half))
+    resolved.insert(half, _merge(value, (:), scope, name: "theme." + half))
   }
-  resolved.at(mode)
+  (tokens: resolved.at(mode), mode: mode)
 }
 
 /// Merge `overrides` into `base`, validating every key of both.

@@ -205,9 +205,6 @@
   if aspect-ratio not in _PAPERS {
     fail-enum(scope, "aspect-ratio", aspect-ratio, _PAPERS.keys())
   }
-  if theme != none and type(theme) != dictionary {
-    fail-type(scope, "theme", theme, "a token dictionary, a light and dark pair, or none")
-  }
   if type(info) != dictionary {
     fail-type(scope, "info", info, "a dictionary of document metadata")
   }
@@ -235,9 +232,15 @@
   }
   // The theme is validated by the one function that validates a theme, so a
   // token rejected here reads the same as one rejected where it was written.
-  // That one function also reads the mode and takes the defaults, so a deck
-  // naming no theme still hears about a mistyped mode.
-  let tokens = resolve-mode(theme, theme-mode, scope)
+  // That one function also reads the mode, takes the defaults and refuses a
+  // theme of the wrong shape, so the shape of a theme is stated once. A guard
+  // here would be a second statement of it, and the two would drift.
+  //
+  // It reports the mode it resolved as well as the tokens, since a theme with
+  // no halves renders light whatever mode was asked for. The chrome that reads
+  // the mode arrives with the renderer slots.
+  let resolved = resolve-mode(theme, theme-mode, scope)
+  let tokens = resolved.tokens
   // The split validates `body` and `slide-level` under this scope, so the
   // message names the function the author called and there is one copy of it.
   let records = slides(body, slide-level: slide-level, scope: scope)
