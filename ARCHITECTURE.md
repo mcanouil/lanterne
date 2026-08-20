@@ -101,6 +101,23 @@ No equality assertion catches any of this, because the deck still builds and the
 
 The cost is that `record.title` describes the slide rather than being the only copy of it.
 A renderer that later wants the title in a header region has to take it out of the body deliberately, inside the wrappers, rather than finding it already separated.
+`split-head` is the tool for that, and the ruling below says why it is a third splitter rather than a call to one of the first two.
+
+## `split-head` mirrors the splitter rather than calling it
+
+`split-head` in `src/core/split.typ` takes the first child a predicate matches out of a body and hands back both halves inside the wrappers they were found under.
+It repeats the shape of `_pieces` rather than reusing it, which is a duplication the three-duplications rule would otherwise refuse.
+
+Two things make reuse wrong rather than merely awkward.
+`_pieces` cuts at every match, so rebuilding a body from pieces 1 to n means summing separately wrapped pieces, and the module's own header records what that costs: applying `#set page` twice within one segment opens two page groups, so a body that rendered on one page comes back rendering on two.
+`_relabel` places one label among n pieces, on the first that carries something; this places one label among exactly two, under a different rule, because the two halves are not peers.
+
+The label rule is that one: a label on a wrapper marks the slide's content, so it stays with the rest rather than travelling with the title being moved away from it.
+It falls to the head only when the rest carries nothing, which is the title-only slide specification 4.1 allows.
+A label on the heading itself is one of its fields and travels with it either way, which is what makes a reference to a labelled slide resolve.
+
+Nothing calls `split-head` yet.
+It ships a milestone ahead of its caller because a pure function with its own tests is reviewable on its own, and the branch that wires it has enough in it already.
 
 ## The slide record carries no `layout` key
 
