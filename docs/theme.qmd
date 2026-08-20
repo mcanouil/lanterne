@@ -126,13 +126,18 @@ Typst exposes nothing of a closure's parameters, so a slot's arity cannot be val
   accent: rgb("#1f5fa9"),
   accent-fg: white,
   slots: (
-    render-header: (info: none, tokens: none, state: none) => block(
-      width: 100%,
-      height: 100%,
-      fill: tokens.accent,
-      inset: 1em,
-      text(fill: tokens.accent-fg, state.title),
-    ),
+    render-header: (info: none, tokens: none, state: none) => {
+      // A slide opened by `#pagebreak()` has no title, so the header says there
+      // is no region on that page rather than placing nothing.
+      if state.title == none { return none }
+      block(
+        width: 100%,
+        height: 100%,
+        fill: tokens.accent,
+        inset: 1em,
+        text(fill: tokens.accent-fg, state.title),
+      )
+    },
   ),
 )
 ```
@@ -154,6 +159,10 @@ Two of the five compose a whole page, and three fill a region of one.
 A region with no slot behind it takes no space at all, so a theme supplying none composes the page exactly as a themeless deck does.
 A slot may also return `none` to say that its region takes no space on this page, which is how a theme hides its footer on an appendix slide or its progress bar on the first step.
 A slot that was handed the slide's title may not decline, since declining would leave the title nowhere: that is refused with a message naming the slot and the slide.
+Blank content is refused for the same reason and by the same message, because it loses the title just as completely.
+
+`render-title-slide` reads `none` differently: it means the deck has no title page, and none is emitted.
+That is how a theme writes a title page conditional on the metadata it is given.
 
 A section slide uses its own slot and carries no header, footer or progress region.
 A title slide is a page of its own and carries none either: it is not a slide of the deck, so the deck's chrome does not belong on it.
@@ -191,7 +200,7 @@ That is what keeps a title placed in one numbered, restyled by your own rules, l
 | `level` | The heading level the title stands at, or `none`. |
 | `appendix` | Whether the slide is an appendix slide. |
 | `body` | The slide's content, with the title removed when it was taken out. |
-| `step` | `(index, total)`, one-based, over the slide's whole step space. |
+| `step` | `(index: ..., total: ...)`, one-based, over the slide's whole step space. |
 | `mode` | `"light"` or `"dark"`. |
 
 : What `state` carries. {.striped .hover tbl-colwidths="[25,75]"}

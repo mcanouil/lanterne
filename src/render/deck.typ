@@ -41,7 +41,7 @@
 #import "../core/range.typ": parse-range
 #import "../core/record.typ": slide-record
 #import "../core/slides.typ": heading-level, slides
-#import "../core/split.typ": split-head
+#import "../core/split.typ": is-blank, split-head
 #import "../theme/theme.typ": resolve-mode
 #import "../utils/elements.typ": is-elem
 #import "../utils/errors.typ": fail, fail-enum, fail-type
@@ -157,7 +157,13 @@
 // Rejoining the halves is not the answer: `split-head` forbids it, since both
 // carry the wrappers and a `#set page` among them would apply twice.
 #let _placed(built, name, cut, record, scope) = {
-  if built != none or cut.title == none or cut.source != "heading" {
+  if cut.title == none or cut.source != "heading" {
+    return built
+  }
+  // Blank content is not a lesser version of declining, it is the same thing
+  // written differently: `[]` is what an empty branch of a conditional yields,
+  // so it is the shape a theme reaches by accident rather than by intent.
+  if built != none and not is-blank(built) {
     return built
   }
   // The slide is named by the record's own title rather than by the content
@@ -165,7 +171,7 @@
   // rather than as a name.
   fail(
     scope,
-    name + " returned none on the slide titled " + repr(record.title),
+    name + " placed nothing on the slide titled " + repr(record.title),
     hint: "Place state.title, or return none only where the slide has no title",
   )
 }
@@ -345,8 +351,9 @@
         footer: _slot(slots, "render-footer", info, tokens, state, scope),
       )
     }
-    // A composing slot that returns `none` composes an empty page, since it
-    // was asked what this page is and answered nothing.
+    // A section slot that returns `none` is refused above, and a title slot that
+    // does emits no page at all, so this only stands in for a slot that
+    // composed nothing on a slide with no title to lose.
     let composed = if composed-or-none == none { [] } else { composed-or-none }
     // The whole composed page, not the body region alone. A title moved into a
     // header region beside this rule would escape all three suppressions: the
@@ -479,22 +486,30 @@
   // none before there were slots, which is why nothing regresses. The slot
   // decides what an empty `info` means rather than the renderer deciding for
   // it.
-  if "render-title-slide" in tokens.slots {
-    _slide-page(
-      slide-record([], attrs: (appendix: false)),
-      _slot(
-        tokens.slots,
-        "render-title-slide",
-        info,
-        tokens,
-        _state(
-          slide-record([], attrs: (appendix: false)),
-          (title: none, source: none, body: []),
-          (index: 1, total: 1),
-          resolved.mode,
-        ),
-        scope,
+  // Finding the slot is not the same as being given a page. A slot that returns
+  // `none` says this deck has no title page, which is how a theme writes one
+  // conditional on its metadata; emitting a blank page instead would put a
+  // stray opening page in the deck with nothing on it to say why.
+  let _blank-record = slide-record([])
+  let opening = {
+    _slot(
+      tokens.slots,
+      "render-title-slide",
+      info,
+      tokens,
+      _state(
+        _blank-record,
+        (title: none, source: none, body: []),
+        (index: 1, total: 1),
+        resolved.mode,
       ),
+      scope,
+    )
+  }
+  if opening != none {
+    _slide-page(
+      _blank-record,
+      opening,
       tokens,
       _PAPERS.at(aspect-ratio),
       info: info,

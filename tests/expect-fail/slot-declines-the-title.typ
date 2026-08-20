@@ -4,7 +4,7 @@
 // step, and a label that lived on that heading would exist nowhere in the
 // document, so a reference to the slide would fail naming neither the theme nor
 // the slot.
-// EXPECT: deck: render-header returned none on the slide titled [Titled]. Place
+// EXPECT: deck: render-header placed nothing on the slide titled [Titled]. Place
 // EXPECT: state.title, or return none only where the slide has no title.
 #import "../../src/render/deck.typ": deck
 #import "../../src/theme/theme.typ": theme-tokens

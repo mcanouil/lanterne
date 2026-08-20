@@ -149,7 +149,8 @@ The function is deliberately weaker than the splitter that produces a slide, so 
 - `rest` is blank rather than `[]` when a slide is nothing but its title, since the wrappers come back around nothing.
   Emptiness is read with `is-blank`, as `slides` already reads it for a lead-in segment.
 
-`_title` in `src/render/deck.typ` is the caller, and it meets those obligations: it places the head in a region and the rest in the body, never rejoins them, and reads emptiness with `is-blank`.
+`_title` in `src/render/deck.typ` is the caller. It places the head in a region and the rest in the body and never rejoins them, which are the two obligations that bite.
+It never tests the rest for emptiness, so the third is met vacuously: a blank rest composes a body region carrying nothing, which is what a title-only slide should look like.
 The function landed a branch ahead of that caller because a pure function with its own tests is reviewable on its own, and the branch that wired it had enough in it already.
 
 ## A slot's output stays inside the page's own rules

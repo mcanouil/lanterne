@@ -11,7 +11,7 @@
 
 #import "../../src/core/slides.typ": appendix, slide
 #import "../../src/core/steps.typ": pause
-#import "../../src/render/deck.typ": deck
+#import "../../src/render/deck.typ": _regions, deck
 #import "../../src/theme/theme.typ": theme-tokens
 
 // A theme that places the title in a header region and nothing else.
@@ -346,6 +346,30 @@
 // page, so the section never appears in the record.
 #context assert.eq(ticks.final(), (("content", 1), ("content", 2)))
 
+// A title slot that declines emits no page at all, rather than a blank one. The
+// natural way to write a conditional title page is to return `none` when there
+// is no metadata to build one from, and a stray empty opening page is not what
+// that asks for.
+#let conditional = theme-tokens(
+  slots: (
+    render-title-slide: (info: none, tokens: none, state: none) => {
+      if info.at("title", default: none) == none { none } else { [a title page] }
+    },
+  ),
+)
+anchor #label("slot-anchor")
+#deck([== Only <slot-conditional>
+
+body], theme: conditional)
+// The slide opens the page straight after the one this file was already on. A
+// blank title page would have pushed it one further, and nothing on that page
+// would have said why.
+#context {
+  let anchor = query(<slot-anchor>).first().location().page()
+  let slide = query(<slot-conditional>).first().location().page()
+  assert.eq(slide, anchor + 1)
+}
+
 // A title slot may decline, and composes an empty page when it does. Nothing is
 // lost by that: a title page carries no title of the deck's, so there is
 // nothing it could fail to place. A section slot that declines is refused
@@ -362,5 +386,35 @@
   info: (title: [Quiet]),
 )
 #context assert.eq(query(<slot-quiet>).len(), 1)
+
+// The geometry itself, asserted directly. Every structural test above passes
+// whatever the rows are, and tests/visual/README.md names this exact risk: a
+// theme can validate every argument, pass every test in tests/unit/, and still
+// put the title in the wrong place.
+#let geometry = theme-tokens(header-height: 3cm, footer-height: 1cm, gutter: 5mm)
+
+// With no region, the body is handed back untouched rather than wrapped in a
+// grid of one row.
+#assert.eq(_regions(geometry, body: [b]), [b])
+
+// With regions, one row each, in the order they render: header, body,
+// progress, footer.
+#let full = _regions(
+  geometry,
+  body: [b],
+  header: [h],
+  progress: [p],
+  footer: [f],
+)
+#assert.eq(full.func(), grid)
+#assert.eq(full.rows, (3cm, 1fr, auto, 1cm))
+#assert.eq(full.row-gutter, (5mm,))
+#assert.eq(full.children.map(cell => cell.body), ([h], [b], [p], [f]))
+
+// A region a theme did not supply takes no row at all, so the body keeps the
+// space rather than a blank band holding it.
+#let footer-only = _regions(geometry, body: [b], footer: [f])
+#assert.eq(footer-only.rows, (1fr, 1cm))
+#assert.eq(footer-only.children.map(cell => cell.body), ([b], [f]))
 
 slot tests passed.
