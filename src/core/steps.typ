@@ -41,20 +41,28 @@
 
 /// A region of a slide that is visible on some steps and not on others.
 ///
-/// `range` is an integer, an array of integers, or a string such as `"2"`,
-/// `"2-"`, `"-3"` or `"2-4"`, one based. `before` is the state the region takes
-/// on every step below the lowest one the range mentions, and `after` is the
-/// state it takes on every step above the range. Inside the range it is always
-/// visible.
+/// This is the one primitive. `uncover`, `only`, `dim` and `focus` are this
+/// function with its two states set.
+///
+/// The four states are `visible`, `hidden`, `dimmed` and `removed`. `hidden`
+/// lays the region out and reserves its space with `hide`, so nothing on the
+/// slide reflows when it appears. `removed` is not laid out at all. `dimmed`
+/// renders the region at the `dim-opacity` token's value.
+///
+/// Typst 0.15 has no content opacity, so a dimmed region is dimmed by setting
+/// its text fill. An image, an explicit fill and a stroke inside one therefore
+/// do not dim.
 ///
 /// A heading in `body` is refused: specification 4.4 makes it a hard error,
 /// because an outline entry that comes and goes between steps is a deck that
 /// builds and is wrong.
-///
-/// `scope` names the caller in any message this raises, since `emit-step` and
-/// the four aliases all reach the same validation.
 /// @category step
 /// @stability stable
+/// @param range The steps the region is visible on, one based. An integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`.
+/// @param body The region. It cannot contain a heading.
+/// @param before The state the region takes on every step below the lowest one the range mentions.
+/// @param after The state it takes on every step above the range. Inside the range it is always visible.
+/// @param scope Names the caller in any message this raises, since `emit-step` and the four aliases all reach the same validation.
 /// @returns content
 #let step(range, body, before: "hidden", after: "visible", scope: "step") = {
   if type(body) != content {
@@ -94,7 +102,16 @@
 /// to hide.
 /// @category step
 /// @stability stable
+/// @param range The steps the region is visible on, one based. An integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`.
+/// @param body The region. It cannot contain a heading.
+/// @param scope Names the caller in any message the shared validation raises.
 /// @returns content
+/// @examples-static
+/// ```typst
+/// == A slide with a region that arrives on step two
+///
+/// #uncover("2-")[This appears from step two onward.]
+/// ```
 #let uncover(range, body, scope: "uncover") = step(
   range,
   body,
@@ -106,6 +123,9 @@
 /// Laid out on the steps in its range and on no others.
 /// @category step
 /// @stability stable
+/// @param range The steps the region is visible on, one based. An integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`.
+/// @param body The region. It cannot contain a heading.
+/// @param scope Names the caller in any message the shared validation raises.
 /// @returns content
 #let only(range, body, scope: "only") = step(
   range,
@@ -131,6 +151,9 @@
 /// left alone.
 /// @category step
 /// @stability stable
+/// @param range The steps the region is visible on, one based. An integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`.
+/// @param body The region. It cannot contain a heading.
+/// @param scope Names the caller in any message the shared validation raises.
 /// @returns content
 #let dim(range, body, scope: "dim") = step(
   range,
@@ -144,6 +167,9 @@
 /// stay legible. The dimming carries the same limitation as `dim`.
 /// @category step
 /// @stability stable
+/// @param range The steps the region is visible on, one based. An integer, an array of integers, or a string such as `"2"`, `"2-"`, `"-3"` or `"2-4"`.
+/// @param body The region. It cannot contain a heading.
+/// @param scope Names the caller in any message the shared validation raises.
 /// @returns content
 #let focus(range, body, scope: "focus") = step(
   range,
@@ -180,6 +206,8 @@
 /// steps than the rest of the body advertises.
 /// @category step
 /// @stability experimental
+/// @param fn The callback, called as `fn(index, total)` on every step, with a one based `index`.
+/// @param scope Names the caller in any message the shared validation raises.
 /// @returns content
 #let context-slide(fn, scope: "context-slide") = {
   if type(fn) != function {

@@ -1,0 +1,54 @@
+---
+title: "Theme tokens"
+subtitle: "The vocabulary a theme is written in, and what each name accepts."
+description: "The theme token vocabulary Lanterne validates against, its defaults, and the reserved extra namespace."
+---
+
+A theme is a flat dictionary of tokens.
+`theme-tokens` returns the canonical defaults with named overrides applied, and `theme-merge` merges a dictionary of overrides into a complete one.
+Both validate every key they touch, so an unknown token name or a value of the wrong type fails where it is written rather than where it is read.
+
+```typst
+#let base = theme-tokens(bg: rgb("#fbfbfd"), fg: rgb("#1c1c22"))
+#let dark = theme-merge(base, (bg: rgb("#1c1c22"), fg: white))
+```
+
+## The vocabulary
+
+Read from `src/theme/tokens.typ`.
+The colour, typography and geometry groupings are documentation rather than structure: the dictionary is flat, so a theme merges without recursion and a generated theme is one dictionary literal.
+
+| Token | Accepts | Default | Description |
+| --- | --- | --- | --- |
+| `bg` | colour | `white` | The page fill. |
+| `fg` | colour | `rgb("#111111")` | The text colour. |
+| `dim-opacity` | ratio from 0% to 100% | `30%` | The text fill opacity a dimmed region renders at, read by `dim` and `focus`. |
+| `font-base` | family name, coverage-scoped entry, or a non-empty array of them | `"Libertinus Serif"` | The body font. |
+| `font-heading` | as `font-base` | `"Libertinus Serif"` | The heading font. |
+| `size-base` | positive absolute length | `24pt` | The body text size. An `em` value is rejected here, since it would be relative to itself. |
+| `scale-ratio` | number of at least 1 | `1.2` | The step between heading sizes, and what `smaller` divides by. |
+| `weight-heading` | integer from 100 to 900, or a weight name | `"semibold"` | The heading weight. |
+| `leading` | length | `0.75em` | The paragraph leading. |
+| `margin` | length | `2cm` | The page margin. |
+| `extra` | dictionary | `(:)` | Tokens of your own. The one key whose contents are not validated. |
+
+: The token vocabulary. {.striped .hover tbl-colwidths="[15,25,15,45]"}
+
+The named weights are `thin`, `extralight`, `light`, `regular`, `medium`, `semibold`, `bold`, `extrabold` and `black`.
+
+The vocabulary grows with the code that reads a token.
+The specification names twenty-eight; the ten above are those something reads today, and the rest arrive with the theming and layout milestones.
+
+## Heading sizes
+
+A heading's size is `size-base` multiplied by `scale-ratio` raised to `max(0, 3 - level)`, so a section title reads as larger than a slide title and both read as larger than the body, and level 3 and below sit at the base size.
+
+On a slide set `smaller`, the base of that calculation is the slide's own reduced size, so the title shrinks with the body rather than staying as large on the slide that asked for room.
+
+## The `extra` namespace
+
+`extra` exists so that a token of your own has somewhere to live.
+The strictness everywhere else is the point: a mistyped token name that is quietly ignored is how a theme rots.
+
+`extra` merges key by key rather than replacing wholesale, so setting one token of your own leaves the rest of the base theme's in place.
+It is not itself a token name, so `theme-tokens(extra: ...)` is accepted as a key while an unknown name inside the vocabulary is refused.

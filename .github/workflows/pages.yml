@@ -15,6 +15,12 @@ on:
       - "_extensions/**"
       - "CHANGELOG.md"
       - ".github/workflows/pages.yml"
+      # The reference pages are generated from the /// comments in src/ by
+      # tools/typstdoc/, run as the Quarto pre-render, so both are inputs to
+      # this render as surely as docs/ is.
+      - "src/**"
+      - "lib.typ"
+      - "tools/typstdoc/**"
   workflow_dispatch:
     inputs:
       use-main-as-release:

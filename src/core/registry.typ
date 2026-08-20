@@ -135,15 +135,25 @@
 /// Record the positional fields of an element, returning a new registry.
 ///
 /// The result is a value, not an update to document state, so it has to be
-/// threaded through the deck configuration to take effect. Pass `registry` to
-/// chain registrations; the default extends the built in set. Registering an
-/// element twice replaces the earlier entry.
+/// passed to `deck`'s `registry` option to take effect. Registering the same
+/// function twice replaces the earlier entry.
 ///
-/// `spread` marks a variadic container whose single positional field holds an
-/// array that must be spread into separate arguments.
+/// `notes/roundtrip-findings.md` records the entries verified against Typst
+/// 0.15.1. An element absent from the registry is refused rather than guessed
+/// at when a step inside it needs reconstructing.
 /// @category core
 /// @stability stable
+/// @param fn The element function, such as a helper of your own or a built in like `rect`.
+/// @param positional The field names taken positionally, in declaration order.
+/// @param spread Whether the one positional field holds an array that must itself be spread into separate arguments.
+/// @param registry A registry to extend, so registrations chain. `none` extends the built in set.
 /// @returns dictionary
+/// @examples-static
+/// ```typst
+/// #let registry = register-container(my-box, ("body",))
+///
+/// #show: deck.with(registry: registry)
+/// ```
 #let register-container(fn, positional, spread: false, registry: none) = {
   let scope = "register-container"
   if type(fn) != function {

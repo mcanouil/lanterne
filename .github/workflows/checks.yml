@@ -140,6 +140,41 @@ jobs:
             echo "- Status: ${EXPECT_WARN_OUTCOME:-skipped}"
           } >> "${GITHUB_STEP_SUMMARY}"
 
+  # The reference documentation is generated from the /// comments in src/, so a
+  # malformed comment is a build failure rather than a page that says nothing.
+  # This job runs the generator's own tests and then parses the real sources.
+  #
+  # `docs/**` is deliberately absent from this workflow's paths: the site render
+  # in pages.yml runs the same generator through the Quarto pre-render, so a
+  # documentation-only commit is checked there rather than compiling Typst here
+  # for no reason.
+  typstdoc:
+    name: Check documentation comments
+    runs-on: ubuntu-latest
+    if: ${{ github.event.pull_request.draft != true }}
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v7
+
+      - name: Set up Lua
+        uses: leafo/gh-actions-lua@v13
+        with:
+          luaVersion: "5.4"
+
+      - name: Run typstdoc tests
+        shell: bash
+        run: |
+          set -euo pipefail
+          lua tools/typstdoc/test/run.lua
+
+      - name: Parse the doc comments
+        shell: bash
+        run: |
+          set -euo pipefail
+          lua tools/typstdoc/main.lua --check --strict
+
   shell-checks:
     name: Lint shell scripts
     runs-on: ubuntu-latest

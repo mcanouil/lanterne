@@ -63,24 +63,35 @@
 
 /// Merge `overrides` into `base`, validating every key of both.
 ///
-/// `base` must be a complete token dictionary rather than any subset. A
-/// partial one would flow downstream and fail where it is read, naming a
-/// missing key, rather than here, naming the theme that lacks it.
-///
 /// `extra` merges key by key rather than replacing wholesale, so setting one
 /// token of your own leaves the rest of the base theme's in place.
 /// @category theme
 /// @stability experimental
+/// @param base A complete token dictionary rather than any subset. A partial one would flow downstream and fail where it is read, naming a missing key, rather than here, naming the theme that lacks it.
+/// @param overrides The tokens to apply over it.
 /// @returns dictionary
+/// @examples-static
+/// ```typst
+/// #let dark = theme-merge(base, (bg: rgb("#1c1c22"), fg: white))
+/// ```
 #let theme-merge(base, overrides) = _merge(base, overrides, "theme-merge")
 
 /// A theme: the canonical defaults with the named overrides applied.
 ///
 /// Named arguments only. A positional argument carries no token name to
 /// validate against, so it is rejected rather than ignored.
+///
+/// An unrecognised token name is an error rather than a silent no-op, because
+/// a theme that ignores a typo rots quietly. The one exception is `extra`,
+/// which exists so that a token of your own has somewhere to live.
 /// @category theme
 /// @stability experimental
+/// @param ..overrides The tokens to set, named only.
 /// @returns dictionary
+/// @examples-static
+/// ```typst
+/// #let base = theme-tokens(bg: rgb("#fbfbfd"), fg: rgb("#1c1c22"))
+/// ```
 #let theme-tokens(..overrides) = {
   let scope = "theme-tokens"
   if overrides.pos().len() > 0 {

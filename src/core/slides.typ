@@ -276,13 +276,23 @@
 /// It is complete in itself and is not merged with the content around it: what
 /// precedes it closes, and what follows it opens a slide of its own.
 ///
-/// `level` defaults to the deck's slide level when a title is given, since the
-/// arguments are read here and the deck's level is only known once the body is
-/// split. Options are validated here, where they are written, because a
-/// mistyped one would otherwise render as nothing at all.
+/// Options are validated here, where they are written, because a mistyped one
+/// would otherwise render as nothing at all. A second positional argument is
+/// rejected, as is a `slide-options` call inside the body: an explicit slide's
+/// options are its own arguments, so write `slide(smaller: true)[...]`.
 /// @category deck
 /// @stability experimental
+/// @param body The slide's content, as the one positional argument.
+/// @param title The slide's title, or `none` for an untitled slide.
+/// @param level The heading level the title stands at. It defaults to the deck's slide level when a title is given, since the arguments are read here and the deck's level is only known once the body is split.
+/// @param ..attrs Slide options, named only, validated as for `slide-options`.
 /// @returns content
+/// @examples-static
+/// ```typst
+/// #slide(title: [A slide of one's own])[
+///   An explicit slide is complete in itself.
+/// ]
+/// ```
 #let slide(body, title: none, level: none, ..attrs) = {
   let scope = "slide"
   if attrs.pos().len() > 0 {
@@ -322,10 +332,29 @@
 /// Options for the slide a heading opened, written immediately after it.
 ///
 /// The marker is consumed by the splitter and never rendered. It has to be a
-/// top level child of its slide, so one written inside a block is not found.
+/// top level child of its slide, and nothing but the slide's own heading may
+/// precede it, so one written inside a block is not found. Two markers on one
+/// slide are an error rather than one of them silently winning.
+///
+/// Three options today. `appendix` excludes the slide from the outline and
+/// from the PDF bookmarks. `smaller` sets the slide's text one step down the
+/// theme's `scale-ratio`, title and body together. `steps` raises the slide's
+/// step count to at least the given number, which a `context-slide` callback
+/// needs when it wants more steps than the rest of the body advertises.
+///
+/// The vocabulary grows with the code that reads an option, so `layout`
+/// arrives with the layout system rather than shipping a name that means
+/// nothing yet.
 /// @category deck
 /// @stability experimental
+/// @param ..attrs The options, named only.
 /// @returns content
+/// @examples-static
+/// ```typst
+/// == Set smaller
+///
+/// #slide-options(smaller: true)
+/// ```
 #let slide-options(..attrs) = {
   let scope = "slide-options"
   if attrs.pos().len() > 0 {

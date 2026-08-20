@@ -67,11 +67,33 @@ No `@preview` import may appear anywhere under [`src/`](src/).
 
 ## Documentation comments
 
-Every definition carries a `///` block above it, and every block carries a `@category` tag.
-The categories are `core`, `deck`, `step`, `emit`, `theme` and `utils`.
+The reference pages on the website are generated from the `///` blocks in [`src/`](src/) by [`tools/typstdoc/`](tools/typstdoc), run as a Quarto pre-render.
+The source is the record, so a page is never edited: edit the comment.
 
-A name re-exported from [`lib.typ`](lib.typ) is public, and a public name carries a `@stability` tag as well.
-Anything a module exports that `lib.typ` does not is internal on purpose, and takes no such tag.
+Run the generator before you push a change to one:
+
+```sh
+lua tools/typstdoc/main.lua --check --strict
+lua tools/typstdoc/test/run.lua
+```
+
+Without a `lua` on the path, `quarto pandoc lua` runs the same scripts through the interpreter Quarto embeds in its Pandoc.
+That is what the site render uses, since the workflow that publishes it installs Quarto and nothing else.
+
+Every definition carries a `///` block above it, and every block carries a `@category` tag.
+The categories are `core`, `deck`, `step`, `emit`, `theme` and `utils`, and each one has a banner comment in [`lib.typ`](lib.typ) that has to agree with it.
+
+A name re-exported from [`lib.typ`](lib.typ) is public, and a public name carries more:
+
+- A `@stability` tag, per the table below.
+- One `@param` line per parameter of its signature, which is what the parameter table on its page is built from.
+- A `@returns` line, unless it is a value rather than a function.
+
+Anything a module exports that `lib.typ` does not is internal on purpose.
+It is parsed, so a malformed tag anywhere is still an error, but it takes none of the three and no page is written for it.
+
+A code example goes in an `@examples-static` block rather than in the prose, where a fence would be folded into a paragraph.
+`@examples` is the tag that compiles what it shows, and it needs a Typst engine the documentation site does not have yet.
 
 The tag says which parts of the surface the 0.x contract actually threatens.
 That contract permits a breaking change on a minor release, and without the tag a reader has to guess which names it applies to.
