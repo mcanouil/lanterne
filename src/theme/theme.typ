@@ -11,26 +11,30 @@
 ///! theme depending on where it sits in the deck.
 
 #import "tokens.typ": check-slots, check-token, default-tokens
-#import "../utils/errors.typ": fail, fail-type, repr-each
+#import "../utils/errors.typ": fail, fail-enum, fail-type, repr-each
 
 // The merge itself, taking the scope it reports under. Both public functions
 // route through this, so a value rejected on behalf of `theme-tokens` names
 // `theme-tokens` rather than the helper the author never called.
-#let _merge(base, overrides, scope) = {
+// `name` is what the value being merged into is called where the author wrote
+// it. `theme-merge` takes a `base`, and a deck takes a `theme` whose halves are
+// `light` and `dark`, so a message naming `base` in a deck would name a
+// parameter that call has never had.
+#let _merge(base, overrides, scope, name: "base") = {
   if type(base) != dictionary {
-    fail-type(scope, "base", base, "a token dictionary")
+    fail-type(scope, name, base, "a token dictionary")
   }
   if type(overrides) != dictionary {
     fail-type(scope, "overrides", overrides, "a dictionary of token values")
   }
 
-  let missing = default-tokens().keys().filter(name => name not in base)
+  let missing = default-tokens().keys().filter(key => key not in base)
   if missing.len() > 0 {
     fail(
       scope,
       // `repr` of an array this long pretty-prints over a dozen lines, which
       // buries the hint. The shared list helper keeps the message to one.
-      "base is missing " + repr-each(missing),
+      name + " is missing " + repr-each(missing),
       hint: "Build a base with theme-tokens rather than by hand",
     )
   }
@@ -41,16 +45,16 @@
   // Both reserved keys are exempt, because neither is a token and
   // `check-token` reports either as an unknown name. Leaving `slots` in this
   // loop would fail every theme the package builds, including the defaults.
-  for (name, value) in base {
-    if name not in ("extra", "slots") { check-token(name, value, scope) }
+  for (key, value) in base {
+    if key not in ("extra", "slots") { check-token(key, value, scope) }
   }
   if type(base.extra) != dictionary {
-    fail-type(scope, "base.extra", base.extra, "a dictionary")
+    fail-type(scope, name + ".extra", base.extra, "a dictionary")
   }
   // `clears: false`, because a base is a theme rather than a change to one. A
   // merge never produces a `none` here, since an override that clears removes
   // the key, so one in this position came from a base built by hand.
-  check-slots(base.slots, scope, name: "base.slots", clears: false)
+  check-slots(base.slots, scope, name: name + ".slots", clears: false)
 
   let merged = base
   for (name, value) in overrides {
@@ -91,6 +95,69 @@
     }
   }
   merged
+}
+
+// The two halves of a pair, in the order a message lists them.
+#let _PAIR = ("light", "dark")
+
+/// The one token dictionary a render reads, from a theme that may be a pair.
+///
+/// A theme is either a token dictionary or a dictionary of exactly `light` and
+/// `dark`, each of them one. `mode` selects the half, and what comes back is a
+/// plain token dictionary either way, so nothing downstream knows a pair
+/// existed and no renderer or slot ever receives one.
+///
+/// A pair is written literally rather than built by a constructor. There is
+/// nothing to validate in the shape itself that this function does not validate
+/// where it is used, and a constructor would be a second way to say `(light:
+/// ..., dark: ...)`.
+///
+/// Both halves are validated, not only the half `mode` selects. A deck rendered
+/// light would otherwise carry a dark half nobody had checked, and the mistake
+/// would surface for whoever first rendered it the other way.
+///
+/// A mode named against a single token set is not an error. The option says
+/// which half to take, and a theme with no halves has one answer.
+/// @category theme
+/// @returns dictionary
+#let resolve-mode(theme, mode, scope) = {
+  if mode not in _PAIR {
+    fail-enum(scope, "theme-mode", mode, _PAIR)
+  }
+  if type(theme) != dictionary {
+    fail-type(scope, "theme", theme, "a token dictionary or a light and dark pair")
+  }
+  // A dictionary carrying either half is a pair, finished or not. Reading an
+  // unfinished one as tokens would report `light` as an unknown token name,
+  // which names neither the mistake nor the fix.
+  let halves = _PAIR.filter(half => half in theme)
+  if halves.len() == 0 {
+    return _merge(theme, (:), scope, name: "theme")
+  }
+  if halves.len() < _PAIR.len() {
+    fail(
+      scope,
+      "a light and dark pair carries both halves, and this one carries only " + repr-each(halves),
+      hint: "Write (light: ..., dark: ...), or one token dictionary",
+    )
+  }
+  let others = theme.keys().filter(name => name not in _PAIR)
+  if others.len() > 0 {
+    fail(
+      scope,
+      "a light and dark pair carries no other key, and this one carries " + repr-each(others),
+      hint: "Write the token inside each half",
+    )
+  }
+  let resolved = (:)
+  for half in _PAIR {
+    let value = theme.at(half)
+    if type(value) != dictionary {
+      fail-type(scope, half, value, "a token dictionary")
+    }
+    resolved.insert(half, _merge(value, (:), scope, name: half))
+  }
+  resolved.at(mode)
 }
 
 /// Merge `overrides` into `base`, validating every key of both.

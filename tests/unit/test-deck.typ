@@ -132,15 +132,27 @@ a #pause b #pause c], handout: "1-2")
 // the whole document rather than on every page or none of them.
 #context assert.eq(query(<registered-mark>).len(), 1)
 
+// A theme may be a light and dark pair, and `theme-mode` says which half
+// renders. The text fill is asserted rather than the page fill, because the
+// page is a call rather than a set rule and its fill is not on the style chain
+// the body reads; `set text(fill: ...)` is inside the page body and is.
+#deck(
+  [== Dark
+  #context assert.eq(text.fill, white)],
+  theme: (light: theme-tokens(fg: black), dark: theme-tokens(fg: white)),
+  theme-mode: "dark",
+)
+
 // The default aspect ratio is 16-9, matching what a projector expects.
 #deck([== Default
 #context {
   assert(calc.abs(page.width / page.height - 16 / 9) < 0.01)
-  // Twenty two pages: three, one, two, one, one, one, one, one, then three,
+  // Twenty three pages: three, one, two, one, one, one, one, one, then three,
   // two and two from the stepped decks, one from the dimmed deck, two from
-  // the registered deck, and this one. No deck opens a page it was not asked
-  // for, which is what a count catches and a record assertion cannot.
-  assert.eq(counter(page).final().first(), 22)
+  // the registered deck, one from the pair deck, and this one. No deck opens a
+  // page it was not asked for, which is what a count catches and a record
+  // assertion cannot.
+  assert.eq(counter(page).final().first(), 23)
   // The author's `show heading` rule ran on the slide's title, which is only
   // possible because the title is still the heading they wrote.
   assert.eq(query(<rule-reached>).len(), 1)

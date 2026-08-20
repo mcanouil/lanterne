@@ -31,7 +31,7 @@
 #import "../core/expand.typ": expand
 #import "../core/range.typ": parse-range
 #import "../core/slides.typ": slides
-#import "../theme/theme.typ": theme-merge, theme-tokens
+#import "../theme/theme.typ": resolve-mode, theme-tokens
 #import "../utils/errors.typ": fail-enum, fail-type
 
 // Typst's own presentation papers, measured rather than assumed: 16-9 is
@@ -173,7 +173,8 @@
 /// @category deck
 /// @stability experimental
 /// @param body The document, passed by the show rule.
-/// @param theme A token dictionary from `theme-tokens` or `theme-merge`. `none` takes the canonical defaults.
+/// @param theme A token dictionary from `theme-tokens` or `theme-merge`, or a light and dark pair written as `(light: ..., dark: ...)` with a token dictionary in each half. `none` takes the canonical defaults.
+/// @param theme-mode Which half of a pair to render, `"light"` or `"dark"`. A theme that is a single token set has one answer, so naming a mode against one is not an error. Both halves of a pair are validated whichever is rendered.
 /// @param aspect-ratio The page shape, `"16-9"` or `"4-3"`. These are Typst's own presentation papers: 841.89pt by 473.56pt, and 793.7pt by 595.28pt.
 /// @param slide-level The heading level that opens a slide, per `slides`. `0` disables heading splitting and leaves only the explicit breaks.
 /// @param handout `false` renders every step. `true` collapses each slide to its final step, which is what a handout wants. A range collapses it to the steps the range selects, still one page per selected step.
@@ -193,6 +194,7 @@
 #let deck(
   body,
   theme: none,
+  theme-mode: "light",
   aspect-ratio: "16-9",
   slide-level: 2,
   handout: false,
@@ -204,7 +206,7 @@
     fail-enum(scope, "aspect-ratio", aspect-ratio, _PAPERS.keys())
   }
   if theme != none and type(theme) != dictionary {
-    fail-type(scope, "theme", theme, "a token dictionary or none")
+    fail-type(scope, "theme", theme, "a token dictionary, a light and dark pair, or none")
   }
   if type(info) != dictionary {
     fail-type(scope, "info", info, "a dictionary of document metadata")
@@ -233,7 +235,11 @@
   }
   // The theme is validated by the one function that validates a theme, so a
   // token rejected here reads the same as one rejected where it was written.
-  let tokens = if theme == none { theme-tokens() } else { theme-merge(theme, (:)) }
+  //
+  // The defaults go through the same call rather than around it, so that
+  // `theme-mode` is validated for every deck. A deck that names no theme can
+  // still name a mode, and one that mistypes it should hear so.
+  let tokens = resolve-mode(if theme == none { theme-tokens() } else { theme }, theme-mode, scope)
   // The split validates `body` and `slide-level` under this scope, so the
   // message names the function the author called and there is one copy of it.
   let records = slides(body, slide-level: slide-level, scope: scope)
