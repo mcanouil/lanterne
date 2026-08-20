@@ -149,9 +149,8 @@ The function is deliberately weaker than the splitter that produces a slide, so 
 - `rest` is blank rather than `[]` when a slide is nothing but its title, since the wrappers come back around nothing.
   Emptiness is read with `is-blank`, as `slides` already reads it for a lead-in segment.
 
-Nothing calls `split-head` yet.
-It ships a milestone ahead of its caller because a pure function with its own tests is reviewable on its own, and the branch that wires it has enough in it already.
-The obligations above are what that early landing costs: they are the shape the caller is designed against, so a caller that cannot meet them is a finding against this ruling rather than a rewrite of it.
+`_title` in `src/render/deck.typ` is the caller, and it meets those obligations: it places the head in a region and the rest in the body, never rejoins them, and reads emptiness with `is-blank`.
+The function landed a branch ahead of that caller because a pure function with its own tests is reviewable on its own, and the branch that wired it had enough in it already.
 
 ## A slot's output stays inside the page's own rules
 
@@ -196,7 +195,7 @@ A title that came from a value has no wrappers, so no `show heading` rule reache
 
 ## The slide record carries no `layout` key
 
-The record in `src/core/record.typ` describes a slide with `kind`, `title`, `level`, `label`, `attrs` and `body`.
+The record in `src/core/record.typ` describes a slide with `kind`, `title`, `title-source`, `level`, `label`, `attrs` and `body`.
 The specification's machine surface also shows a `layout` key, and it is deliberately absent until the layout system lands.
 
 The rule is the one `src/theme/tokens.typ` states for tokens: a vocabulary carries only the names something reads, and grows as the code that reads them lands.

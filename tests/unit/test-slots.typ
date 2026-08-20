@@ -317,4 +317,50 @@
 )
 #context assert.eq(query(<slot-varying>).len(), 1)
 
+// The progress slot: called once per page like the others, skipped on a section
+// slide and on the title page, and sized by what it holds rather than by a
+// token, since a progress indicator is a rule a few points high.
+#let ticks = state("slot-progress", ())
+#let paced = theme-tokens(
+  slots: (
+    render-title-slide: (info: none, tokens: none, state: none) => [title],
+    render-progress: (info: none, tokens: none, state: none) => {
+      ticks.update(it => it + ((state.kind, state.step.index),))
+      line(length: 100%)
+    },
+  ),
+)
+#deck(
+  [= A section
+
+  == A slide
+
+  one
+  #pause
+  two],
+  theme: paced,
+  slide-level: 2,
+  info: (title: [Paced]),
+)
+// Two pages of the stepped slide, and neither the section slide nor the title
+// page, so the section never appears in the record.
+#context assert.eq(ticks.final(), (("content", 1), ("content", 2)))
+
+// A title slot may decline, and composes an empty page when it does. Nothing is
+// lost by that: a title page carries no title of the deck's, so there is
+// nothing it could fail to place. A section slot that declines is refused
+// instead, since a section slide's title always came from a heading, and
+// tests/expect-fail/slot-declines-the-section.typ pins it.
+#let quiet = theme-tokens(
+  slots: (render-title-slide: (info: none, tokens: none, state: none) => none),
+)
+#deck(
+  [#pagebreak()
+
+  untitled body <slot-quiet>],
+  theme: quiet,
+  info: (title: [Quiet]),
+)
+#context assert.eq(query(<slot-quiet>).len(), 1)
+
 slot tests passed.

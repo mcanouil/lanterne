@@ -44,7 +44,7 @@
 #import "../core/split.typ": split-head
 #import "../theme/theme.typ": resolve-mode
 #import "../utils/elements.typ": is-elem
-#import "../utils/errors.typ": fail-enum, fail-type
+#import "../utils/errors.typ": fail, fail-enum, fail-type
 
 // Typst's own presentation papers, measured rather than assumed: 16-9 is
 // 841.89pt by 473.56pt and 4-3 is 793.7pt by 595.28pt.
@@ -143,6 +143,33 @@
   built
 }
 
+// A slot that was handed the title has to place it, and a slot may decline a
+// page. Both are true, and they meet here.
+//
+// Declining is decided by what a slot returns, and taking the title out of the
+// body is decided by whether the slot exists, because the slot needs the title
+// in order to compose anything at all. A slot that takes the title and then
+// declines leaves it nowhere: gone from the page, from the outline and from the
+// bookmarks, with the heading counter not stepping, and a label that lived on
+// that heading existing nowhere in the document, so a reference to the slide
+// stops compiling with a message naming neither the theme nor the slot.
+//
+// Rejoining the halves is not the answer: `split-head` forbids it, since both
+// carry the wrappers and a `#set page` among them would apply twice.
+#let _placed(built, name, cut, record, scope) = {
+  if built != none or cut.title == none or cut.source != "heading" {
+    return built
+  }
+  // The slide is named by the record's own title rather than by the content
+  // handed to the slot, which is the whole heading element and reads as a dump
+  // rather than as a name.
+  fail(
+    scope,
+    name + " returned none on the slide titled " + repr(record.title),
+    hint: "Place state.title, or return none only where the slide has no title",
+  )
+}
+
 // The regions of a content page, stacked in the order they render.
 //
 // In flow, inside the page body, rather than in `page(header: ...)`. The text,
@@ -175,6 +202,20 @@
   if cells.len() == 1 { return body }
   grid(rows: rows, row-gutter: tokens.gutter, columns: (1fr,), ..cells)
 }
+
+// What every slot is told about the page it is composing. One builder, because
+// a title slide builds one too: a key added to one of two copies is a key a
+// theme reads on some pages and not on others.
+#let _state(record, cut, step, mode) = (
+  kind: record.kind,
+  title: cut.title,
+  title-source: cut.source,
+  level: record.level,
+  appendix: record.attrs.appendix,
+  body: cut.body,
+  step: step,
+  mode: mode,
+)
 
 // A slide's title as a value a slot can place, and the body without it.
 //
@@ -247,16 +288,7 @@
   }
   let header-slot = if record.kind == "section" { none } else { slots.at("render-header", default: none) }
   let cut = _title(record, body, header-slot != none or section-slot != none)
-  let state = (
-    kind: record.kind,
-    title: cut.title,
-    title-source: cut.source,
-    level: record.level,
-    appendix: record.attrs.appendix,
-    body: cut.body,
-    step: step,
-    mode: mode,
-  )
+  let state = _state(record, cut, step, mode)
   page(paper: paper, fill: tokens.bg, margin: tokens.margin, {
     set text(font: tokens.font-base, size: size, fill: tokens.fg)
     set par(leading: tokens.leading)
@@ -289,14 +321,26 @@
       // would receive a `state` describing no slide at all.
       body
     } else if section-slot != none {
-      _slot(slots, "render-section-slide", info, tokens, state, scope)
+      _placed(
+        _slot(slots, "render-section-slide", info, tokens, state, scope),
+        "render-section-slide",
+        cut,
+        record,
+        scope,
+      )
     } else if record.kind == "section" {
       align(center + horizon, cut.body)
     } else {
       _regions(
         tokens,
         body: cut.body,
-        header: _slot(slots, "render-header", info, tokens, state, scope),
+        header: _placed(
+          _slot(slots, "render-header", info, tokens, state, scope),
+          "render-header",
+          cut,
+          record,
+          scope,
+        ),
         progress: _slot(slots, "render-progress", info, tokens, state, scope),
         footer: _slot(slots, "render-footer", info, tokens, state, scope),
       )
@@ -438,16 +482,19 @@
   if "render-title-slide" in tokens.slots {
     _slide-page(
       slide-record([], attrs: (appendix: false)),
-      _slot(tokens.slots, "render-title-slide", info, tokens, (
-        kind: "content",
-        title: none,
-        title-source: none,
-        level: none,
-        appendix: false,
-        body: [],
-        step: (index: 1, total: 1),
-        mode: resolved.mode,
-      ), scope),
+      _slot(
+        tokens.slots,
+        "render-title-slide",
+        info,
+        tokens,
+        _state(
+          slide-record([], attrs: (appendix: false)),
+          (title: none, source: none, body: []),
+          (index: 1, total: 1),
+          resolved.mode,
+        ),
+        scope,
+      ),
       tokens,
       _PAPERS.at(aspect-ratio),
       info: info,

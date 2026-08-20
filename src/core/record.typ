@@ -17,6 +17,11 @@
 
 #import "../utils/errors.typ": fail, fail-enum, fail-type
 
+// Where a slide's title came from. A heading opening a slide is that slide's
+// title and sits at the head of its body; a title passed to `slide(...)` is an
+// argument, and that body may carry a heading of its own at the same level.
+#let _TITLE-SOURCES = ("heading", "value")
+
 #let _KINDS = ("section", "content")
 
 // Name, default and rule together, as src/theme/tokens.typ writes its token
@@ -78,11 +83,21 @@
 /// `title`, `level` and `label` describe the heading the slide was opened by,
 /// for whatever reads a record. They do not replace it: the heading stays in
 /// `body`, where the style wrappers it was written under still govern it, so a
-/// renderer places the body and reads these to know what the slide is called.
+/// renderer that places no title of its own places the body and reads these to
+/// know what the slide is called.
+///
+/// `title-source` says where the title came from, and decides whether a
+/// renderer may take it out of that body. A heading opening a slide is the
+/// slide's title and sits at its head, so `heading` may be lifted out and
+/// placed elsewhere. A title passed to `slide(...)` is an argument, and that
+/// body is never split, so it may legitimately carry a heading of its own at
+/// the same level: `value` is placed as it stands and nothing is taken out.
+/// This cannot be worked out from the body afterwards, which is why the record
+/// carries it.
 ///
 /// `title` and `level` stand or fall together: a title with no level describes a
 /// heading at no level, and a level with no title describes a heading that is
-/// not there.
+/// not there. `title` and `title-source` likewise.
 ///
 /// `label` is carried because specification 4.7 relies on a labelled heading
 /// creating a named destination, and content equality ignores labels, so a
@@ -92,8 +107,6 @@
 /// default, so a reader never repeats a default that could then drift.
 /// @category core
 /// @returns dictionary
-#let _TITLE-SOURCES = ("heading", "value")
-
 #let slide-record(
   body,
   kind: "content",

@@ -153,6 +153,7 @@ Two of the five compose a whole page, and three fill a region of one.
 
 A region with no slot behind it takes no space at all, so a theme supplying none composes the page exactly as a themeless deck does.
 A slot may also return `none` to say that its region takes no space on this page, which is how a theme hides its footer on an appendix slide or its progress bar on the first step.
+A slot that was handed the slide's title may not decline, since declining would leave the title nowhere: that is refused with a message naming the slot and the slide.
 
 A section slide uses its own slot and carries no header, footer or progress region.
 A title slide is a page of its own and carries none either: it is not a slide of the deck, so the deck's chrome does not belong on it.
