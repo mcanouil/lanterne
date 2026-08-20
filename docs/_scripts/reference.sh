@@ -39,11 +39,19 @@ if [[ "${PHASE}" == "post" ]]; then
 	exit 0
 fi
 
-if ! command -v lua >/dev/null 2>&1; then
-	printf '[pre-render] lua is not installed, and the reference is generated from the /// comments\n' >&2
+# Quarto embeds a Lua interpreter in the Pandoc it ships, reached as
+# `quarto pandoc lua`. That is the interpreter this uses when there is no `lua`
+# on the PATH, which is the case on the Pages runner: the reusable workflow that
+# renders this site installs Quarto and nothing else, and has no input for
+# adding a language to it. Falling back keeps the site's only build dependency
+# the one it already had.
+if command -v lua >/dev/null 2>&1; then
+	lua "${ROOT_DIR}/tools/typstdoc/main.lua" --root "${ROOT_DIR}" --strict
+elif command -v quarto >/dev/null 2>&1; then
+	quarto pandoc lua "${ROOT_DIR}/tools/typstdoc/main.lua" --root "${ROOT_DIR}" --strict
+else
+	printf '[pre-render] neither lua nor quarto is available, and the reference is generated from the /// comments\n' >&2
 	exit 1
 fi
-
-lua "${ROOT_DIR}/tools/typstdoc/main.lua" --root "${ROOT_DIR}" --strict
 
 printf '[pre-render] src/**.typ -> reference/\n'

@@ -77,6 +77,9 @@ lua tools/typstdoc/main.lua --check --strict
 lua tools/typstdoc/test/run.lua
 ```
 
+Without a `lua` on the path, `quarto pandoc lua` runs the same scripts through the interpreter Quarto embeds in its Pandoc.
+That is what the site render uses, since the workflow that publishes it installs Quarto and nothing else.
+
 Every definition carries a `///` block above it, and every block carries a `@category` tag.
 The categories are `core`, `deck`, `step`, `emit`, `theme` and `utils`, and each one has a banner comment in [`lib.typ`](lib.typ) that has to agree with it.
 
