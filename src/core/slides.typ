@@ -41,14 +41,22 @@
   if is-marker(node) { node.value.kind } else { none }
 }
 
-// A heading's level, which is written under three names and reported under
-// whichever the author reached for. `heading(level: 2)` carries `level`; markup
-// carries `depth`; `heading(offset: 1)` carries `offset` and neither of the
-// others, since the depth it is added to is the default of 1. A splitter reading
-// one name alone fails on the decks that use another.
-//
-// Called on headings only, which is what makes the default of 1 sound.
-#let _heading-level(node) = {
+/// A heading's level, which is written under three names and reported under
+/// whichever the author reached for.
+///
+/// `heading(level: 2)` carries `level`; markup carries `depth`;
+/// `heading(offset: 1)` carries `offset` and neither of the others, since the
+/// depth it is added to is the default of 1. A reader taking one name alone
+/// fails on the decks that use another.
+///
+/// Called on headings only, which is what makes the default of 1 sound.
+///
+/// The renderer reads this as well as the splitter: a theme that places a
+/// slide's title has to find the heading at the record's own level, and a
+/// second copy of this rule would be a second set of decks it fails on.
+/// @category core
+/// @returns int
+#let heading-level(node) = {
   let fields = node.fields()
   let level = fields.at("level", default: none)
   if level != none { return level }
@@ -67,7 +75,7 @@
   if _kind(node) == MARKER-APPENDIX { return true }
   if is-elem(node, pagebreak) { return true }
   if not is-elem(node, heading) { return false }
-  _heading-level(node) <= slide-level
+  heading-level(node) <= slide-level
 }
 
 // The top level children of a segment, with style wrappers peeled and nested
@@ -148,7 +156,7 @@
   if boundary == none or not is-elem(boundary, heading) {
     return slide-record(taken.body, attrs: attrs)
   }
-  let level = _heading-level(boundary)
+  let level = heading-level(boundary)
   slide-record(
     taken.body,
     kind: if level < slide-level { "section" } else { "content" },

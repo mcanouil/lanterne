@@ -109,15 +109,6 @@ It is not itself a token name, so `theme-tokens(extra: ...)` is accepted as a ke
 
 ## The `slots` namespace
 
-::: {.callout-important}
-
-## Not active yet
-
-A theme carries slots today and nothing calls them.
-The renderers arrive with the release that composes a page from regions.
-Until then a slot is validated when you write it, and every slide renders exactly as it does without one.
-:::
-
 `slots` holds a theme's renderers.
 It is the second reserved key, and like `extra` it is not a token name and merges key by key, so overriding one colour of a theme does not drop the renderers it supplied.
 
@@ -133,9 +124,68 @@ Typst exposes nothing of a closure's parameters, so a slot's arity cannot be val
 ```typst
 #let banded = theme-tokens(
   accent: rgb("#1f5fa9"),
-  slots: (render-header: (info: none, tokens: none, state: none) => []),
+  accent-fg: white,
+  slots: (
+    render-header: (info: none, tokens: none, state: none) => block(
+      width: 100%,
+      height: 100%,
+      fill: tokens.accent,
+      inset: 1em,
+      text(fill: tokens.accent-fg, state.title),
+    ),
+  ),
 )
 ```
+
+## What a slot composes
+
+Two of the five compose a whole page, and three fill a region of one.
+
+| Slot | Composes |
+| --- | --- |
+| `render-title-slide` | A page of its own, before the first slide, from the deck's `info`. |
+| `render-section-slide` | The whole page of a section slide, in place of the centred default. |
+| `render-header` | The region above the body of a content slide. |
+| `render-progress` | A region below the body. |
+| `render-footer` | The region at the foot of a content slide. |
+
+: The five slots. {.striped .hover tbl-colwidths="[30,70]"}
+
+A region with no slot behind it takes no space at all, so a theme supplying none composes the page exactly as a themeless deck does.
+A section slide uses its own slot and carries no header, footer or progress region.
+
+The header's height is the `header-height` token and the footer's is `footer-height`, so a slot fills its region rather than sizing it.
+Those heights are deck-level and do not shrink under `slide-options(smaller: true)`, which shrinks the text: a region that shrank with it would put one slide's chrome out of line with the rest of the deck.
+
+Regions render in the flow of the page rather than in Typst's own page header.
+That is what keeps a title placed in one numbered, restyled by your own rules, listed in the outline and reachable by a reference.
+
+## What a slot receives
+
+`state` describes the page being composed.
+
+| Key | Value |
+| --- | --- |
+| `kind` | `"section"` or `"content"`. |
+| `title` | The slide's title as content you can place, or `none`. |
+| `title-source` | `"heading"`, `"value"`, or `none`. |
+| `level` | The heading level the title stands at, or `none`. |
+| `appendix` | Whether the slide is an appendix slide. |
+| `body` | The slide's content, with the title removed when it was taken out. |
+| `step` | `(index, total)`, one-based, over the slide's whole step space. |
+| `mode` | `"light"` or `"dark"`. |
+
+: What `state` carries. {.striped .hover tbl-colwidths="[25,75]"}
+
+`title` is content only when this page has somewhere to put it: a header slot on a content slide, or the section slot on a section slide.
+A theme that places no title leaves it in the body where it was written, because taking it out with nowhere to put it would delete it from the slide.
+
+`title-source` says what kind of thing `title` is.
+`"heading"` is the heading you wrote, carried out of the body with the style rules in force over it, so your own `show heading` rule reaches it.
+`"value"` is what was passed to `slide(title: ...)`, which is not a heading at all, so no such rule reaches it.
+A theme that wants the two to look alike sets the font and size itself rather than wrapping the value in `heading(...)`, which would add a second heading to the document and put an explicit slide in the outline.
+
+`step` counts over the slide's whole step space rather than over the pages this render emits, so a handout reports the step it kept.
 
 A value of `none` clears a slot rather than storing one.
 That is how a theme takes another's chrome without one of its parts, since every other value has to be a function.

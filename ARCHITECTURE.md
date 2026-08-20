@@ -153,6 +153,39 @@ Nothing calls `split-head` yet.
 It ships a milestone ahead of its caller because a pure function with its own tests is reviewable on its own, and the branch that wires it has enough in it already.
 The obligations above are what that early landing costs: they are the shape the caller is designed against, so a caller that cannot meet them is a finding against this ruling rather than a rewrite of it.
 
+## A slot's output stays inside the page's own rules
+
+`_slide-page` in `src/render/deck.typ` composes a page from regions, and every one of them is emitted in the flow of the page body.
+Nothing goes to `page(header: ...)`.
+
+Content handed to `page(header:)` is styled at the `page` call site, and every rule this renderer sets is written inside the page body: `set text`, `set par`, the `show heading` that sizes a title, and the computed `set heading(...)` that suppresses a repeat.
+A title placed in Typst's own header would lose its font, its size, its show rule and its suppression rule at once, and would sit outside the flow the outline, the bookmarks and a reference read.
+
+`_chrome` wraps the whole composed page rather than the body region.
+That is the half of the rule which is easy to get wrong: a title moved into a header region beside the suppression would escape it, so the heading counter would advance once per step, the outline would list the slide once per step, and the PDF would gain a bookmark per step.
+Those are exactly the three failures the correctness milestone removed.
+
+A title slide has no record and takes an explicit case rather than a synthetic one.
+A record of kind `content` yields `bookmarked: false` alone, so a heading a theme writes into its title slide would be outlined and would advance the hierarchical heading counter, and nothing downstream can put that back.
+
+## The title moves only when something will place it
+
+`split-head` runs on a step's body when the theme supplies a slot that places a title on that page: `render-header` on a content slide, `render-section-slide` on a section slide.
+It does not run otherwise, and a theme supplying no slot at all renders the page it always rendered, which the visual goldens assert.
+
+Taking the title out with nowhere to put it would delete it from the slide.
+That is why the condition is the slot rather than the presence of a title, and why a theme with only a footer leaves the body whole.
+
+The split runs after step expansion, per page, rather than once per slide.
+`expand` splits on pauses first and refuses a heading after a pause, so the opening heading is always in the first segment and survives the rebuild as a top level child.
+`increments` counts the record's body as written, before any of this, so taking a title out of a step body afterwards moves no number.
+
+The predicate matches a heading at the record's own level.
+`split-head` takes the first child that *satisfies the predicate*, which is weaker than the first child that `slides` guarantees, so a level-blind predicate would lift a heading out of an included sequence, out of a `context-slide` callback's result, or out of a slide that a `slide-level` of 0 left untitled.
+
+An explicit `slide(title: ...)` has a title and no heading, so nothing is found and the record's own copy is placed.
+That copy has no wrappers, so no `show heading` rule reaches it, and `state.title-source` reports `value` rather than `heading` so a theme can tell the two apart rather than discovering the difference.
+
 ## The slide record carries no `layout` key
 
 The record in `src/core/record.typ` describes a slide with `kind`, `title`, `level`, `label`, `attrs` and `body`.
