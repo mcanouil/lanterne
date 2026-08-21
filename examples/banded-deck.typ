@@ -43,6 +43,12 @@ The second step carries the same chrome and the same title.
   [Footer], [`render-footer`],
 )
 
+== A slide title long enough that it has to wrap onto a second line in the band
+
+A band is as tall as what it holds, so a title that wraps grows the band and
+moves the body down. A band of fixed height cut the second line through the
+middle of the glyphs, which is why it is not one.
+
 #pagebreak()
 
 An untitled slide has nothing for the band to hold, so the theme declines the

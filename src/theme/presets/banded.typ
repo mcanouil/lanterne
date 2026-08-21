@@ -36,19 +36,40 @@
   // takes no space rather than drawing an empty band. A header handed a title
   // must place it, so this is the one case that may decline.
   if state.title == none { return none }
+  // The band is as tall as what it holds, and `header-height` sets the padding
+  // above and below what it holds rather than a hard height, so a band holding
+  // one line comes to about that height and one holding two comes to more.
+  //
+  // A quarter of the token on each side, rather than the token less a line:
+  // subtracting a line means comparing a mixed length with zero to keep it
+  // positive, and Typst refuses that comparison, which is the same rule the
+  // token vocabulary states for a non-negative length.
+  //
+  // A hard height was the first shape and it clipped. A title long enough to
+  // wrap had its second line cut through the middle of the glyphs, and a theme
+  // given `header-height: 0` lost the title altogether, since the title had
+  // already been taken out of the body to be put in a band with no room in it.
+  // Sized by its content, the band grows and the body moves down, which is a
+  // page a reader can still read.
   block(
     width: 100%,
-    height: 100%,
     fill: tokens.accent,
-    inset: (x: tokens.gutter, y: tokens.gutter / 2),
-    align(horizon, text(fill: tokens.accent-fg, _title-text(tokens, state))))
+    inset: (x: tokens.gutter, y: tokens.header-height / 4),
+    text(fill: tokens.accent-fg, _title-text(tokens, state)),
+  )
 }
 
 #let _footer(info: (:), tokens: none, state: none) = {
-  block(width: 100%, height: 100%, {
+  // Sized by its content for the same reason: a deck title long enough to wrap
+  // ran off the bottom of the page when this row was fixed.
+  block(width: 100%, inset: (bottom: tokens.footer-height / 4), {
     line(length: 100%, stroke: tokens.stroke-width + tokens.border)
     v(tokens.gutter / 2, weak: true)
-    text(size: tokens.size-base / tokens.scale-ratio, fill: tokens.muted, info.at("title", default: []))
+    text(
+      size: tokens.size-base / tokens.scale-ratio / tokens.scale-ratio,
+      fill: tokens.muted,
+      info.at("title", default: []),
+    )
   })
 }
 

@@ -75,6 +75,17 @@ A theme is one token dictionary, or a pair of them:
 #show: deck.with(theme: paper, theme-mode: "dark")
 ```
 
+A preset goes in a half like any other token set, so a deck adopts one for each mode:
+
+```typst
+#let paired = (
+  light: theme-banded(),
+  dark: theme-banded(bg: rgb("#1c1c22"), fg: white, muted: rgb("#9a9aa4"), border: rgb("#3a3a44")),
+)
+```
+
+Neither built in theme ships a dark half of its own: `accent-fg` over `accent` survives a dark background, and `muted` and `border` are tuned for a light one, so a dark deck sets those two.
+
 `theme-mode` takes `"light"` or `"dark"`, and defaults to `"light"`.
 A pair is written out; there is no constructor for one.
 It carries those two keys and nothing else, so a token written beside them is refused rather than belonging to neither half.
@@ -156,7 +167,13 @@ It is what a deck renders under when it names no theme, and `theme-default` retu
 A default that draws chrome would be a default every deck had to opt out of.
 
 `theme-banded` composes: the title goes in a coloured band, a rule and the deck's own title run along the foot, and a section slide gives the band up for a page of its own.
-It reads `accent`, `accent-fg`, `muted`, `border`, `stroke-width`, `header-height`, `footer-height` and `gutter`.
+Its renderers read `accent` and `accent-fg` for the band, `muted`, `border` and `stroke-width` for the footer rule, and `gutter` and the two region heights for their padding.
+
+A section slide is composed by one slot, so it carries no footer.
+A whole-page slot replaces every region, not only the body.
+
+Neither built in theme opens a title page.
+A deck that wants one supplies `render-title-slide` itself, merged into whichever preset it adopts.
 
 Both take named overrides, exactly as `theme-tokens` does, so a deck adopts one and changes what it likes:
 
@@ -207,12 +224,17 @@ If the slide was labelled, the label goes with the heading, and a reference to t
 Place `state.title` somewhere, or supply no header slot and let the title render in the body.
 :::
 
-The header's height is the `header-height` token and the footer's is `footer-height`, so a slot fills those two regions rather than sizing them.
-Those heights are deck-level and do not shrink under `slide-options(smaller: true)`, which shrinks the text: a region that shrank with it would put one slide's chrome out of line with the rest of the deck.
-Content taller than its row overflows it rather than growing the row, since the row is what keeps the body in the same place on every slide.
+Every region is as tall as what it holds, and the body takes the rest of the page.
+A region asks for its height where it is drawn: the built in themes read `header-height` and `footer-height` as the padding around one line, so a band holding one line comes to about that height and one holding two comes to more.
 
-The progress region is the exception and is sized by what it holds.
-A progress indicator is a rule or a bar a few points high, and a token to say so would be a token every theme had to set to the height of the thing it had already drawn.
+A region sized by a fixed row was the first shape and it was wrong twice.
+A slide title long enough to wrap had its second line cut through the middle of the glyphs, and a theme given `header-height: 0` lost the title altogether, because the title had already been taken out of the body to be put in a band with no room in it.
+Sized by its content, a long title grows its band and moves the body down, which is a page a reader can still read.
+
+Suppress a region by clearing its slot rather than by giving it no height.
+`header-height: 0` gives a band with no padding, not the absence of one.
+
+The region heights are deck-level and do not shrink under `slide-options(smaller: true)`, which shrinks the text: a region that shrank with it would put one slide's chrome out of line with the rest of the deck.
 
 Regions render in the flow of the page rather than in Typst's own page header.
 That is what keeps a title placed in one numbered, restyled by your own rules, listed in the outline and reachable by a reference.

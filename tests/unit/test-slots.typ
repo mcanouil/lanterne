@@ -416,7 +416,10 @@ body], theme: markup-conditional)
 #assert.eq(_regions(geometry, body: [b]), [b])
 
 // With regions, one row each, in the order they render: header, body,
-// progress, footer.
+// progress, footer. Every region row is sized by what it holds, and the body
+// takes the rest. A fixed row cut a wrapping title through the glyphs and made
+// a zero height region delete a title outright, so a region asks for its height
+// where it is drawn rather than being given one here.
 #let full = _regions(
   geometry,
   body: [b],
@@ -425,7 +428,7 @@ body], theme: markup-conditional)
   footer: [f],
 )
 #assert.eq(full.func(), grid)
-#assert.eq(full.rows, (3cm, 1fr, auto, 1cm))
+#assert.eq(full.rows, (auto, 1fr, auto, auto))
 #assert.eq(full.row-gutter, (5mm,))
 #assert.eq(full.children.map(cell => cell.body), ([h], [b], [p], [f]))
 
@@ -439,7 +442,7 @@ body], theme: markup-conditional)
 // A region a theme did not supply takes no row at all, so the body keeps the
 // space rather than a blank band holding it.
 #let footer-only = _regions(geometry, body: [b], footer: [f])
-#assert.eq(footer-only.rows, (1fr, 1cm))
+#assert.eq(footer-only.rows, (1fr, auto))
 #assert.eq(footer-only.children.map(cell => cell.body), ([b], [f]))
 
 // A theme branching on `kind` inside its own title renderer is told it is

@@ -5,15 +5,21 @@
 // is the specification's own justification for the slots existing: two presets
 // that differed only in colour would prove nothing about them.
 
+#import "../../src/core/slides.typ": slide
 #import "../../src/render/deck.typ": deck
 #import "../../src/theme/presets.typ": theme-banded, theme-default, theme-plain
-#import "../../src/theme/theme.typ": theme-merge, theme-tokens
+#import "../../src/theme/theme.typ": resolve-mode, theme-merge, theme-tokens
 #import "../../src/theme/tokens.typ": SLOT-NAMES
 
 // `plain` is the canonical defaults exactly, as a value rather than as a
 // rendering. `deck` takes it when no theme is named, so the two have to be the
 // same thing: asserting it here is what lets the visual goldens stand as
 // corroboration rather than as the whole proof.
+// Asserted against the value a themeless deck actually reads, which is the
+// claim that matters. `theme-plain() == theme-tokens()` cannot fail, since one
+// is defined as the other, so it says nothing on its own; the path `deck` takes
+// does not go through `theme-tokens` at all.
+#assert.eq(resolve-mode(none, "light", "test").tokens, theme-plain())
 #assert.eq(theme-plain(), theme-tokens())
 #assert.eq(theme-default(), theme-plain())
 #assert.eq(theme-plain().slots, (:))
@@ -79,6 +85,17 @@ untitled <preset-untitled>], theme: theme-banded())
   assert.eq(query(<preset-plain>).len(), 1)
   assert.eq(query(<preset-banded>).len(), 1)
   assert.eq(query(<preset-untitled>).len(), 1)
+}
+
+// A title passed to `slide(...)` is not a heading, so no `show heading` rule
+// reaches it and the theme sets the heading font and size itself. Wrapping it in
+// `heading(...)` instead would mint a second heading, which numbers, outlines
+// and bookmarks, and so would put an explicit slide in the outline it was never
+// in. One heading on the page is the assertion that catches it.
+#deck([#slide(title: [An argument])[body <preset-value>]], theme: theme-banded())
+#context {
+  assert.eq(query(<preset-value>).len(), 1)
+  assert.eq(query(heading).filter(it => it.body == [An argument]).len(), 0)
 }
 
 preset tests passed.
