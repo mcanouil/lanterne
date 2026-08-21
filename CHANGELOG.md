@@ -4,6 +4,7 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+- feat: two built in themes. `theme-plain` draws no chrome and is what a deck renders under when it names none, and `theme-banded` puts the title in a coloured band with a rule and the deck's title at the foot. (#67)
 - feat: a theme composes a slide from regions, and a slide's title is handed to a renderer as content it can place, still carrying the rules you wrote it under. A theme that supplies a header must place that title. (#66)
 - feat: a theme may be a light and dark pair, written `(light: ..., dark: ...)` with a token dictionary in each half, and `deck` takes `theme-mode` to say which half renders. Both halves are validated whichever one is rendered, so a dark half nobody has looked at still fails where it is written. A slide receives one token dictionary either way. Naming a mode against a single token set is not an error, since a theme with no halves has one answer.
 - feat: a theme carries eight more tokens. `accent`, `accent-fg`, `muted` and `border` are the colours chrome is set in, and `gutter`, `header-height`, `footer-height` and `stroke-width` are the geometry a region is built from. The four lengths refuse a negative value and accept zero, since a theme suppresses a region or a rule by giving it none. Each part of a length is judged on its own, so `2cm - 1em` is refused although it resolves positive: Typst cannot compare a mixed length with zero, and comparing the whole would report its error rather than this package's.

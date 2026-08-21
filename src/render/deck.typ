@@ -203,10 +203,23 @@
   let header = taken(header)
   let progress = taken(progress)
   let footer = taken(footer)
+  // Every region is as tall as what it holds, and the body takes the rest.
+  //
+  // A fixed row was the first shape, and it clipped: a slide title long enough
+  // to wrap left its second line cut through the middle of the glyphs, and a
+  // theme given `header-height: 0` lost the title altogether, because the title
+  // had already been taken out of the body to be placed in a row with no room
+  // in it. Neither is a page anyone would ship.
+  //
+  // A theme still asks for a height, by drawing its region in a block of one:
+  // in an `auto` row such a block holds that height for ordinary content and
+  // grows past it rather than cutting anything off. So the usual page has its
+  // body in the same place on every slide, which is what the fixed row was for,
+  // and the unusual one moves instead of breaking.
   let rows = ()
   let cells = ()
   if header != none {
-    rows.push(tokens.header-height)
+    rows.push(auto)
     cells.push(header)
   }
   rows.push(1fr)
@@ -216,7 +229,7 @@
     cells.push(progress)
   }
   if footer != none {
-    rows.push(tokens.footer-height)
+    rows.push(auto)
     cells.push(footer)
   }
   if cells.len() == 1 { return body }

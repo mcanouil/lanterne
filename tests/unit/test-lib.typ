@@ -11,9 +11,13 @@
 #import "../../src/core/steps.typ"
 #import "../../src/emit/step.typ"
 #import "../../src/render/deck.typ"
+#import "../../src/theme/presets.typ"
 #import "../../src/theme/theme.typ"
 
 #assert.eq(lib.theme-tokens, theme.theme-tokens)
+#assert.eq(lib.theme-default, presets.theme-default)
+#assert.eq(lib.theme-plain, presets.theme-plain)
+#assert.eq(lib.theme-banded, presets.theme-banded)
 #assert.eq(lib.theme-merge, theme.theme-merge)
 #assert.eq(lib.deck, deck.deck)
 #assert.eq(lib.appendix, slides.appendix)
@@ -41,7 +45,8 @@
   (
     "appendix", "context-slide", "deck", "dim", "emit-step", "focus", "only",
     "pause", "register-container", "slide", "slide-options", "step",
-    "theme-merge", "theme-tokens", "uncover",
+    "theme-banded", "theme-default", "theme-merge", "theme-plain",
+    "theme-tokens", "uncover",
   ),
 )
 
@@ -50,5 +55,6 @@
 #import "../../lib.typ": *
 #assert.eq(theme-tokens().bg, white)
 #assert.eq(theme-merge(theme-tokens(), (margin: 1cm)).margin, 1cm)
+#assert.eq(theme-default(), theme-plain())
 
 lib tests passed.
