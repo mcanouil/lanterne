@@ -276,3 +276,28 @@ Four pages, each reporting its own place in the four the option asked for.
 ```
 
 A handout of the stepped deck above renders one page per slide, each showing everything the slide's last step reveals.
+
+## A theme that composes a page
+
+`examples/banded-deck.typ` renders under `theme-banded`, which supplies a header, a footer and a section renderer.
+Nothing in the deck sets a slot: the theme carries all three.
+
+```typst
+#import "@preview/lanterne:0.1.0": *
+
+#show: deck.with(
+  theme: theme-banded(accent: rgb("#1f5fa9"), bg: rgb("#fbfbfd"), fg: rgb("#1c1c22")),
+  aspect-ratio: "16-9",
+  slide-level: 2,
+  info: (title: [Banded], author: "Mickaël Canouil"),
+)
+
+= Composing a page
+
+== A title in the band
+
+The theme takes this slide's title out of the body and places it in the header
+region.
+```
+
+The last slide of that deck is opened by `#pagebreak()` and has no title, so the header declines the region and the body keeps the space.

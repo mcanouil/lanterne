@@ -147,6 +147,11 @@
 ///
 /// `none` is the canonical defaults. They are returned rather than validated,
 /// because validation reports what an author wrote and nobody wrote these.
+/// `theme-plain()` is the same value, so a deck that names no theme and one that
+/// names the default preset are the same deck. That equality is asserted rather
+/// than arranged: this module cannot import the presets, since they are built
+/// from it, and routing the default through `deck` instead would put the
+/// question of which theme a render reads back under two owners.
 /// @category theme
 /// @returns dictionary
 #let resolve-mode(theme, mode, scope) = {

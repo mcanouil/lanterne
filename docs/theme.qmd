@@ -141,6 +141,36 @@ Typst exposes nothing of a closure's parameters, so a slot's arity cannot be val
 )
 ```
 
+## The built in themes
+
+Two, and a deck names one or neither.
+
+```typst
+#import "@preview/lanterne:0.1.0": *
+
+#show: deck.with(theme: theme-banded(accent: rgb("#1f5fa9")))
+```
+
+`theme-plain` is the canonical defaults and no renderers, so a slide is its title and its body on a dressed page.
+It is what a deck renders under when it names no theme, and `theme-default` returns it.
+A default that draws chrome would be a default every deck had to opt out of.
+
+`theme-banded` composes: the title goes in a coloured band, a rule and the deck's own title run along the foot, and a section slide gives the band up for a page of its own.
+It reads `accent`, `accent-fg`, `muted`, `border`, `stroke-width`, `header-height`, `footer-height` and `gutter`.
+
+Both take named overrides, exactly as `theme-tokens` does, so a deck adopts one and changes what it likes:
+
+```typst
+#show: deck.with(theme: theme-banded(accent: red, font-base: "Inter"))
+```
+
+Overriding a colour keeps the renderers, since `slots` merges key by key.
+To take a theme's chrome without one part, clear that slot:
+
+```typst
+#let quiet = theme-merge(theme-banded(), (slots: (render-footer: none)))
+```
+
 ## What a slot composes
 
 Two of the five compose a whole page, and three fill a region of one.

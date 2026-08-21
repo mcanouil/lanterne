@@ -30,4 +30,5 @@
 #import "src/emit/step.typ": emit-step
 
 // Theme.
+#import "src/theme/presets.typ": theme-banded, theme-default, theme-plain
 #import "src/theme/theme.typ": theme-merge, theme-tokens
