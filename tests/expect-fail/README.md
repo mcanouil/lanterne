@@ -30,5 +30,8 @@ So are `rebuild`'s `match` and `keep-labels` arguments, along with the three lab
 The theme's two reserved keys carry their own guards: an unknown slot name and a non-function slot, on the override side and on the base side alike, and a `none` in a base, which clears a slot only where an override writes it.
 The light and dark pair is covered through `deck`, which is what an author writes: a pair missing a half, a pair carrying a token beside its halves, a half that is not a dictionary, a bad token in the half this render does not select, an unknown `theme-mode`, and a whole pair handed to `theme-merge`, which merges one half at a time.
 
+The theme's renderer slots carry three: a slot that returns something other than content or `none`, and a header or a section renderer that declines a page whose title it was handed, which would leave that title nowhere at all.
+The slide record's own pair is covered too: a title written without its source, and a source outside the two the record accepts.
+
 Add a case with the guard, in the same commit.
 A guard with no case here is a guard that can be deleted without the build noticing.

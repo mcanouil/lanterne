@@ -15,19 +15,24 @@
   [body],
   kind: "section",
   title: [Title],
+  title-source: "heading",
   level: 1,
   label: <slide>,
   attrs: (smaller: true),
 )
 #assert.eq(full.kind, "section")
 #assert.eq(full.title, [Title])
+#assert.eq(full.title-source, "heading")
 #assert.eq(full.level, 1)
 #assert.eq(full.label, <slide>)
 #assert.eq(full.attrs, (appendix: false, smaller: true, steps: none))
 #assert.eq(full.body, [body])
 
 // The key set is fixed, so a reader never guesses whether a key is there.
-#assert.eq(full.keys().sorted(), ("attrs", "body", "kind", "label", "level", "title"))
+#assert.eq(
+  full.keys().sorted(),
+  ("attrs", "body", "kind", "label", "level", "title", "title-source"),
+)
 
 // ---------------------------------------------------------------------------
 // Defaults.
@@ -40,12 +45,20 @@
 #let bare = slide-record([body])
 #assert.eq(bare.kind, "content")
 #assert.eq(bare.title, none)
+#assert.eq(bare.title-source, none)
 #assert.eq(bare.level, none)
 #assert.eq(bare.label, none)
 #assert.eq(bare.body, [body])
 
 // An empty body is legitimate: a heading with nothing under it is a slide.
-#assert.eq(slide-record([], title: [T], level: 2).body, [])
+#assert.eq(slide-record([], title: [T], title-source: "heading", level: 2).body, [])
+
+// A title and its source are written together. Which of the two a title came
+// from is a property of how the slide was written, not something a reader can
+// work out afterwards: a heading opening a slide is that slide's title, while a
+// title passed to `slide(...)` is an argument and the body may carry a heading
+// of its own at the same level.
+#assert.eq(slide-record([], title: [T], title-source: "value", level: 2).title-source, "value")
 
 // ---------------------------------------------------------------------------
 // Attributes.

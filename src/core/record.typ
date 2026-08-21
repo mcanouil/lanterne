@@ -17,6 +17,11 @@
 
 #import "../utils/errors.typ": fail, fail-enum, fail-type
 
+// Where a slide's title came from. A heading opening a slide is that slide's
+// title and sits at the head of its body; a title passed to `slide(...)` is an
+// argument, and that body may carry a heading of its own at the same level.
+#let _TITLE-SOURCES = ("heading", "value")
+
 #let _KINDS = ("section", "content")
 
 // Name, default and rule together, as src/theme/tokens.typ writes its token
@@ -78,11 +83,21 @@
 /// `title`, `level` and `label` describe the heading the slide was opened by,
 /// for whatever reads a record. They do not replace it: the heading stays in
 /// `body`, where the style wrappers it was written under still govern it, so a
-/// renderer places the body and reads these to know what the slide is called.
+/// renderer that places no title of its own places the body and reads these to
+/// know what the slide is called.
+///
+/// `title-source` says where the title came from, and decides whether a
+/// renderer may take it out of that body. A heading opening a slide is the
+/// slide's title and sits at its head, so `heading` may be lifted out and
+/// placed elsewhere. A title passed to `slide(...)` is an argument, and that
+/// body is never split, so it may legitimately carry a heading of its own at
+/// the same level: `value` is placed as it stands and nothing is taken out.
+/// This cannot be worked out from the body afterwards, which is why the record
+/// carries it.
 ///
 /// `title` and `level` stand or fall together: a title with no level describes a
 /// heading at no level, and a level with no title describes a heading that is
-/// not there.
+/// not there. `title` and `title-source` likewise.
 ///
 /// `label` is carried because specification 4.7 relies on a labelled heading
 /// creating a named destination, and content equality ignores labels, so a
@@ -96,6 +111,7 @@
   body,
   kind: "content",
   title: none,
+  title-source: none,
   level: none,
   label: none,
   attrs: (:),
@@ -109,6 +125,9 @@
   }
   if title != none and type(title) != content {
     fail-type(scope, "title", title, "content or none")
+  }
+  if title-source != none and title-source not in _TITLE-SOURCES {
+    fail-enum(scope, "title-source", title-source, _TITLE-SOURCES)
   }
   if level != none and (type(level) != int or level < 1) {
     fail-type(scope, "level", level, "a positive integer or none")
@@ -130,6 +149,21 @@
       hint: "Pass title alongside level, or neither.",
     )
   }
+  // Where the title came from, which the renderer cannot work out afterwards.
+  // A heading opening a slide is that slide's title and sits at the head of its
+  // body; a title passed to `slide(...)` is an argument, and the body may
+  // legitimately carry a heading at the same level that is content rather than
+  // a title. Only the first is a heading the renderer may take out of the body.
+  if (title == none) != (title-source == none) {
+    fail(
+      scope,
+      "a title and its source are written together; got "
+        + repr(title)
+        + " and "
+        + repr(title-source),
+      hint: "Pass title-source alongside title, or neither.",
+    )
+  }
   // A section slide is a divider, and a divider with nothing on it is a slide
   // the author did not ask for.
   if kind == "section" and title == none {
@@ -147,6 +181,7 @@
   (
     kind: kind,
     title: title,
+    title-source: title-source,
     level: level,
     label: label,
     attrs: options,

@@ -39,7 +39,7 @@ The colour, typography and geometry groupings are documentation rather than stru
 | `footer-height` | non-negative length | `1cm` | The height of a footer region. |
 | `stroke-width` | non-negative length | `1pt` | The thickness of a rule or a border. |
 | `extra` | dictionary | `(:)` | Tokens of your own. The one key whose contents are not validated. |
-| `slots` | dictionary | `(:)` | A theme's renderers, validated against the five slot names. Nothing calls them yet. |
+| `slots` | dictionary | `(:)` | A theme's renderers, validated against the five slot names. |
 
 : The token vocabulary. {.striped .hover tbl-colwidths="[15,25,15,45]"}
 
@@ -50,9 +50,8 @@ That is stricter than it sounds: `2cm - 1em` is refused, although it resolves to
 The two parts are read separately because Typst refuses to compare a mixed length with zero at all, and comparing the whole would replace this message with Typst's own.
 
 The vocabulary grows with the code that reads a token.
-The specification names twenty-eight, and the eighteen above are those the package validates today.
-Ten of them are read now: `bg`, `fg`, `dim-opacity`, `font-base`, `font-heading`, `size-base`, `scale-ratio`, `weight-heading`, `leading` and `margin`.
-The other eight are read by the renderer slots, which arrive in a later release, and the remaining names of the specification arrive with the layout and element milestones.
+The specification names twenty-eight, and the eighteen above are those the package validates and reads today.
+The remaining names arrive with the layout and element milestones.
 
 The six colour tokens are a matched set, tuned for the light default.
 Each is overridden on its own, so a theme that sets `bg` to a dark fill should set `muted` and `border` as well, or the secondary text and the rules fall below a readable contrast.
@@ -109,15 +108,6 @@ It is not itself a token name, so `theme-tokens(extra: ...)` is accepted as a ke
 
 ## The `slots` namespace
 
-::: {.callout-important}
-
-## Not active yet
-
-A theme carries slots today and nothing calls them.
-The renderers arrive with the release that composes a page from regions.
-Until then a slot is validated when you write it, and every slide renders exactly as it does without one.
-:::
-
 `slots` holds a theme's renderers.
 It is the second reserved key, and like `extra` it is not a token name and merges key by key, so overriding one colour of a theme does not drop the renderers it supplied.
 
@@ -133,9 +123,100 @@ Typst exposes nothing of a closure's parameters, so a slot's arity cannot be val
 ```typst
 #let banded = theme-tokens(
   accent: rgb("#1f5fa9"),
-  slots: (render-header: (info: none, tokens: none, state: none) => []),
+  accent-fg: white,
+  slots: (
+    render-header: (info: none, tokens: none, state: none) => {
+      // A slide opened by `#pagebreak()` has no title, so the header says there
+      // is no region on that page rather than placing nothing.
+      if state.title == none { return none }
+      block(
+        width: 100%,
+        height: 100%,
+        fill: tokens.accent,
+        inset: 1em,
+        text(fill: tokens.accent-fg, state.title),
+      )
+    },
+  ),
 )
 ```
+
+## What a slot composes
+
+Two of the five compose a whole page, and three fill a region of one.
+
+| Slot | Composes |
+| --- | --- |
+| `render-title-slide` | A page of its own, before the first slide, from the deck's `info`. |
+| `render-section-slide` | The whole page of a section slide, in place of the centred default. |
+| `render-header` | The region above the body of a content slide. |
+| `render-progress` | A region below the body. |
+| `render-footer` | The region at the foot of a content slide. |
+
+: The five slots. {.striped .hover tbl-colwidths="[30,70]"}
+
+A region with no slot behind it takes no space at all, so a theme supplying none composes the page exactly as a themeless deck does.
+A slot may also return `none` to say that its region takes no space on this page, which is how a theme hides its footer on an appendix slide or its progress bar on the first step.
+A slot that was handed the slide's title may not decline, since declining would leave the title nowhere: that is refused with a message naming the slot and the slide.
+Blank content is refused for the same reason and by the same message, because it loses the title just as completely.
+
+`render-title-slide` reads both differently: `none`, or content with nothing on it, means the deck has no title page, and none is emitted.
+That is how a theme writes a title page conditional on the metadata it is given, whether the conditional is written in code or in markup.
+
+A section slide uses its own slot and carries no header, footer or progress region.
+A title slide is a page of its own and carries none either: it is not a slide of the deck, so the deck's chrome does not belong on it.
+
+::: {.callout-warning}
+
+## A header slot must place the title
+
+Supplying `render-header` moves the title out of the body, so the header is the only place it can appear.
+A header that ignores `state.title` deletes the title from the slide, from the outline and from the PDF bookmarks.
+If the slide was labelled, the label goes with the heading, and a reference to that slide then fails to compile with a Typst message naming neither the theme nor the slot.
+
+Place `state.title` somewhere, or supply no header slot and let the title render in the body.
+:::
+
+The header's height is the `header-height` token and the footer's is `footer-height`, so a slot fills those two regions rather than sizing them.
+Those heights are deck-level and do not shrink under `slide-options(smaller: true)`, which shrinks the text: a region that shrank with it would put one slide's chrome out of line with the rest of the deck.
+Content taller than its row overflows it rather than growing the row, since the row is what keeps the body in the same place on every slide.
+
+The progress region is the exception and is sized by what it holds.
+A progress indicator is a rule or a bar a few points high, and a token to say so would be a token every theme had to set to the height of the thing it had already drawn.
+
+Regions render in the flow of the page rather than in Typst's own page header.
+That is what keeps a title placed in one numbered, restyled by your own rules, listed in the outline and reachable by a reference.
+
+## What a slot receives
+
+`state` describes the page being composed.
+
+| Key | Value |
+| --- | --- |
+| `kind` | `"section"`, `"content"`, or `"title"` on the deck's title page. |
+| `title` | The slide's title as content you can place, or `none`. |
+| `title-source` | `"heading"`, `"value"`, or `none`. |
+| `level` | The heading level the title stands at, or `none`. |
+| `appendix` | Whether the slide is an appendix slide. |
+| `body` | The slide's content, with the title removed when it was taken out. |
+| `step` | `(index: ..., total: ...)`, one-based, over the slide's whole step space. |
+| `mode` | `"light"` or `"dark"`. |
+
+: What `state` carries. {.striped .hover tbl-colwidths="[25,75]"}
+
+`title` is content only when this page has somewhere to put it: a header slot on a content slide, or the section slot on a section slide.
+A slot that is handed one has to place it, whichever source it came from.
+A theme that places no title leaves it in the body where it was written, because taking it out with nowhere to put it would delete it from the slide.
+
+`title-source` says what kind of thing `title` is.
+`"heading"` is the heading you wrote, carried out of the body with the style rules in force over it, so your own `show heading` rule reaches it.
+`"value"` is what was passed to `slide(title: ...)`, which is not a heading at all, so no such rule reaches it.
+A theme that wants the two to look alike sets the font and size itself rather than wrapping the value in `heading(...)`, which would add a second heading to the document and put an explicit slide in the outline.
+
+`step` counts over the slide's whole step space rather than over the pages this render emits, so a handout reports the step it kept.
+
+`state` describes the slide, not the deck.
+There is no slide index, slide total or page position in it yet, so a progress bar over the whole deck and a slide number are not yet expressible: they arrive with the `progress` and `slide-number` tokens in a later release.
 
 A value of `none` clears a slot rather than storing one.
 That is how a theme takes another's chrome without one of its parts, since every other value has to be a function.
